@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=Monophony
-GenericName=Music streamer
+GenericName=Music streaming app
 Comment=Music streaming app
 Exec=monophony
 Terminal=false
