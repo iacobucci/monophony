@@ -28,7 +28,7 @@ class Adapter(MprisAdapter):
 		pass
 
 	def get_current_position(self) -> float:
-		return self.monophony_player.get_progress()
+		return self.monophony_player.get_position_ns() / 1000
 
 	def next(self):
 		GLib.Thread.new(None, self.monophony_player.next_song, True)

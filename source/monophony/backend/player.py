@@ -88,9 +88,15 @@ class Player:
 			self.lock.unlock()
 		return result
 
+	def get_duration_ns(self) -> float:
+		return self.playbin.query_duration(Gst.Format.TIME)[1]
+
+	def get_position_ns(self) -> float:
+		return self.playbin.query_position(Gst.Format.TIME)[1]
+
 	def get_progress(self) -> float:
-		duration = self.playbin.query_duration(Gst.Format.TIME)[1]
-		position = self.playbin.query_position(Gst.Format.TIME)[1]
+		duration = self.get_duration_ns()
+		position = self.get_position_ns()
 		return (position / duration) if duration > 0 else 0.0
 
 	def set_volume(self, volume_cubic: float, notify_mpris: bool):
@@ -474,7 +480,7 @@ class Player:
 		if not self.lock.trylock():
 			return
 
-		duration = self.playbin.query_duration(Gst.Format.TIME)[1]
+		duration = self.get_duration_ns()
 		if duration > 0 and self.get_current_song(lock=False):
 			self.playbin.seek_simple(
 				Gst.Format.TIME,
