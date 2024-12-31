@@ -150,6 +150,45 @@ class MonophonyMainWindow(Adw.ApplicationWindow):
 		win_about.add_legal_section(
 			'mpris_server', 'Copyright © Alex DeLorenzo', Gtk.License.LGPL_3_0
 		)
+		win_about.add_legal_section(
+			'StrEnum', 'Copyright © 2019 James C Sinclair', Gtk.License.MIT_X11
+		)
+		win_about.add_legal_section(
+			'Unidecode', 'Copyright © 2024, Tomaž Šolc', Gtk.License.GPL_2_0
+		)
+		win_about.add_legal_section(
+			'emoji',
+			'Copyright © 2014-2024, Taehoon Kim, Kevin Wurster',
+			Gtk.License.BSD_3
+		)
+		win_about.add_legal_section('pycairo', '', Gtk.License.LGPL_2_1_ONLY)
+		win_about.add_legal_section(
+			'pydbus',
+			'Copyright © 2014, 2015, 2016 Linus Lewandowski',
+			Gtk.License.LGPL_2_1
+		)
+		win_about.add_legal_section('certifi', '', Gtk.License.MPL_2_0)
+		win_about.add_legal_section(
+			'charset_normalizer',
+			'Copyright © 2025 TAHRI Ahmed R.',
+			Gtk.License.MIT_X11
+		)
+		win_about.add_legal_section(
+			'idna',
+			'Copyright © 2013-2024, Kim Davies and contributors',
+			Gtk.License.BSD_3
+		)
+		win_about.add_legal_section(
+			'requests',
+			'Copyright © 2019 Kenneth Reitz',
+			Gtk.License.APACHE_2_0
+		)
+		win_about.add_legal_section(
+			'urllib3',
+			'Copyright © 2008-2020 Andrey Petrov and contributors',
+			Gtk.License.MIT_X11
+		)
+		win_about.add_legal_section('PyGObject', '', Gtk.License.LGPL_2_1)
 		win_about.set_translator_credits(_('translator-credits'))
 		win_about.set_issue_url('https://gitlab.com/zehkira/monophony/-/issues')
 		win_about.set_website('https://gitlab.com/zehkira/monophony')
