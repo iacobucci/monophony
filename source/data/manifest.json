@@ -24,8 +24,8 @@
 			],
 			"sources": [{
 				"type": "file",
-				"url": "https://github.com/yt-dlp/yt-dlp/releases/download/2024.12.13/yt-dlp",
-				"sha256": "ec5f59f8b8908d93b2bdf6663c3ecba70781f39de21255d183220f250ebccc94"
+				"url": "https://github.com/yt-dlp/yt-dlp/releases/download/2025.01.15/yt-dlp",
+				"sha256": "3538632719208b53e74a4f13ea3dcea3107ba2d5dd48022118781908edfbc539"
 			}]
 		},
 		{
