@@ -32,10 +32,6 @@ class MonophonySongPopover(Gtk.PopoverMenu):
 		self.window.install_action(
 			'add-song-to', None, lambda w, *_: w._on_add_clicked(song)
 		)
-		menu.append(_('View Artist'), 'show-artist')
-		self.window.install_action(
-			'show-artist', None, lambda w, *_: w._on_show_artist(song['author_id'])
-		)
 		self.set_menu_model(menu)
 		btn.set_popover(self)
 

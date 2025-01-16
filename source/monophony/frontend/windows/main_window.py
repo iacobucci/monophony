@@ -29,7 +29,6 @@ class MonophonyMainWindow(Adw.ApplicationWindow):
 		self.player = monophony.backend.player.Player()
 		self.player.queue_end_callback = self._on_queue_end
 		self.player.raise_callback = self.present
-		self.removed_playlists = []
 		GLib.Thread.new(None, monophony.backend.mpris.init, self.player)
 
 		self.stack = Adw.ViewStack()
@@ -143,7 +142,7 @@ class MonophonyMainWindow(Adw.ApplicationWindow):
 		win_about.set_application_name('Monophony')
 		win_about.set_version(__version__)
 		win_about.set_copyright('Copyright © 2022-present Zehkira and contributors')
-		win_about.set_license_type(Gtk.License.AGPL_3_0)
+		win_about.set_license_type(Gtk.License.GPL_2_0)
 		win_about.add_legal_section(
 			'ytmusicapi', 'Copyright © 2024 sigma67', Gtk.License.MIT_X11
 		)
@@ -234,31 +233,10 @@ class MonophonyMainWindow(Adw.ApplicationWindow):
 	def _on_delete_playlist(self, widget: object, local: bool=True):
 		group = widget.group.copy()
 		group['local'] = local
-		self.removed_playlists.append(group)
-		toast_undo = Adw.Toast.new(
-			_('Deleted "{playlist_name}"').format(playlist_name=group['title'])
-		)
-		toast_undo.set_priority(Adw.ToastPriority.HIGH)
-		toast_undo.set_button_label(_('Undo'))
-		toast_undo.set_action_name('playlist-delete-undo')
-		toast_undo.connect('dismissed', self._on_toast_dismissed)
-		self.toaster.add_toast(toast_undo)
 		if local:
 			monophony.backend.playlists.remove_playlist(group['title'])
 		else:
 			monophony.backend.playlists.remove_external_playlist(group['title'])
-
-	def _on_toast_dismissed(self, _toast: object):
-		self.removed_playlists.pop()
-
-	def _on_undo_deletion(self):
-		playlist = self.removed_playlists[len(self.removed_playlists) - 1]
-		if playlist['local']:
-			monophony.backend.playlists.add_playlist(
-				playlist['title'], playlist['contents']
-			)
-		else:
-			monophony.backend.playlists.add_external_playlist(playlist)
 
 	def _on_duplicate_playlist(self, widget: object):
 		monophony.backend.playlists.add_playlist(

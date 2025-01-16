@@ -58,24 +58,6 @@ class MonophonyPlayer(Gtk.Box):
 		self.box_sng_info.append(self.lbl_author)
 		box_info.append(self.box_sng_info)
 
-		self.scl_volume = Gtk.ScaleButton.new(
-			0, 1, 0.01,
-			[
-				'audio-volume-muted-symbolic',
-				'audio-volume-high-symbolic',
-				'audio-volume-low-symbolic',
-				'audio-volume-medium-symbolic',
-				'audio-volume-high-symbolic'
-			]
-		)
-		self.scl_volume.set_tooltip_text(_('Volume'))
-		popup_volume = self.scl_volume.get_popup()
-		box_volume = popup_volume.get_child()
-		box_scl_volume = box_volume.get_first_child().get_next_sibling()
-		box_scl_volume.set_round_digits(-1)
-		self.scl_volume.set_value(volume)
-		self.scl_volume.connect('value-changed', self._on_volume_changed)
-
 		self.spn_loading = Adw.Spinner()
 		self.spn_loading.set_halign(Gtk.Align.CENTER)
 		self.spn_loading.set_margin_start(9)
@@ -116,7 +98,6 @@ class MonophonyPlayer(Gtk.Box):
 		box_controls.set_valign(Gtk.Align.CENTER)
 		box_controls.set_halign(Gtk.Align.END)
 		box_controls.set_hexpand(True)
-		box_controls.append(self.scl_volume)
 		box_controls.append(btn_prev)
 		box_controls.append(self.btn_pause)
 		box_controls.append(self.spn_loading)
@@ -293,10 +274,6 @@ class MonophonyPlayer(Gtk.Box):
 		song = self.player.get_current_song()
 		if song:
 			self.window._on_show_artist(song['author_id'])
-
-	def _on_volume_changed(self, _scl, value):
-		self.player.set_volume(value, True)
-		monophony.backend.settings.set_value('volume', value)
 
 	def update_progress(self) -> bool:
 		if self.player.buffering or not self.lnk_title.get_label():

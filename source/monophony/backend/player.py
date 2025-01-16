@@ -7,8 +7,7 @@ import monophony.backend.yt
 
 import gi
 gi.require_version('Gst', '1.0')
-gi.require_version('GstAudio', '1.0')
-from gi.repository import GLib, Gst, GstAudio
+from gi.repository import GLib, Gst
 
 
 class PlaybackMode:
@@ -101,15 +100,7 @@ class Player:
 
 	def set_volume(self, volume_cubic: float, notify_mpris: bool):
 		self.lock.lock()
-		volume_linear = self.playbin.convert_volume(
-			GstAudio.StreamVolumeFormat.CUBIC,
-			GstAudio.StreamVolumeFormat.LINEAR,
-			volume_cubic
-		)
-		self.playbin.set_property('volume', volume_linear)
 		self.lock.unlock()
-		if notify_mpris:
-			self.mpris_adapter.on_volume()
 
 	def get_volume(self) -> float:
 		return self.playbin.convert_volume(
@@ -303,10 +294,8 @@ class Player:
 			self.play_song(song)
 
 	def toggle_pause(self):
-		if not self.lock.trylock():
-			return
 		if self.buffering:
-			self.lock.unlock()
+			#self.lock.unlock()
 			return
 
 		if not self.paused:
@@ -324,7 +313,6 @@ class Player:
 			self.paused,
 			False
 		)
-		self.lock.unlock()
 
 	def next_song(self, ignore_loop: bool=False, lock: bool=True):
 		if lock and not self.lock.trylock():

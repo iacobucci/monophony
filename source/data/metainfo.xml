@@ -2,7 +2,7 @@
 <component type="desktop">
 	<id>io.gitlab.zehkira.Monophony</id>
 	<metadata_license>0BSD</metadata_license>
-	<project_license>AGPL-3.0-or-later</project_license>
+	<project_license>GPL-2.0-or-later</project_license>
 	<name>Monophony</name>
 	<developer_name>Zehkira</developer_name>
 	<url type="homepage">https://gitlab.com/zehkira/monophony</url>
