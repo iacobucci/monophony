@@ -29,6 +29,7 @@ class MonophonyMainWindow(Adw.ApplicationWindow):
 		self.player = monophony.backend.player.Player()
 		self.player.queue_end_callback = self._on_queue_end
 		self.player.raise_callback = self.present
+		self.deleted_playlists = []
 		GLib.Thread.new(None, monophony.backend.mpris.init, self.player)
 
 		self.stack = Adw.ViewStack()
@@ -90,7 +91,7 @@ class MonophonyMainWindow(Adw.ApplicationWindow):
 			(lambda w, *_: w.stack.set_visible_child_name('queue'))
 		)
 		self.install_action(
-			'playlist-delete-undo', None, (lambda w, *_: w._on_undo_deletion())
+			'playlist-delete-undo', None, (lambda w, *_: w._on_undo_delete())
 		)
 		self.get_application().set_accels_for_action(
 			'quit-app', ['<Control>w', '<Control>q']
@@ -233,6 +234,19 @@ class MonophonyMainWindow(Adw.ApplicationWindow):
 	def _on_delete_playlist(self, widget: object, local: bool=True):
 		group = widget.group.copy()
 		group['local'] = local
+
+		tst_undo = Adw.Toast.new(
+			_('Deleted playlist "{playlist_name}"').format(
+				playlist_name=group['title']
+			)
+		)
+		tst_undo.set_priority(Adw.ToastPriority.HIGH)
+		tst_undo.set_button_label(_('Undo'))
+		tst_undo.set_action_name('playlist-delete-undo')
+		tst_undo.connect('dismissed', self._on_toast_dismissed)
+		self.toaster.add_toast(tst_undo)
+		self.deleted_playlists.append(group)
+
 		if local:
 			monophony.backend.playlists.remove_playlist(group['title'])
 		else:
@@ -250,3 +264,16 @@ class MonophonyMainWindow(Adw.ApplicationWindow):
 	def _on_queue_end(self):
 		if not self.is_visible():
 			self._on_quit()
+
+	def _on_toast_dismissed(self, _t: Adw.Toast):
+		self.deleted_playlists.pop()
+
+	def _on_undo_delete(self):
+		playlist = self.deleted_playlists[-1]
+		if playlist['local']:
+			monophony.backend.playlists.add_playlist(
+				playlist['title'], playlist['contents']
+			)
+			return
+
+		monophony.backend.playlists.add_external_playlist(playlist)

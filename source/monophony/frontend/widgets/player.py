@@ -86,6 +86,17 @@ class MonophonyPlayer(Gtk.Box):
 		btn_prev.connect('clicked', self._on_previous_clicked)
 		btn_prev.set_has_frame(False)
 
+		self.btn_vol = Gtk.ScaleButton.new(0, 1, 0.02, [
+			'audio-volume-muted-symbolic',
+			'audio-volume-high-symbolic',
+			'audio-volume-low-symbolic',
+			'audio-volume-medium-symbolic',
+			'audio-volume-high-symbolic'
+		])
+		self.btn_vol.set_value(volume)
+		self.btn_vol.set_tooltip_text(_('Change volume'))
+		self.btn_vol.connect('value-changed', self._on_volume_changed)
+
 		self.btn_mode = Gtk.MenuButton()
 		self.btn_mode.set_valign(Gtk.Align.CENTER)
 		self.btn_mode.set_icon_name(MonophonyPlayer.playback_icons[player.mode])
@@ -98,6 +109,7 @@ class MonophonyPlayer(Gtk.Box):
 		box_controls.set_valign(Gtk.Align.CENTER)
 		box_controls.set_halign(Gtk.Align.END)
 		box_controls.set_hexpand(True)
+		box_controls.append(self.btn_vol)
 		box_controls.append(btn_prev)
 		box_controls.append(self.btn_pause)
 		box_controls.append(self.spn_loading)
@@ -221,6 +233,9 @@ class MonophonyPlayer(Gtk.Box):
 		pop_menu.add_child(chk_loop_q, 'loop_q')
 		pop_menu.add_child(chk_autoplay, 'autoplay')
 		btn.set_popover(pop_menu)
+
+	def _on_volume_changed(self, _b, volume):
+		self.player.set_volume(volume, False)
 
 	def _on_seek_performed(self, _s, _t, target: float):
 		GLib.Thread.new(None, self.player.seek, target)

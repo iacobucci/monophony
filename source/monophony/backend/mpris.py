@@ -86,6 +86,12 @@ class Adapter(MprisAdapter):
 	def get_stream_title(self):
 		return ''
 
+	def get_volume(self):
+		return self.monophony_player.get_volume()
+
+	def set_volume(self, volume: float):
+		self.monophony_player.set_volume(volume, True)
+
 	def is_mute(self) -> bool:
 		return False
 
