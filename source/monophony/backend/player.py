@@ -303,14 +303,14 @@ class Player:
 			self.index += 1
 			self.play_song(song)
 
-	def toggle_pause(self):
+	def set_pause(self, pause: bool):
 		if not self.lock.trylock():
 			return
 		if self.buffering:
 			self.lock.unlock()
 			return
 
-		if not self.paused:
+		if pause:
 			self.playbin.set_state(Gst.State.PAUSED)
 			self.paused = True
 		else:
@@ -326,6 +326,9 @@ class Player:
 			False
 		)
 		self.lock.unlock()
+
+	def toggle_pause(self):
+		self.set_pause(not self.paused)
 
 	def next_song(self, ignore_loop: bool=False, lock: bool=True):
 		if lock and not self.lock.trylock():

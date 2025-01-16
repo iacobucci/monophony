@@ -37,10 +37,10 @@ class Adapter(MprisAdapter):
 		GLib.Thread.new(None, self.monophony_player.previous_song)
 
 	def pause(self):
-		self.monophony_player.toggle_pause()
+		self.monophony_player.set_pause(True)
 
 	def resume(self):
-		self.monophony_player.toggle_pause()
+		self.monophony_player.set_pause(False)
 
 	def stop(self):
 		self.monophony_player.clear_queue()
