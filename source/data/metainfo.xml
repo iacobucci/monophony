@@ -42,6 +42,18 @@
 	<launchable type="desktop-id">io.gitlab.zehkira.Monophony.desktop</launchable>
 	<content_rating type="oars-1.1"></content_rating>
 	<releases>
+		<release version="3.0.0" date="2025-01-17">
+			<description>
+				<p>This release does not break backwards compatibility - it is only considered a major release due to the license change.</p>
+				<ul>
+					<li>Changed license to GPL-2.0-or-later to resolve license conflicts</li>
+					<li>Added total queue/album/playlist duration to interface</li>
+					<li>Fixed song play/pause in system integration</li>
+					<li>Fixed song duration/progress in system integration</li>
+					<li>Updated backend to support latest YT changes</li>
+				</ul>
+			</description>
+		</release>
 		<release version="2.17.3" date="2024-12-16">
 			<description>
 				<ul>
