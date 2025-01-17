@@ -27,6 +27,7 @@ class MonophonyLocalGroupRow(MonophonyGroupRow):
 		btn_more.set_valign(Gtk.Align.CENTER)
 		btn_more.set_create_popup_func(self._on_show_actions)
 		self.add_action(btn_more)
+		super().update()
 
 	def _on_show_actions(self, btn: Gtk.MenuButton):
 		window = self.get_ancestor(Gtk.Window)
@@ -100,6 +101,8 @@ class MonophonyLocalGroupRow(MonophonyGroupRow):
 		self.get_ancestor(Adw.PreferencesGroup).remove(self)
 
 	def update(self) -> bool:
+		super().update()
+
 		self.set_enable_expansion(self.song_widgets != [])
 		playlists = monophony.backend.playlists.read_playlists()
 		if self.group['title'] not in playlists:

@@ -21,6 +21,7 @@ class MonophonyImportableGroupRow(MonophonyGroupRow):
 		btn_more.set_valign(Gtk.Align.CENTER)
 		btn_more.set_create_popup_func(self._on_show_actions)
 		self.add_action(btn_more)
+		super().update()
 
 	def _on_show_actions(self, btn: Gtk.MenuButton):
 		window = self.get_ancestor(Gtk.Window)

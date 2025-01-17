@@ -12,3 +12,5 @@ class MonophonyLockedGroupRow(MonophonyGroupRow):
 
 		for item in group['contents']:
 			self.add_row(MonophonySongRow(item, player, group))
+
+		super().update()

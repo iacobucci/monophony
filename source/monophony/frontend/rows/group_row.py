@@ -1,3 +1,5 @@
+from monophony.backend.utils import time_str_to_sec, sec_to_time_str
+
 import gi
 gi.require_version('Adw', '1')
 gi.require_version('Gtk', '4.0')
@@ -31,3 +33,10 @@ class MonophonyGroupRow(Adw.ExpanderRow):
 			return
 
 		GLib.Thread.new(None, self.player.play_queue, self.group['contents'], 0)
+
+	def update(self):
+		total_seconds = 0
+		for song in self.group.get('contents', []):
+			total_seconds += time_str_to_sec(song.get('length', '0'))
+
+		self.set_subtitle(sec_to_time_str(total_seconds) + ' ' + self.get_subtitle())
