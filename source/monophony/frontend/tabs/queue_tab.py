@@ -1,3 +1,4 @@
+from monophony.backend.utils import time_str_to_sec, sec_to_time_str
 from monophony.frontend.rows.queue_song_row import MonophonyQueueSongRow
 
 import gi
@@ -65,12 +66,14 @@ class MonophonyQueueTab(Gtk.Box):
 			self.queue_widgets = []
 			self.old_queue = new_queue.copy()
 			self.old_index = new_index
+			total_seconds = 0
 			for i, song in enumerate(new_queue):
 				widget = MonophonyQueueSongRow(
 					song,
 					self.player,
 					{'title': '', 'contents': new_queue}
 				)
+				total_seconds += time_str_to_sec(song.get('length', '0'))
 				if i == new_index:
 					widget.add_css_class('current-queue-item')
 				self.box_queue.add(widget)
@@ -83,4 +86,5 @@ class MonophonyQueueTab(Gtk.Box):
 				else:
 					widget.remove_css_class('current-queue-item')
 
+		self.box_queue.set_description(sec_to_time_str(total_seconds))
 		return False
