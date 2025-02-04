@@ -1,5 +1,4 @@
 import monophony.backend.playlists
-import monophony.backend.yt
 from monophony.frontend.windows.message_window import MonophonyMessageWindow
 
 import gi

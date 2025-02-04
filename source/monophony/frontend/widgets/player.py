@@ -2,7 +2,6 @@ from typing import ClassVar
 
 import monophony.backend.player
 import monophony.backend.settings
-import monophony.backend.yt
 
 import gi
 gi.require_version('Gtk', '4.0')

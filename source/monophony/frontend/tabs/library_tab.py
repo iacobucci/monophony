@@ -1,7 +1,6 @@
 import monophony.backend.cache
 import monophony.backend.history
 import monophony.backend.playlists
-import monophony.backend.yt
 from monophony.frontend.rows.external_group_row import MonophonyExternalGroupRow
 from monophony.frontend.rows.local_group_row import MonophonyLocalGroupRow
 from monophony.frontend.rows.locked_group_row import MonophonyLockedGroupRow
@@ -122,7 +121,7 @@ class MonophonyLibraryTab(Gtk.Box):
 	def load(self):
 		self.loading_lock.lock()
 		monophony.backend.playlists.update_external_playlists()
-		self.recommendations = monophony.backend.yt.get_recommendations()
+		self.recommendations = self.player.yt.get_recommendations()
 		self.loading_lock.unlock()
 
 	def update_playlists(self):

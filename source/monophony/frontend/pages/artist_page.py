@@ -1,4 +1,3 @@
-import monophony.backend.yt
 from monophony.frontend.rows.importable_group_row import MonophonyImportableGroupRow
 from monophony.frontend.rows.locked_group_row import MonophonyLockedGroupRow
 
@@ -44,7 +43,7 @@ class MonophonyArtistPage(Gtk.Box):
 		GLib.Thread.new(None, self.do_get_artist)
 
 	def do_get_artist(self):
-		self.results = monophony.backend.yt.get_artist(self.artist)
+		self.results = self.player.yt.get_artist(self.artist)
 		GLib.idle_add(self.present_results)
 
 	def present_results(self) -> bool:

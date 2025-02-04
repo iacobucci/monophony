@@ -1,4 +1,3 @@
-import monophony.backend.yt
 from monophony.frontend.rows.importable_group_row import MonophonyImportableGroupRow
 from monophony.frontend.rows.song_row import MonophonySongRow
 from monophony.frontend.rows.artist_row import MonophonyArtistRow
@@ -50,7 +49,7 @@ class MonophonyResultsPage(Gtk.Box):
 			self.pge_status.set_title('')
 
 	def do_search(self):
-		self.results = monophony.backend.yt.search(self.query, self.filter)
+		self.results = self.player.yt.search(self.query, self.filter)
 		GLib.idle_add(self.await_results)
 
 	def await_results(self) -> bool:
