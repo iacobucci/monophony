@@ -51,13 +51,13 @@
 			"name": "python3-ytmusicapi",
 			"buildsystem": "simple",
 			"build-commands": [
-				"pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"ytmusicapi==1.9.1\" --no-build-isolation"
+				"pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"ytmusicapi==1.10.1\" --no-build-isolation"
 			],
 			"sources": [
 				{
 					"type": "file",
-					"url": "https://files.pythonhosted.org/packages/a5/32/8f6669fc4798494966bf446c8c4a162e0b5d893dff088afddf76414f70e1/certifi-2024.12.14-py3-none-any.whl",
-					"sha256": "1275f7a45be9464efc1173084eaa30f866fe2e47d389406136d332ed4967ec56"
+					"url": "https://files.pythonhosted.org/packages/38/fc/bce832fd4fd99766c04d1ee0eead6b0ec6486fb100ae5e74c1d91292b982/certifi-2025.1.31-py3-none-any.whl",
+					"sha256": "ca78db4565a652026a4db2bcdf68f2fb589ea80d0be70e03929ed730746b84fe"
 				},
 				{
 					"type": "file",
@@ -81,8 +81,8 @@
 				},
 				{
 					"type": "file",
-					"url": "https://files.pythonhosted.org/packages/d5/47/b8f57b63838633b2ea242e4a5f42633781089376da865ef5de3c8d4d2217/ytmusicapi-1.9.1-py3-none-any.whl",
-					"sha256": "2790fe0173f0a3559c87e9626ba2521956d7920e731b340ce70d63b93deadf9b"
+					"url": "https://files.pythonhosted.org/packages/a0/02/203e3ebdd4061ae8a72c0e0266ebadfc136717c0e79a8cdb168ad15dcda4/ytmusicapi-1.10.1-py3-none-any.whl",
+					"sha256": "585a54c372e035c0b8f0211d36335549c59279f22684109c67bbe997fe345706"
 				}
 			]
 		}

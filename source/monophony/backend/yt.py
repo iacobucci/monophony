@@ -53,10 +53,11 @@ def _parse_results(data: list) -> list:
 				continue
 		elif result['resultType'] == 'album':
 			try:
-				album = yt.get_album(result['browseId'])
 				item['author'] = result['artists'][0]['name']
 				item['id'] = result['browseId']
 				item['title'] = result['title']
+
+				album = yt.get_playlist(result['playlistId']) if result['playlistId'] else yt.get_album(result['browseId'])
 				item['contents'] = [
 					{
 						'id': str(s['videoId']),
@@ -65,7 +66,7 @@ def _parse_results(data: list) -> list:
 						'author': ', '.join(_get_artist_names(s['artists'])),
 						'author_id': _get_artist_id(s['artists']),
 						'length': s['duration'],
-						'thumbnail': album['thumbnails'][0]['url']
+						'thumbnail': result['thumbnails'][0]['url']
 					} for s in album['tracks'] if s['videoId']
 				]
 			except:
@@ -284,7 +285,9 @@ def get_artist(browse_id: str) -> list:
 						'browseId': (
 							alb['browseId' if 'browseId' in alb else 'playlistId']
 						),
-						'artists': [{'name': artist['name'], 'id': browse_id}]
+						'playlistId': alb.get('audioPlaylistId', alb.get('playlistId', None)),
+						'artists': [{'name': artist['name'], 'id': browse_id}],
+						'thumbnails': alb['thumbnails']
 					})
 
 			for item in content:
