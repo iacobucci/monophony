@@ -123,9 +123,11 @@ class Adapter(MprisAdapter):
 	def metadata(self) -> dict:
 		song = self.monophony_player.get_current_song()
 		if song:
+			duration_ns = self.monophony_player.get_duration_ns()
 			return {
 				'mpris:trackid': '/track/1',
 				'mpris:artUrl': song.get('thumbnail', ''),
+				'mpris:length': duration_ns / 1000 if duration_ns > 0 else None,
 				'xesam:title': song.get('title', ''),
 				'xesam:artist': [song['author']] if 'author' in song else []
 			}
