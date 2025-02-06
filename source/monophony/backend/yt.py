@@ -1,4 +1,4 @@
-import traceback, random, subprocess
+import concurrent.futures, random, subprocess, traceback
 
 import ytmusicapi
 
@@ -34,118 +34,126 @@ class YT:
 
 		return a_id
 
+	def _parse_single_result(self, result: dict) -> dict | None:
+		if result['resultType'] == 'single':
+			result['resultType'] = 'album'
+
+		item = {'type': result['resultType'], 'top': False}
+		if 'category' in result:
+			item['top'] = (result['category'] == 'Top result')
+			if result['category'] in ['Profiles', 'Episodes']:
+				return None
+
+		if result['resultType'] == 'artist':
+			try:
+				if result['category'] == 'Top result':
+					item['author'] = ', '.join(
+						self._get_artist_names(result['artists'])
+					)
+					item['id'] = self._get_artist_id(result['artists'])
+				else:
+					item['author'] = result['artist']
+					item['id'] = result['browseId']
+			except:
+				print('Failed to parse artist result:\033[0;33m')
+				traceback.print_exc()
+				print('\033[0m')
+				return None
+		elif result['resultType'] == 'album':
+			try:
+				item['author'] = result['artists'][0]['name']
+				item['id'] = result['browseId']
+				item['title'] = result['title']
+
+				album = (
+					self.yt.get_playlist(result['playlistId']) if
+					result['playlistId'] else
+					self.yt.get_album(result['browseId'])
+				)
+				item['contents'] = [
+					{
+						'id': str(s['videoId']),
+						'title': s['title'],
+						'type': 'song',
+						'author': ', '.join(self._get_artist_names(s['artists'])),
+						'author_id': self._get_artist_id(s['artists']),
+						'length': s['duration'],
+						'thumbnail': result['thumbnails'][0]['url']
+					} for s in album['tracks'] if s['videoId']
+				]
+			except:
+				print('Failed to parse album result:\033[0;33m')
+				traceback.print_exc()
+				print('\033[0m')
+				return None
+		elif result['resultType'] == 'playlist':
+			try:
+				album = self.yt.get_playlist(result['browseId'], limit=None)
+				if 'author' in result:
+					item['author'] = result['author']
+				else:
+					item['author'] = ', '.join(
+						self._get_artist_names(result['artists'])
+					)
+				item['id'] = result['browseId']
+				item['title'] = result['title']
+				item['contents'] = [
+					{
+						'id': str(s['videoId']),
+						'title': s['title'],
+						'type': 'song',
+						'author': ', '.join(self._get_artist_names(s['artists'])),
+						'author_id': self._get_artist_id(s['artists']),
+						'length': s['duration'],
+						'thumbnail': s['thumbnails'][0]['url']
+					} for s in album['tracks'] if s['videoId']
+				]
+			except:
+				print('Failed to parse playlist result:\033[0;33m')
+				traceback.print_exc()
+				print('\033[0m')
+				return None
+		elif result['resultType'] in {'song', 'video'}:
+			try:
+				if not result['videoId']:
+					return None
+				item['id'] = str(result['videoId'])
+				item['title'] = result['title']
+				item['author'] = ', '.join(
+					self._get_artist_names(result['artists'])
+				)
+				item['author_id'] = self._get_artist_id(result['artists'])
+				if 'duration' in result:
+					item['length'] = result['duration']
+				item['thumbnail'] = result['thumbnails'][0]['url']
+
+				# ytm sometimes returns videos as song results when filtered
+				if 'category' in result and result['category'] == 'Songs':
+					item['type'] = 'song'
+			except:
+				print('Failed to parse song/video result:\033[0;33m')
+				traceback.print_exc()
+				print('\033[0m')
+				return None
+
+		return item
+
 	def _parse_results(self, data: list) -> list:
 		if not self._connect():
 			return []
 
-		results = []
 		exp_types = {'album', 'song', 'video', 'playlist', 'artist', 'single'}
-		for result in data:
-			if 'resultType' not in result or result['resultType'] not in exp_types:
-				continue
+		with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+			futures = [
+				executor.submit(self._parse_single_result, result)
+				for result in data if result.get('resultType', '') in exp_types
+			]
 
-			if result['resultType'] == 'single':
-				result['resultType'] = 'album'
-
-			item = {'type': result['resultType'], 'top': False}
-			if 'category' in result:
-				item['top'] = (result['category'] == 'Top result')
-				if result['category'] in ['Profiles', 'Episodes']:
-					continue
-
-			if result['resultType'] == 'artist':
-				try:
-					if result['category'] == 'Top result':
-						item['author'] = ', '.join(
-							self._get_artist_names(result['artists'])
-						)
-						item['id'] = self._get_artist_id(result['artists'])
-					else:
-						item['author'] = result['artist']
-						item['id'] = result['browseId']
-				except:
-					print('Failed to parse artist result:\033[0;33m')
-					traceback.print_exc()
-					print('\033[0m')
-					continue
-			elif result['resultType'] == 'album':
-				try:
-					item['author'] = result['artists'][0]['name']
-					item['id'] = result['browseId']
-					item['title'] = result['title']
-
-					album = (
-						self.yt.get_playlist(result['playlistId']) if
-						result['playlistId'] else
-						self.yt.get_album(result['browseId'])
-					)
-					item['contents'] = [
-						{
-							'id': str(s['videoId']),
-							'title': s['title'],
-							'type': 'song',
-							'author': ', '.join(self._get_artist_names(s['artists'])),
-							'author_id': self._get_artist_id(s['artists']),
-							'length': s['duration'],
-							'thumbnail': result['thumbnails'][0]['url']
-						} for s in album['tracks'] if s['videoId']
-					]
-				except:
-					print('Failed to parse album result:\033[0;33m')
-					traceback.print_exc()
-					print('\033[0m')
-					continue
-			elif result['resultType'] == 'playlist':
-				try:
-					album = self.yt.get_playlist(result['browseId'], limit=None)
-					if 'author' in result:
-						item['author'] = result['author']
-					else:
-						item['author'] = ', '.join(
-							self._get_artist_names(result['artists'])
-						)
-					item['id'] = result['browseId']
-					item['title'] = result['title']
-					item['contents'] = [
-						{
-							'id': str(s['videoId']),
-							'title': s['title'],
-							'type': 'song',
-							'author': ', '.join(self._get_artist_names(s['artists'])),
-							'author_id': self._get_artist_id(s['artists']),
-							'length': s['duration'],
-							'thumbnail': s['thumbnails'][0]['url']
-						} for s in album['tracks'] if s['videoId']
-					]
-				except:
-					print('Failed to parse playlist result:\033[0;33m')
-					traceback.print_exc()
-					print('\033[0m')
-					continue
-			elif result['resultType'] in {'song', 'video'}:
-				try:
-					if not result['videoId']:
-						continue
-					item['id'] = str(result['videoId'])
-					item['title'] = result['title']
-					item['author'] = ', '.join(
-						self._get_artist_names(result['artists'])
-					)
-					item['author_id'] = self._get_artist_id(result['artists'])
-					if 'duration' in result:
-						item['length'] = result['duration']
-					item['thumbnail'] = result['thumbnails'][0]['url']
-
-					# ytm sometimes returns videos as song results when filtered
-					if 'category' in result and result['category'] == 'Songs':
-						item['type'] = 'song'
-				except:
-					print('Failed to parse song/video result:\033[0;33m')
-					traceback.print_exc()
-					print('\033[0m')
-					continue
-
-			results.append(item)
+		results = []
+		for future in futures:
+			result = future.result()
+			if result:
+				results.append(result)
 
 		return results
 
