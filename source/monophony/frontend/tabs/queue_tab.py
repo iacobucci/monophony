@@ -78,6 +78,8 @@ class MonophonyQueueTab(Gtk.Box):
 					widget.add_css_class('current-queue-item')
 				self.box_queue.add(widget)
 				self.queue_widgets.append(widget)
+
+			self.box_queue.set_description(sec_to_time_str(total_seconds))
 		elif new_index != self.old_index:
 			self.old_index = new_index
 			for i, widget in enumerate(self.queue_widgets):
@@ -86,5 +88,4 @@ class MonophonyQueueTab(Gtk.Box):
 				else:
 					widget.remove_css_class('current-queue-item')
 
-		self.box_queue.set_description(sec_to_time_str(total_seconds))
 		return False
