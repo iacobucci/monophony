@@ -2,6 +2,9 @@ import contextlib, datetime
 
 
 def time_str_to_sec(string: str) -> int:
+	if not string:
+		return 0
+
 	seconds = 0
 	parts = string.split(':')
 	if len(parts) > 0:
