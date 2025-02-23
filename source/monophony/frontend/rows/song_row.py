@@ -1,4 +1,5 @@
 import monophony.backend.cache
+from monophony.backend.utils import sanitize_str
 from monophony.frontend.popovers.song_popover import MonophonySongPopover
 
 import gi
@@ -19,16 +20,10 @@ class MonophonySongRow(Adw.ActionRow, GObject.Object):
 		self.set_property('activatable', True)
 		self.connect('activated', self._on_play_clicked)
 
-		title = GLib.markup_escape_text(
-			song['title'] if song.get('title') else '________', -1
-		)
-		length = GLib.markup_escape_text(
-			song['length'], -1
-		) if song.get('length') else ''
-		author = GLib.markup_escape_text(
-			song['author'], -1
-		) if song.get('author') else ''
-		subtitle = author
+		title = GLib.markup_escape_text(song.get('title', ''), -1)
+		length = GLib.markup_escape_text(song.get('length', ''), -1)
+		author = GLib.markup_escape_text(song.get('author', ''), -1)
+		subtitle = sanitize_str(author)
 		if length:
 			subtitle = length + ' ' + subtitle
 
@@ -37,8 +32,8 @@ class MonophonySongRow(Adw.ActionRow, GObject.Object):
 		self.add_suffix(self.checkmark)
 		self.spinner = Adw.Spinner()
 		self.add_suffix(self.spinner)
-		self.set_title(title)
-		self.set_subtitle(subtitle)
+		self.set_title(sanitize_str(title))
+		self.set_subtitle(sanitize_str(subtitle))
 
 		self.btn_more = Gtk.MenuButton()
 		self.btn_more.set_tooltip_text(_('More actions'))

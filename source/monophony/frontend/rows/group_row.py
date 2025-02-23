@@ -1,4 +1,4 @@
-from monophony.backend.utils import time_str_to_sec, sec_to_time_str
+from monophony.backend.utils import sanitize_str, sec_to_time_str, time_str_to_sec
 
 import gi
 gi.require_version('Adw', '1')
@@ -14,7 +14,7 @@ class MonophonyGroupRow(Adw.ExpanderRow):
 		self.group = group
 
 		self.set_title(GLib.markup_escape_text(
-			group['title'] if group.get('title') else '________', -1
+			sanitize_str(group.get('title', '')), -1
 		))
 
 		btn_play = Gtk.Button.new_from_icon_name('media-playback-start-symbolic')
@@ -39,5 +39,5 @@ class MonophonyGroupRow(Adw.ExpanderRow):
 		self.set_subtitle(
 			sec_to_time_str(total_seconds) +
 			' ' +
-			GLib.markup_escape_text(self.group.get('author', ''), -1)
+			GLib.markup_escape_text(sanitize_str(self.group.get('author', '')), -1)
 		)

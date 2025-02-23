@@ -1,4 +1,5 @@
 import monophony.backend.playlists
+from monophony.backend.utils import sanitize_str
 
 from monophony.frontend.rows.group_row import MonophonyGroupRow
 from monophony.frontend.rows.song_row import MonophonySongRow
@@ -95,7 +96,7 @@ class MonophonyExternalGroupRow(MonophonyGroupRow):
 		)
 		if success:
 			self.group['title'] = name
-			self.set_title(name)
+			self.set_title(sanitize_str(name))
 		else:
 			MonophonyMessageWindow(
 				self.get_ancestor(Gtk.Window),

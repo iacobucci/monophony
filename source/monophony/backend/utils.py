@@ -22,3 +22,11 @@ def time_str_to_sec(string: str) -> int:
 
 def sec_to_time_str(seconds: int) -> str:
 	return str(datetime.timedelta(seconds=seconds))
+
+
+def sanitize_str(string: str) -> str:
+	bad_unicode = ['\u3011']
+	for symbol in bad_unicode:
+		string = string.replace(symbol, '')
+
+	return string
