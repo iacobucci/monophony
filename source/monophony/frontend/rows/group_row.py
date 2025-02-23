@@ -13,9 +13,6 @@ class MonophonyGroupRow(Adw.ExpanderRow):
 		self.player = player
 		self.group = group
 
-		if 'author' in self.group and self.group['author'] is not None:
-			self.set_subtitle(GLib.markup_escape_text(self.group['author'], -1))
-
 		self.set_title(GLib.markup_escape_text(
 			group['title'] if group.get('title') else '________', -1
 		))
@@ -39,4 +36,8 @@ class MonophonyGroupRow(Adw.ExpanderRow):
 		for song in self.group.get('contents', []):
 			total_seconds += time_str_to_sec(song.get('length', '0'))
 
-		self.set_subtitle(sec_to_time_str(total_seconds) + ' ' + self.get_subtitle())
+		self.set_subtitle(
+			sec_to_time_str(total_seconds) +
+			' ' +
+			GLib.markup_escape_text(self.group.get('author', ''), -1)
+		)

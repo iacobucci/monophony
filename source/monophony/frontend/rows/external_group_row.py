@@ -22,7 +22,6 @@ class MonophonyExternalGroupRow(MonophonyGroupRow):
 		btn_more.set_valign(Gtk.Align.CENTER)
 		btn_more.set_create_popup_func(self._on_show_actions)
 		self.add_action(btn_more)
-		self.set_subtitle(_('(Synchronized)'))
 		self.set_enable_expansion(False)
 
 		playlists = monophony.backend.playlists.read_external_playlists()
@@ -35,7 +34,7 @@ class MonophonyExternalGroupRow(MonophonyGroupRow):
 			self.set_enable_expansion(True)
 
 		self.set_expanded(False)
-		super().update()
+		self.update()
 
 	def _on_show_actions(self, btn: Gtk.MenuButton):
 		window = self.get_ancestor(Gtk.Window)
@@ -103,4 +102,8 @@ class MonophonyExternalGroupRow(MonophonyGroupRow):
 				_('Could not Rename'),
 				_('Playlist already exists')
 			).present()
+
+	def update(self):
+		super().update()
+		self.set_subtitle(self.get_subtitle() + ' ' + _('(Synchronized)'))
 
