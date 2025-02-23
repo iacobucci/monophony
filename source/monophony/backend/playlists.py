@@ -224,10 +224,10 @@ def write_playlists(playlists: dict | None = None, ext_playlists: list | None = 
 	try:
 		if playlists is not None:
 			with open(str(lists_path), 'w') as lists_file:
-				json.dump(playlists, lists_file)
+				json.dump(playlists, lists_file, indent='\t')
 		if ext_playlists is not None:
 			with open(str(ext_lists_path), 'w') as ext_lists_file:
-				json.dump(ext_playlists, ext_lists_file)
+				json.dump(ext_playlists, ext_lists_file, indent='\t')
 	except FileNotFoundError:
 		os.makedirs(str(dir_path))
 		write_playlists(playlists=playlists, ext_playlists=ext_playlists)

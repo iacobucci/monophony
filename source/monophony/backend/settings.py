@@ -19,7 +19,7 @@ def write_settings(settings: dict):
 
 	try:
 		with open(str(sets_path), 'w') as sets_file:
-			json.dump(settings, sets_file)
+			json.dump(settings, sets_file, indent='\t')
 	except FileNotFoundError:
 		os.makedirs(dir_path)
 		write_settings(settings)

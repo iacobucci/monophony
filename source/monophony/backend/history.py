@@ -51,7 +51,7 @@ def write_searches(searches: list):
 
 	try:
 		with open(str(recents_path), 'w') as recents_file:
-			json.dump(searches, recents_file)
+			json.dump(searches, recents_file, indent='\t')
 	except FileNotFoundError:
 		os.makedirs(str(dir_path))
 		write_songs(searches)
@@ -77,7 +77,7 @@ def write_songs(songs: list):
 
 	try:
 		with open(str(recents_path), 'w') as recents_file:
-			json.dump(songs, recents_file)
+			json.dump(songs, recents_file, indent='\t')
 	except FileNotFoundError:
 		os.makedirs(str(dir_path))
 		write_songs(songs)
