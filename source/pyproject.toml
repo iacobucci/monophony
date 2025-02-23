@@ -15,10 +15,10 @@ include = ['monophony*']
 
 [tool.ruff]
 builtins = ['_']
-lint.extend-ignore = ['E4', 'E74', 'E722']
+lint.extend-ignore = ['E401', 'E402', 'E722', 'E74']
 lint.extend-select = [
-	'ARG', 'Q', 'E5', 'PERF', 'INP', 'PLC', 'FA', 'RUF', 'UP', 'ISC', 'SIM', 'TRY',
-	'BLE', 'RET'
+	'ARG', 'BLE', 'E1', 'E5', 'FA', 'INP', 'ISC', 'PERF', 'PIE', 'PLC', 'Q', 'RET',
+	'RUF', 'SIM', 'TRY', 'UP'
 ]
 line-length = 88
 indent-width = 4
