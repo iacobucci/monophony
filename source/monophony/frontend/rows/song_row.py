@@ -20,9 +20,9 @@ class MonophonySongRow(Adw.ActionRow, GObject.Object):
 		self.set_property('activatable', True)
 		self.connect('activated', self._on_play_clicked)
 
-		title = GLib.markup_escape_text(song.get('title', ''), -1)
-		length = GLib.markup_escape_text(song.get('length', ''), -1)
-		author = GLib.markup_escape_text(song.get('author', ''), -1)
+		title = GLib.markup_escape_text(song.get('title', '') or '', -1)
+		length = GLib.markup_escape_text(song.get('length', '0:00') or '0:00', -1)
+		author = GLib.markup_escape_text(song.get('author', '') or '', -1)
 		subtitle = sanitize_str(author)
 		if length:
 			subtitle = length + ' ' + subtitle
