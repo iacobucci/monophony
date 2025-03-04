@@ -56,9 +56,15 @@ install:
 
 # for testing purposes - builds and installs a flatpak
 flatpak:
+	flatpak remote-add \
+		--user \
+		--if-not-exists \
+		flathub \
+		https://dl.flathub.org/repo/flathub.flatpakrepo
 	flatpak-builder \
 		--user \
 		--install \
+		--install-deps-from=flathub \
 		--force-clean \
 		--repo=repo/ \
 		build/ \
