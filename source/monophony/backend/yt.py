@@ -296,7 +296,7 @@ class YT:
 							artist[group]['browseId'], limit=None
 						)['tracks']
 					except:
-						content = artist[group]['results']
+						content = artist[group].get('results', [])
 				else:
 					content = []
 					for alb in artist[group]['results']:
