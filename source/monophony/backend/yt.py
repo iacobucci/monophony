@@ -220,7 +220,7 @@ class YT:
 					'author': ', '.join(self._get_artist_names(item['artists'])),
 					'author_id': self._get_artist_id(item['artists']),
 					'id': item['videoId'],
-				} for item in group['contents'] if 'videoId' in item
+				} for item in group['contents'] if item.get('videoId')
 			]
 
 			if songs:

@@ -22,10 +22,16 @@ def is_song_being_cached(video_id: str) -> bool:
 
 
 def is_song_cached(video_id: str) -> bool:
+	if video_id is None:
+		return False
+
 	return os.path.exists(get_cache_directory() + video_id)
 
 
 def get_song_uri(video_id: str) -> str:
+	if video_id is None:
+		return ''
+
 	local_path = get_cache_directory() + video_id
 	if os.path.exists(local_path):
 		return 'file://' + local_path
