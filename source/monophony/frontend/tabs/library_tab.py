@@ -153,6 +153,8 @@ class MonophonyLibraryTab(Gtk.Box):
 		for title in new_playlists:
 			for widget in self.playlist_widgets:
 				if widget.get_title() == GLib.markup_escape_text(title, -1):
+					for song_row in widget.song_widgets:
+						song_row.update_download_status()
 					break
 			else: # nobreak
 				new_widget = MonophonyLocalGroupRow(
