@@ -219,17 +219,15 @@ class MonophonyMainWindow(Adw.ApplicationWindow):
 		self.library_tab.update_playlists()
 
 	def _on_uncache_song(self, song: dict):
-		monophony.backend.cache.uncache_song(song['id'])
+		monophony.backend.cache.uncache_song(song)
 
 	def _on_cache_song(self, song: dict):
 		GLib.Thread.new(
-			None, monophony.backend.cache.cache_songs, [song['id']]
+			None, monophony.backend.cache.cache_songs, [song]
 		)
 
 	def _on_cache_playlist(self, songs: list):
-		GLib.Thread.new(
-			None, monophony.backend.cache.cache_songs, [s['id'] for s in songs]
-		)
+		GLib.Thread.new(None, monophony.backend.cache.cache_songs, songs)
 
 	def _on_delete_playlist(self, widget: object, local: bool=True):
 		group = widget.group.copy()

@@ -18,6 +18,8 @@ class MonophonyLibraryTab(Gtk.Box):
 
 		self.player = player
 		self.playlist_widgets = []
+		self.downloads_widgets = []
+		self.old_downloads = []
 		self.recents_widgets = []
 		self.old_recents = []
 		self.recommendations = {}
@@ -79,6 +81,16 @@ class MonophonyLibraryTab(Gtk.Box):
 		self.box_playlists.set_header_suffix(box_suffix)
 		self.box_meta.add(self.box_playlists)
 
+		btn_downloads = Gtk.Button.new_from_icon_name('folder-symbolic')
+		btn_downloads.set_tooltip_text(_('Open downloads directory'))
+		btn_downloads.connect('clicked', lambda _b: self._on_open_downloads())
+
+		self.box_downloads = Adw.PreferencesGroup()
+		self.box_downloads.set_visible(False)
+		self.box_downloads.set_title(_('Downloads'))
+		self.box_downloads.set_header_suffix(btn_downloads)
+		self.box_meta.add(self.box_downloads)
+
 		btn_clear = Gtk.Button.new_from_icon_name('edit-clear-all-symbolic')
 		btn_clear.add_css_class('destructive-action')
 		btn_clear.set_tooltip_text(_('Clear'))
@@ -92,19 +104,10 @@ class MonophonyLibraryTab(Gtk.Box):
 		self.box_recents.set_header_suffix(btn_clear)
 		self.box_meta.add(self.box_recents)
 
-		btn_downloads = Adw.ButtonRow()
-		btn_downloads.set_start_icon_name('folder-symbolic')
-		btn_downloads.set_title(_('Show Downloaded Songs'))
-		btn_downloads.connect('activated', self._on_open_downloads)
-
-		box_actions = Adw.PreferencesGroup()
-		box_actions.add(btn_downloads)
-		self.box_meta.add(box_actions)
-
 		GLib.Thread.new('library-load', self.load)
 		GLib.timeout_add(200, self.update)
 
-	def _on_open_downloads(self, _b):
+	def _on_open_downloads(self):
 		Gio.AppInfo.launch_default_for_uri(
 			'file://' + monophony.backend.cache.get_cache_directory(), None
 		)
@@ -180,6 +183,26 @@ class MonophonyLibraryTab(Gtk.Box):
 				self.box_recommendations.add(widget)
 
 			self.recommendations = {}
+
+		new_downloads = monophony.backend.cache.read_songs()
+		if new_downloads != self.old_downloads:
+			self.box_downloads.set_visible(True)
+
+			for widget in self.downloads_widgets:
+				self.box_downloads.remove(widget)
+
+			self.downloads_widgets = []
+			self.old_downloads = new_downloads
+			for song in new_downloads:
+				widget = MonophonySongRow(song, self.player)
+				self.box_downloads.add(widget)
+				self.downloads_widgets.append(widget)
+		else:
+			for widget in self.downloads_widgets:
+				if widget.spinner.get_visible():
+					widget.update_download_status()
+
+		self.box_downloads.set_visible(bool(new_downloads))
 
 		# player could be adding to recents at this moment
 		if self.player.is_busy():

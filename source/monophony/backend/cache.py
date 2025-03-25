@@ -1,4 +1,4 @@
-import contextlib, glob, os, subprocess
+import contextlib, glob, json, os, subprocess
 
 
 ### --- CACHE FUNCTIONS --- ###
@@ -39,13 +39,17 @@ def get_song_uri(video_id: str) -> str:
 	return ''
 
 
-def cache_songs(ids: list):
+def cache_songs(songs: list):
 	path = get_cache_directory()
 	needed_ids = []
-	for video_id in ids:
-		if not is_song_cached(video_id):
-			needed_ids.append(video_id)
-			open(f'{path}{video_id}.monophony', 'w').close()
+	for song in songs:
+		if not is_song_cached(song['id']):
+			needed_ids.append(song['id'])
+			open(f'{path}{song["id"]}.monophony', 'w').close()
+			new_songs = read_songs()
+			new_songs.append(song)
+			write_songs(new_songs)
+
 
 	subprocess.Popen(
 		'yt-dlp -x '
@@ -65,9 +69,11 @@ def cache_songs(ids: list):
 		os.rename(file, '.'.join(file.split('.')[:-1]))
 
 
-def uncache_song(video_id: str):
+def uncache_song(song: dict):
+	write_songs([s for s in read_songs() if s['id'] != song['id']])
+
 	with contextlib.suppress(OSError, FileNotFoundError):
-		os.remove(get_cache_directory() + video_id)
+		os.remove(get_cache_directory() + song['id'])
 
 
 def clean_up():
@@ -75,6 +81,8 @@ def clean_up():
 	for file in os.listdir(path):
 		if file.endswith(('.part', '.monophony')):
 			os.remove(path + file)
+
+	write_songs([s for s in read_songs() if is_song_cached(s['id'])])
 
 
 ### --- UTILITY FUNCTIONS --- ###
@@ -86,3 +94,29 @@ def get_cache_directory() -> str:
 	) + '/monophony/'
 	os.makedirs(path, exist_ok=True)
 	return path
+
+
+def write_songs(songs: list):
+	dir_path = os.getenv(
+		'XDG_CONFIG_HOME', os.path.expanduser('~/.config')
+	) + '/monophony'
+	downloads_path = dir_path + '/downloads.json'
+
+	try:
+		with open(str(downloads_path), 'w') as downloads_file:
+			json.dump(songs, downloads_file, indent='\t')
+	except FileNotFoundError:
+		os.makedirs(str(dir_path))
+		write_songs(songs)
+
+
+def read_songs() -> list:
+	songs_path = os.getenv(
+		'XDG_CONFIG_HOME', os.path.expanduser('~/.config')
+	) + '/monophony/downloads.json'
+
+	try:
+		with open(songs_path) as songs_file:
+			return json.load(songs_file)
+	except (OSError, json.decoder.JSONDecodeError):
+		return []

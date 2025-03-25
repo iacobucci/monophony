@@ -29,8 +29,10 @@ class MonophonySongRow(Adw.ActionRow, GObject.Object):
 
 		self.checkmark = Gtk.Image.new_from_icon_name('emblem-ok-symbolic')
 		self.checkmark.set_tooltip_text(_('Downloaded'))
+		self.checkmark.set_visible(False)
 		self.add_suffix(self.checkmark)
 		self.spinner = Adw.Spinner()
+		self.spinner.set_visible(False)
 		self.add_suffix(self.spinner)
 		self.set_title(sanitize_str(title))
 		self.set_subtitle(sanitize_str(subtitle))
@@ -57,6 +59,7 @@ class MonophonySongRow(Adw.ActionRow, GObject.Object):
 
 	def update_download_status(self) -> bool:
 		if monophony.backend.cache.is_song_being_cached(self.song['id']):
+			self.spinner.set_visible(True)
 			return True
 
 		self.spinner.set_visible(False)
