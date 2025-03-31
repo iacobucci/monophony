@@ -18,7 +18,7 @@ class MonophonySongRow(Adw.ActionRow, GObject.Object):
 
 		self.set_tooltip_text(_('Play'))
 		self.set_property('activatable', True)
-		self.connect('activated', self._on_play_clicked)
+		self.connect('activated', lambda row: row._on_play_clicked())
 
 		title = GLib.markup_escape_text(song.get('title', '') or '', -1)
 		length = GLib.markup_escape_text(song.get('length', '0:00') or '0:00', -1)
@@ -43,12 +43,12 @@ class MonophonySongRow(Adw.ActionRow, GObject.Object):
 		self.btn_more.set_has_frame(False)
 		self.btn_more.set_vexpand(False)
 		self.btn_more.set_valign(Gtk.Align.CENTER)
-		self.btn_more.set_create_popup_func(MonophonySongPopover, self.song, self)
+		self.btn_more.set_create_popup_func(MonophonySongPopover, self.song)
 		self.add_suffix(self.btn_more)
 
 		self.update_download_status()
 
-	def _on_play_clicked(self, _b):
+	def _on_play_clicked(self):
 		queue = [self.song]
 		if self.group:
 			queue = self.group['contents']

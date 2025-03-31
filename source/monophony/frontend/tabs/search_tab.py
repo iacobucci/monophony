@@ -69,6 +69,7 @@ class MonophonySearchTab(Gtk.Box):
 		self.pge_results.set_visible(False)
 		if self.pge_detail_results:
 			self.remove(self.pge_detail_results)
+			self.pge_detail_results = None
 
 		self.pge_detail_results = MonophonyArtistPage(self.player, artist)
 		self.pge_detail_results.set_vexpand(True)
@@ -80,6 +81,7 @@ class MonophonySearchTab(Gtk.Box):
 		self.pge_results.set_visible(False)
 		if self.pge_detail_results:
 			self.remove(self.pge_detail_results)
+			self.pge_detail_results = None
 
 		self.pge_detail_results = MonophonyResultsPage(self.player, query, filter_)
 		self.pge_detail_results.set_vexpand(True)
@@ -96,6 +98,7 @@ class MonophonySearchTab(Gtk.Box):
 		self.btn_back.set_visible(False)
 		if self.pge_results:
 			self.remove(self.pge_results)
+			self.pge_results = None
 		if self.pge_detail_results:
 			self.remove(self.pge_detail_results)
 			self.pge_detail_results = None

@@ -9,6 +9,7 @@ class MonophonyArtistRow(Adw.ActionRow):
 		super().__init__()
 
 		self.artist = artist
+		artist_id = self.artist['id']
 
 		btn_view = Gtk.Button.new_from_icon_name('go-next-symbolic')
 		btn_view.set_tooltip_text(_('View artist'))
@@ -17,14 +18,14 @@ class MonophonyArtistRow(Adw.ActionRow):
 		btn_view.set_has_frame(False)
 		btn_view.connect(
 			'clicked',
-			lambda b: b.get_ancestor(Gtk.Window)._on_show_artist(self.artist['id']),
+			lambda b: b.get_ancestor(Gtk.Window)._on_show_artist(artist_id),
 		)
 		self.add_suffix(btn_view)
 		self.set_tooltip_text(_('View artist'))
 		self.set_property('activatable', True)
 		self.connect(
 			'activated',
-			lambda b: b.get_ancestor(Gtk.Window)._on_show_artist(self.artist['id']),
+			lambda b: b.get_ancestor(Gtk.Window)._on_show_artist(artist_id),
 		)
 
 		self.set_title(GLib.markup_escape_text(

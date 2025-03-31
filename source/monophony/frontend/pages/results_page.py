@@ -1,3 +1,4 @@
+import monophony.backend.yt
 from monophony.frontend.rows.importable_group_row import MonophonyImportableGroupRow
 from monophony.frontend.rows.song_row import MonophonySongRow
 from monophony.frontend.rows.artist_row import MonophonyArtistRow
@@ -39,7 +40,6 @@ class MonophonyResultsPage(Gtk.Box):
 		self.set_vexpand(True)
 		self.query = query
 		self.filter = filter_
-		self.results = []
 		self.player = player
 
 		if query:
@@ -49,11 +49,11 @@ class MonophonyResultsPage(Gtk.Box):
 			self.pge_status.set_title('')
 
 	def do_search(self):
-		self.results = self.player.yt.search(self.query, self.filter)
-		GLib.idle_add(self.await_results)
+		results = monophony.backend.yt.search(self.query, self.filter)
+		GLib.idle_add(self.show_results, results)
 
-	def await_results(self) -> bool:
-		def create_result_box(result_type: str, filtered: bool):
+	def show_results(self, results: list) -> bool:
+		def create_result_box(query: str, result_type: str, filtered: bool):
 			box = Adw.PreferencesGroup.new()
 			if not filtered:
 				img_icon = Gtk.Image.new_from_icon_name('go-next-symbolic')
@@ -67,22 +67,23 @@ class MonophonyResultsPage(Gtk.Box):
 				btn_more.set_child(box_btn)
 				btn_more.connect(
 					'clicked',
-					lambda _b, f: window._on_show_more(self.query, f),
+					lambda _b, f: window._on_show_more(query, f),
 					result_type
 				)
 				box.set_header_suffix(btn_more)
 			return box
 
 		self.box_loading.set_visible(False)
-		self.pge_status.set_visible(len(self.results) == 0)
-		if self.results:
+		self.pge_status.set_visible(len(results) == 0)
+		if results:
 			self.pge_results.set_visible(True)
 			box_top = Adw.PreferencesGroup.new()
-			box_songs = create_result_box('songs', self.filter != '')
-			box_videos = create_result_box('videos', self.filter != '')
-			box_albums = create_result_box('albums', self.filter != '')
-			box_playlists = create_result_box('playlists', self.filter != '')
-			box_artists = create_result_box('artists', self.filter != '')
+			filtered = self.filter != ''
+			box_songs = create_result_box(self.query, 'songs', filtered)
+			box_videos = create_result_box(self.query, 'videos', filtered)
+			box_albums = create_result_box(self.query, 'albums', filtered)
+			box_playlists = create_result_box(self.query, 'playlists', filtered)
+			box_artists = create_result_box(self.query, 'artists', filtered)
 			box_top.set_title(_('Top Result'))
 			box_songs.set_title(_('Songs'))
 			box_albums.set_title(_('Albums'))
@@ -92,7 +93,7 @@ class MonophonyResultsPage(Gtk.Box):
 			window = self.get_ancestor(Gtk.Window)
 
 			non_empty = []
-			for item in self.results:
+			for item in results:
 				if item['type'] == 'song':
 					if item['top']:
 						box_top.add(MonophonySongRow(item, self.player))
@@ -136,4 +137,6 @@ class MonophonyResultsPage(Gtk.Box):
 			for box in non_empty:
 				self.pge_results.add(box)
 
+		non_empty.clear()
+		results.clear()
 		return False

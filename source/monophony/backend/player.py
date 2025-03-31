@@ -42,7 +42,6 @@ class Player:
 		self.queue_change_callback = None
 		self.queue_end_callback = None
 		self.raise_callback = None
-		self.yt = monophony.backend.yt.YT()
 		self.playbin = Gst.ElementFactory.make('playbin3', 'playbin3')
 		self.playbin.set_state(Gst.State.READY)
 		self.playbin.get_bus().add_signal_watch()
@@ -212,7 +211,7 @@ class Player:
 		self.lock.unlock()
 
 		self.next_fetch_lock.lock()
-		url = self.yt.get_song_uri(song_id)
+		url = monophony.backend.yt.get_song_uri(song_id)
 		if url:
 			self.next_expected_id = song_id
 			self.next_stream_url = url
@@ -265,7 +264,7 @@ class Player:
 		if not uri:
 			print('Fetching stream from YT...')
 			while True:
-				uri = self.yt.get_song_uri(song['id'])
+				uri = monophony.backend.yt.get_song_uri(song['id'])
 				if uri is not None:
 					break
 				if self.interrupt:
@@ -295,7 +294,7 @@ class Player:
 
 		song = None
 		for id_ in id_queue:
-			song = self.yt.get_similar_song(id_, ignore=id_queue)
+			song = monophony.backend.yt.get_similar_song(id_, ignore=id_queue)
 			if song and song['id']:
 				break
 
