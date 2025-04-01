@@ -1,3 +1,5 @@
+import weakref
+
 import monophony.backend.yt
 from monophony.frontend.rows.importable_group_row import MonophonyImportableGroupRow
 from monophony.frontend.rows.song_row import MonophonySongRow
@@ -67,7 +69,7 @@ class MonophonyResultsPage(Gtk.Box):
 				btn_more.set_child(box_btn)
 				btn_more.connect(
 					'clicked',
-					lambda _b, f: window._on_show_more(query, f),
+					lambda _b, f: ref_window()._on_show_more(query, f),
 					result_type
 				)
 				box.set_header_suffix(btn_more)
@@ -90,7 +92,7 @@ class MonophonyResultsPage(Gtk.Box):
 			box_videos.set_title(_('Videos'))
 			box_playlists.set_title(_('Community Playlists'))
 			box_artists.set_title(_('Artists'))
-			window = self.get_ancestor(Gtk.Window)
+			ref_window = weakref.ref(self.get_ancestor(Gtk.Window))
 
 			non_empty = []
 			for item in results:
