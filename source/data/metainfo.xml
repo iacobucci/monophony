@@ -42,6 +42,15 @@
 	<launchable type="desktop-id">io.gitlab.zehkira.Monophony.desktop</launchable>
 	<content_rating type="oars-1.1"></content_rating>
 	<releases>
+		<release version="3.3.0" date="2025-04-05">
+			<description>
+				<ul>
+					<li>Made minor changes to the interface</li>
+					<li>Fixed excessive memory usage</li>
+					<li>Updated to support latest YT changes</li>
+				</ul>
+			</description>
+		</release>
 		<release version="3.2.0" date="2025-03-25">
 			<description>
 				<ul>
