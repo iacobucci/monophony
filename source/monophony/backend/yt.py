@@ -28,11 +28,7 @@ def _get_artist_id(artists: list) -> str:
 	return a_id
 
 
-def _parse_single_result(result: dict) -> dict | None:
-	yt = _connect()
-	if yt is None:
-		return None
-
+def _parse_single_result(yt: ytmusicapi.YTMusic, result: dict) -> dict | None:
 	if result['resultType'] == 'single':
 		result['resultType'] = 'album'
 
@@ -138,15 +134,17 @@ def _parse_single_result(result: dict) -> dict | None:
 
 
 def _parse_results(data: list) -> list:
-	exp_types = {'album', 'song', 'video', 'playlist', 'artist', 'single'}
-	results = []
-	for item in data:
-		if item.get('resultType', '') in exp_types:
-			result = _parse_single_result(item)
-			if result:
-				results.append(result)
+	yt = _connect()
+	if yt is None:
+		return []
 
-	return results
+	exp_types = {'album', 'song', 'video', 'playlist', 'artist', 'single'}
+	results = [
+		_parse_single_result(yt, item)
+		for item in data if item.get('resultType', '') in exp_types
+	]
+
+	return [r for r in results if r]
 
 
 def get_song_uri(video_id: str) -> str | None:
