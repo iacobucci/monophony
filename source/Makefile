@@ -1,5 +1,9 @@
 prefix = /usr
 
+SHELL = bash
+MAKEFLAGS += --warn-undefined-variables
+MAKEFLAGS += --no-builtin-rules
+
 INSTALL = install -D
 ID = io.gitlab.zehkira.Monophony
 ICONS_DIR = $(prefix)/share/icons/hicolor
@@ -48,10 +52,14 @@ install:
 
 	@# License
 	$(INSTALL) LICENSE $(LICENSE_DIR)/monophony/LICENSE
+.PHONY: install
 
 
 # For testing purposes - builds and installs a flatpak
 flatpak:
+	flatpak --version
+	flatpak-builder --version
+
 	flatpak remote-add \
 		--user \
 		--if-not-exists \
@@ -65,6 +73,7 @@ flatpak:
 		--repo=repo/ \
 		build/ \
 		data/manifest.json
+.PHONY: flatpak
 
 
 # Updates the trasnslation template
@@ -72,4 +81,4 @@ translation:
 	printf 'msgid \"\"\nmsgstr \"Content-Type: text/plain; charset=UTF-8\\n\"' \
 		> locales/all.pot
 	find monophony -iname "*.py" | xargs xgettext --omit-header -j -o locales/all.pot
-
+.PHONY: translation
