@@ -27,7 +27,7 @@ class MonophonySongRow(Adw.ActionRow, GObject.Object):
 		if length:
 			subtitle = length + ' ' + subtitle
 
-		self.checkmark = Gtk.Image.new_from_icon_name('emblem-ok-symbolic')
+		self.checkmark = Gtk.Image.new_from_icon_name('folder-download-symbolic')
 		self.checkmark.set_tooltip_text(_('Downloaded'))
 		self.checkmark.set_visible(False)
 		self.add_suffix(self.checkmark)
