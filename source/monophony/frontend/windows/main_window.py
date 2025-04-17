@@ -35,7 +35,7 @@ class MonophonyMainWindow(Adw.ApplicationWindow):
 		self.stack = Adw.ViewStack()
 		self.library_tab = MonophonyLibraryTab(self.player)
 		self.stack.add_titled_with_icon(
-			self.library_tab, 'library', _('Library'), 'emblem-music-symbolic'
+			self.library_tab, 'library', _('Library'), 'audio-x-generic-symbolic'
 		)
 		self.stack.add_titled_with_icon(
 			MonophonySearchTab(self.player),
