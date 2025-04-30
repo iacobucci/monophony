@@ -14,6 +14,7 @@ LICENSE_DIR = $(prefix)/share/licenses
 BIN_DIR = $(prefix)/bin
 
 
+# Only use for packaging. For manual builds, see "flatpak" instead
 install:
 	@# Executable
 	$(INSTALL) bin/monophony.py $(BIN_DIR)/monophony
@@ -57,8 +58,8 @@ install:
 
 # For testing purposes - builds and installs a flatpak
 flatpak:
-	flatpak --version
-	flatpak-builder --version
+	@flatpak --version
+	@flatpak-builder --version
 
 	flatpak remote-add \
 		--user \
