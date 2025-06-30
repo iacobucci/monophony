@@ -24,6 +24,10 @@ lint.extend-select = [
 line-length = 88
 indent-width = 4
 
+[tool.ruff.format]
+quote-style = 'single'
+indent-style = 'tab'
+
 [tool.ruff.lint.flake8-quotes]
 inline-quotes = 'single'
 docstring-quotes = 'single'
