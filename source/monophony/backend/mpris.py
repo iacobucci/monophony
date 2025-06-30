@@ -15,17 +15,8 @@ class Adapter(MprisAdapter):
 	def get_desktop_entry(self) -> str:
 		return APP_ID
 
-	def get_uri_schemes(self) -> list:
-		return []
-
-	def get_mime_types(self) -> list:
-		return []
-
 	def can_quit(self) -> bool:
 		return False
-
-	def quit(self):
-		pass
 
 	def get_current_position(self) -> float:
 		return self.monophony_player.get_position_ns() / 1000
@@ -45,46 +36,16 @@ class Adapter(MprisAdapter):
 	def stop(self):
 		self.monophony_player.clear_queue()
 
-	def play(self):
-		pass
-
 	def get_playstate(self) -> PlayState:
 		if self.monophony_player.is_paused():
 			return PlayState.PAUSED
 		return PlayState.PLAYING
 
-	def seek(self, _time):
-		return
-
 	def is_repeating(self) -> bool:
 		return self.monophony_player.mode == PlaybackMode.LOOP_SONG
 
-	def is_playlist(self) -> bool:
-		return True
-
-	def set_repeating(self, _val: bool):
-		pass
-
-	def set_loop_status(self, _val: str):
-		pass
-
-	def get_rate(self) -> float:
-		return 1.0
-
-	def set_rate(self, _val: float):
-		pass
-
 	def get_shuffle(self) -> bool:
 		return False
-
-	def set_shuffle(self, _val: bool):
-		pass
-
-	def get_art_url(self, _track):
-		return ''
-
-	def get_stream_title(self):
-		return ''
 
 	def get_volume(self):
 		return self.monophony_player.get_volume()
