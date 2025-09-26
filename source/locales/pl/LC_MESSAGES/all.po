@@ -1,0 +1,329 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8\n"
+
+#: monophony/ui/pages/artist_page.py:11
+msgid "Artist Page"
+msgstr "Strona Wykonawcy"
+
+#: monophony/ui/pages/home_page.py:26
+msgid "Recommended"
+msgstr "Polecane"
+
+#: monophony/ui/pages/home_page.py:76 monophony/ui/pages/home_page.py:131
+msgid "Your Playlists"
+msgstr "Twoje Playlisty"
+
+#: monophony/ui/pages/home_page.py:133
+msgid "Playlists you create will appear here"
+msgstr "Utworzone playlisty pojawią się tutaj"
+
+#: monophony/ui/pages/home_page.py:148 monophony/ui/windows/import_window.py:52
+msgid "Import"
+msgstr "Importuj"
+
+#: monophony/ui/pages/home_page.py:161
+msgid "Synchronized Playlists"
+msgstr "Zsynchronizowane Playlisty"
+
+#: monophony/ui/pages/home_page.py:217
+msgid "Downloads Directory"
+msgstr "Katalog Pobranych"
+
+#: monophony/ui/pages/home_page.py:227
+msgid "Downloads"
+msgstr "Pobrane"
+
+#: monophony/ui/pages/home_page.py:259
+msgid "Clear"
+msgstr "Wyczyść"
+
+#: monophony/ui/pages/home_page.py:267
+msgid "Recently Played"
+msgstr "Ostatnio Odtwarzane"
+
+#: monophony/ui/pages/home_page.py:304 monophony/ui/windows/main_window.py:712
+msgid "Donate"
+msgstr "Przekaż Darowiznę"
+
+#: monophony/ui/pages/home_page.py:348
+msgid "Home"
+msgstr "Strona Główna"
+
+#: monophony/ui/pages/home_page.py:407 monophony/ui/pages/home_page.py:436
+#, python-brace-format
+msgid "Deleted playlist \"{name}\""
+msgstr "Usunięto playlistę \"{name}\""
+
+#: monophony/ui/pages/home_page.py:411 monophony/ui/pages/home_page.py:440
+msgid "Undo"
+msgstr "Cofnij"
+
+#: monophony/ui/pages/loading_page.py:21
+msgid "Loading..."
+msgstr "Ładowanie..."
+
+#: monophony/ui/pages/results_page.py:27 monophony/ui/pages/results_page.py:47
+#: monophony/ui/pages/results_page.py:67 monophony/ui/pages/results_page.py:87
+#: monophony/ui/pages/results_page.py:107
+msgid "Show All"
+msgstr "Pokaż Wszystkie"
+
+#: monophony/ui/pages/results_page.py:126
+msgid "Songs"
+msgstr "Utwory"
+
+#: monophony/ui/pages/results_page.py:129
+msgid "Videos"
+msgstr "Wideo"
+
+#: monophony/ui/pages/results_page.py:132
+msgid "Albums and Singles"
+msgstr "Albumy i Single"
+
+#: monophony/ui/pages/results_page.py:135
+msgid "Playlists"
+msgstr "Playlisty"
+
+#: monophony/ui/pages/results_page.py:138
+msgid "Artists"
+msgstr "Wyonawcy"
+
+#: monophony/ui/pages/results_page.py:147
+msgid "Top Result"
+msgstr "Najlepszy Wynik"
+
+#: monophony/ui/pages/results_page.py:221
+msgid "Search Results"
+msgstr "Wyniki Wyszukiwania"
+
+#: monophony/ui/rows/artist_row.py:15 monophony/ui/rows/artist_row.py:20
+#: monophony/ui/popovers/group_row_popover.py:23
+#: monophony/ui/popovers/song_row_popover.py:23
+msgid "View Artist"
+msgstr "Zobacz Wykonawcę"
+
+#: monophony/ui/rows/group_row.py:22 monophony/ui/rows/song_row.py:34
+msgid "More"
+msgstr "Więcej"
+
+#: monophony/ui/rows/song_row.py:29
+msgid "Downloaded"
+msgstr "Pobrane"
+
+#: monophony/ui/rows/song_row.py:46
+msgid "Play"
+msgstr "Odtwarzaj"
+
+#: monophony/ui/windows/add_window.py:24
+msgid "New Playlist"
+msgstr "Nowa Playlista"
+
+#: monophony/ui/windows/add_window.py:40
+msgid "Add"
+msgstr "Dodaj"
+
+#: monophony/ui/windows/add_window.py:55
+msgid "Add to Playlists..."
+msgstr "Dodaj do Playlist..."
+
+#: monophony/ui/windows/import_window.py:18
+msgid "Playlist URL"
+msgstr "URL Playlisty"
+
+#: monophony/ui/windows/import_window.py:29
+#: monophony/ui/windows/rename_window.py:15
+msgid "Playlist Name"
+msgstr "Nazwa Playlisty"
+
+#: monophony/ui/windows/import_window.py:33
+msgid "Synchronized"
+msgstr "Zsynchronizowane"
+
+#: monophony/ui/windows/import_window.py:35
+msgid "Synchronized playlists are updated automatically and can't be edited"
+msgstr ""
+"Zsynchronizowane playlisty są aktualizowane automatycznie i nie mogą być "
+"edytowane"
+
+#: monophony/ui/windows/import_window.py:69
+msgid "Import Playlist..."
+msgstr "Importuj Playlistę..."
+
+#: monophony/ui/windows/message_window.py:12
+msgid "Ok"
+msgstr "Ok"
+
+#: monophony/ui/windows/rename_window.py:35
+msgid "Rename Playlist..."
+msgstr "Zmień Nazwę Playlisty..."
+
+#: monophony/ui/windows/main_window.py:373
+msgid "Playing"
+msgstr "Odtwarzanie"
+
+#: monophony/ui/windows/main_window.py:454
+msgid "Download Failed"
+msgstr "Nie Udało Się Pobrać"
+
+#: monophony/ui/windows/main_window.py:454
+msgid "Some songs could not be downloaded"
+msgstr "Niektóre utwory nie mogły być pobrane"
+
+#: monophony/ui/windows/main_window.py:503
+msgid "Failed to Import"
+msgstr "Nie Udało Się Importować"
+
+#: monophony/ui/windows/main_window.py:504
+#: monophony/ui/windows/main_window.py:619
+#: monophony/ui/windows/main_window.py:836
+msgid "Check your internet connection and try again"
+msgstr "Sprawdź swoje połączenie z internetem i spróbuj ponownie"
+
+#: monophony/ui/windows/main_window.py:618
+msgid "Failed to Search"
+msgstr "Nie Udało Się Wyszukać"
+
+#: monophony/ui/windows/main_window.py:625
+msgid "No Results"
+msgstr "Brak Wyników"
+
+#: monophony/ui/windows/main_window.py:626
+msgid "Try searching for something else"
+msgstr "Spróbuj wyszukać coś innego"
+
+#: monophony/ui/windows/main_window.py:709
+msgid "translator-credits"
+msgstr "Zehkira"
+
+#: monophony/ui/windows/main_window.py:835
+msgid "Failed to Load Artist Page"
+msgstr "Nie Udało Się Załadować Strony Wykonawcy"
+
+#: monophony/ui/windows/main_window.py:842
+msgid "Empty Artist Page"
+msgstr "Pusta Strona Wykonawcy"
+
+#: monophony/ui/windows/main_window.py:843
+msgid "No content found from this artist"
+msgstr "Nie znaleziono żadnych treści od tego wykonawcy"
+
+#: monophony/ui/bars/header_bar.py:15
+msgid "About"
+msgstr "O Aplikacji"
+
+#: monophony/ui/bars/player_bar.py:93 monophony/ui/queue_sidebar.py:138
+msgid "Queue"
+msgstr "Kolejka"
+
+#: monophony/ui/bars/player_bar.py:120
+msgid "Playback Mode"
+msgstr "Tryb Odtwarzania"
+
+#: monophony/ui/bars/player_bar.py:127
+msgid "Previous"
+msgstr "Poprzednie"
+
+#: monophony/ui/bars/player_bar.py:143
+msgid "Pause"
+msgstr "Pauza"
+
+#: monophony/ui/bars/player_bar.py:152
+msgid "Next"
+msgstr "Następne"
+
+#: monophony/ui/bars/player_bar.py:165
+msgid "Volume"
+msgstr "Głośność"
+
+#: monophony/ui/bars/player_bar.py:236
+msgid "Normal Playback"
+msgstr "Normalne Odtwarzanie"
+
+#: monophony/ui/bars/player_bar.py:237
+msgid "Repeat Song"
+msgstr "Powtarzaj Utwór"
+
+#: monophony/ui/bars/player_bar.py:238
+msgid "Repeat Queue"
+msgstr "Powtarzaj Kolejkę"
+
+#: monophony/ui/bars/player_bar.py:239
+msgid "Autoplay Similar"
+msgstr "Autoodtwarzaj Podobne"
+
+#: monophony/ui/bars/search_bar.py:11
+msgid "Search..."
+msgstr "Wyszukaj..."
+
+#: monophony/ui/popovers/editable_group_row_popover.py:14
+msgid "Rename..."
+msgstr "Zmień Nazwę..."
+
+#: monophony/ui/popovers/editable_group_row_popover.py:17
+#: monophony/ui/popovers/synchronized_group_row_popover.py:14
+msgid "Delete"
+msgstr "Usuń"
+
+#: monophony/ui/popovers/editable_song_row_popover.py:14
+msgid "Remove From Playlist"
+msgstr "Usuń z Playlisty"
+
+#: monophony/ui/popovers/group_row_popover.py:20
+#: monophony/ui/popovers/song_row_popover.py:21
+msgid "Add to Queue"
+msgstr "Dodaj do Kolejki"
+
+#: monophony/ui/popovers/group_row_popover.py:21
+#: monophony/ui/popovers/song_row_popover.py:22
+#: monophony/ui/queue_sidebar.py:41
+msgid "Add to..."
+msgstr "Dodaj do..."
+
+#: monophony/ui/popovers/group_row_popover.py:24
+#: monophony/ui/popovers/song_row_popover.py:29
+msgid "Download"
+msgstr "Pobierz"
+
+#: monophony/ui/popovers/importable_group_row_popover.py:14
+msgid "Import..."
+msgstr "Importuj..."
+
+#: monophony/ui/popovers/queue_song_row_popover.py:15
+msgid "Remove From Queue"
+msgstr "Usuń z Kolejki"
+
+#: monophony/ui/popovers/song_row_popover.py:26
+msgid "Remove From Downloads"
+msgstr "Usuń z Pobranych"
+
+#: monophony/ui/row_groups/queueable_row_group.py:20
+msgid "Play All"
+msgstr "Odtwórz Wszystkie"
+
+#: monophony/ui/queue_sidebar.py:18
+msgid "Stop"
+msgstr "Zatrzymaj"
+
+#: monophony/ui/queue_sidebar.py:31
+msgid "Shuffle"
+msgstr "Wymieszaj"
+
+#: monophony/ui/queue_sidebar.py:65
+msgid "Currently Playing"
+msgstr "Aktualnie Odtwarzane"
+
+#: monophony/ui/queue_sidebar.py:116
+msgid "Queue Empty"
+msgstr "Kolejka Pusta"
+
+#: monophony/ui/queue_sidebar.py:117
+msgid "Nothing is playing right now"
+msgstr "Nic nie jest w tej chwili odtwarzane"
+
+#: monophony/ui/queue_sidebar.py:135
+msgid "Back"
+msgstr "Wróć"
+
+#: monophony/playlists.py:167
+msgid "Playlist"
+msgstr "Playlista"

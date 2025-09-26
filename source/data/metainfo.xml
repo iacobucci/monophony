@@ -1,17 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<component type="desktop">
+<component type="desktop-application">
 	<id>io.gitlab.zehkira.Monophony</id>
 	<metadata_license>0BSD</metadata_license>
-	<project_license>GPL-2.0-or-later</project_license>
+	<project_license>0BSD</project_license>
 	<name>Monophony</name>
-	<developer_name>Zehkira</developer_name>
-	<url type="homepage">https://gitlab.com/zehkira/monophony</url>
+	<developer id="io.gitlab.zehkira">
+		<name>Zehkira</name>
+	</developer>
+	<categories>
+		<category>AudioVideo</category>
+		<category>Audio</category>
+		<category>Music</category>
+		<category>GNOME</category>
+		<category>GTK</category>
+	</categories>
+	<keywords>
+		<keyword>music</keyword>
+		<keyword>stream</keyword>
+		<keyword>youtube</keyword>
+		<keyword>yt</keyword>
+	</keywords>
+	<url type="homepage">https://zeh-kira.itch.io/monophony</url>
 	<url type="bugtracker">https://gitlab.com/zehkira/monophony/-/issues</url>
+	<url type="donation">https://zeh-kira.itch.io/monophony/purchase</url>
 	<supports>
 		<control>pointing</control>
 		<control>keyboard</control>
 		<control>touch</control>
 	</supports>
+	<recommends>
+		<internet>always</internet>
+	</recommends>
 	<requires>
 		<display_length compare="ge">360</display_length>
 	</requires>
@@ -20,7 +39,6 @@
 		<color type="primary" scheme_preference="dark">#911221</color>
 	</branding>
 	<summary>Stream music from YouTube Music</summary>
-	<summary xml:lang="de">Musik von YouTube streamen</summary>
 	<description>
 		<p>
 			Monophony allows you to stream and download music from YouTube Music without ads, as well as create and import playlists without signing in.

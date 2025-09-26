@@ -1,12 +1,13 @@
 [Desktop Entry]
 Name=Monophony
-GenericName=Music streaming app
-Comment=Music streaming app
+GenericName=Client for YouTube Music
+Comment=Stream music from YouTube Music
 Exec=monophony
 Terminal=false
 Type=Application
 StartupNotify=false
+SingleMainWindow=true
 Icon=io.gitlab.zehkira.Monophony
-Categories=AudioVideo;Audio;Music;
+Categories=AudioVideo;Audio;Music;GNOME;GTK;
 X-Purism-FormFactor=Workstation;Mobile;
-Keywords=Music;Stream;Youtube;yt;
+Keywords=music;stream;youtube;yt;

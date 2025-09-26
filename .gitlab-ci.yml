@@ -1,21 +1,40 @@
 variables:
   APP_ID: io.gitlab.zehkira.Monophony
+  RELEASE_BRANCH: release # Branch on which to build and deploy automatically
+  FLATPAK_BRANCH: master # Branch of exported flatpak repo, same as in flatpakref file
+  IMAGE: alpine:3.22.1
 
 
 stages:
+  - test
   - build-x86_64
   - build-aarch64
   - deploy
 
 
+test:
+  stage: test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  image: ${IMAGE}
+  script:
+    - apk add appstream bash desktop-file-utils flatpak flatpak-builder make ruff
+
+    - ruff check source
+    - appstreamcli validate --explain --strict source/data/metainfo.xml
+    - desktop-file-validate source/data/*.desktop
+    - find source/locales/ | tr "\n" " " | grep -vq \.mo
+    - make --directory=source/ flatpak
+    - flatpak run --filesystem=$CI_PROJECT_DIR/source/tests/:ro --command=source/tests/tests.py --env=LOG_LEVELS=ERRO ${APP_ID}
+
+
 .build:
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: manual
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
-      when: never
-  image: bilelmoussaoui/flatpak-github-actions:gnome-46
+    - if: $CI_COMMIT_BRANCH == $RELEASE_BRANCH
+  image: ${IMAGE}
   script:
+    - apk add flatpak flatpak-builder
+
     - flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
     - gpg --list-keys --with-keygrip
@@ -24,8 +43,8 @@ stages:
     - cat $GPG_PASSPHRASE | /usr/libexec/gpg-preset-passphrase --preset $GPG_KEY_GREP
     - gpg --import --batch ${GPG_PRIVATE_KEY}
 
-    - flatpak-builder build --arch=${ARCH} --user --install-deps-from=flathub --gpg-sign=${GPG_KEY_ID} --disable-rofiles-fuse --disable-updates --force-clean --repo=repo ${BRANCH:+--default-branch=$BRANCH} $CI_PROJECT_DIR/source/data/manifest.json
-    - flatpak build-bundle --arch=${ARCH} --gpg-sign=${GPG_KEY_ID} repo ${APP_ID}.flatpak --runtime-repo=flathub ${APP_ID} ${BRANCH}
+    - flatpak-builder build --arch=${ARCH} --user --install-deps-from=flathub --gpg-sign=${GPG_KEY_ID} --disable-rofiles-fuse --disable-updates --force-clean --repo=repo --default-branch=${FLATPAK_BRANCH} $CI_PROJECT_DIR/source/data/manifest.json
+    - flatpak build-bundle --arch=${ARCH} --gpg-sign=${GPG_KEY_ID} repo ${APP_ID}.flatpak --runtime-repo=flathub ${APP_ID} ${FLATPAK_BRANCH}
     - flatpak build-update-repo --gpg-sign=${GPG_KEY_ID} --generate-static-deltas --prune repo/
   artifacts:
     paths:
@@ -33,36 +52,29 @@ stages:
 
 
 build-x86_64:
-  variables:
-    ARCH: x86_64
   extends: .build
   stage: build-x86_64
+  variables:
+    ARCH: x86_64
 
 
 build-aarch64:
-  variables:
-    ARCH: aarch64
   extends: .build
   stage: build-aarch64
-  dependencies:
-    - "build-x86_64"
+  variables:
+    ARCH: aarch64
 
 
 pages:
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: manual
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
-      when: never
-  variables:
-    BUILD_OUTPUT_PATH: ${CI_PROJECT_DIR}/repo
   stage: deploy
-  image: alpine:latest
+  rules:
+    - if: $CI_COMMIT_BRANCH == $RELEASE_BRANCH
+  image: ${IMAGE}
   script:
     - apk add rsync
     - find $BUILD_OUTPUT_PATH \( -type d -name .git -prune \) -o -type f -print0 | xargs -0 sed -i -e "s#href=\"\/#href=\"$CI_PAGES_URL/#g" -e "s#src=\"\/#src=\"$CI_PAGES_URL/#g"
-    - mkdir public || true
-    - rsync -av --exclude='public' --exclude='.git' $BUILD_OUTPUT_PATH/ public
+    - mkdir --parents public
+    - rsync -av --exclude='public' --exclude='.git' ${CI_PROJECT_DIR}/repo/ public
   artifacts:
     paths:
       - public

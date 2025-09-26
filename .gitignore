@@ -1,11 +1,10 @@
-__pycache__/
-
 *.build/
-build/
-dist/
-repo/
-.flatpak-builder/
-.*_cache/
 *.egg-info/
 *.flatpak
 *~
+.*_cache/
+.flatpak-builder/
+.repo/
+__pycache__/
+build/
+dist/

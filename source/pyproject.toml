@@ -1,6 +1,6 @@
 [project]
 name = 'monophony'
-dynamic = ['dependencies', 'optional-dependencies', 'version']
+dynamic = ['version']
 requires-python = '>=3.12'
 
 [build-system]
@@ -8,8 +8,6 @@ requires = ['setuptools']
 build-backend = 'setuptools.build_meta'
 
 [tool.setuptools.dynamic]
-dependencies = {file=['requirements.txt']}
-optional-dependencies = {dev={file=['requirements-dev.txt']}}
 version = {attr='monophony.__version__'}
 
 [tool.setuptools.packages.find]
@@ -17,19 +15,50 @@ include = ['monophony*']
 
 [tool.ruff]
 builtins = ['_']
-lint.extend-ignore = ['E401', 'E402', 'E722', 'E74']
-lint.extend-select = [
-	'ARG', 'BLE', 'E1', 'E5', 'FA', 'INP', 'ISC', 'PERF', 'PIE', 'PLC', 'Q', 'RET',
-	'RUF', 'SIM', 'TRY', 'UP'
-]
 line-length = 88
 indent-width = 4
 
-[tool.ruff.format]
-quote-style = 'single'
-indent-style = 'tab'
+[tool.ruff.lint]
+select = [
+	'A', 'ARG', 'ASYNC',
+	'B', 'BLE',
+	'C4', 'COM',
+	'DTZ',
+	'E', 'EM', 'EXE',
+	'F', 'FA', 'FIX', 'FLY', 'FURB',
+	'G',
+	'I', 'ICN', 'INP', 'INT', 'ISC',
+	'LOG',
+	'N',
+	'PERF', 'PGH', 'PIE', 'PLC', 'PLE', 'PLR', 'PLW', 'PT',
+	'Q',
+	'RET', 'RSE', 'RUF',
+	'S', 'SIM', 'SLF', 'SLOT',
+	'T20', 'TID', 'TRY',
+	'UP',
+	'W'
+]
+ignore = [
+	'COM812', # missing-trailing-comma
+	'PLR09', # too-many-*
+	'S108', # hardcoded-temp-file
+	'S311', # suspicious-non-cryptographic-random-usage
+	'S603', # subprocess-without-shell-equals-true
+	'S607', # start-process-with-partial-path
+	'W191' # tab-indentation
+]
 
 [tool.ruff.lint.flake8-quotes]
 inline-quotes = 'single'
 docstring-quotes = 'single'
 multiline-quotes = 'single'
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = 'all'
+
+[tool.ruff.lint.isort]
+section-order = [
+	'future', 'standard-library', 'local-folder', 'first-party', 'third-party'
+]
+known-first-party = ['monophony']
+lines-after-imports = 2
