@@ -107,8 +107,8 @@
 			],
 			"sources": [{
 				"type": "file",
-				"url": "https://github.com/yt-dlp/yt-dlp/releases/download/2025.09.23/yt-dlp",
-				"sha256": "0e53f5ff29eecb9923fca12979f3808f429ec193ab73346ae9a7e2ea6f619666"
+				"url": "https://github.com/yt-dlp/yt-dlp/releases/download/2025.09.26/yt-dlp",
+				"sha256": "9215a371883aea75f0f2102c679333d813d9a5c3bceca212879a4a741a5b4657"
 			}]
 		},
 		{
