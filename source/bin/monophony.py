@@ -18,7 +18,7 @@ gi.require_versions({
 from monophony import NAME, logging
 from monophony.app import Application
 
-from gi.repository import Gio
+from gi.repository import Gio, GLib
 
 
 sys.excepthook = lambda exception, value, trace: logging.error(
@@ -46,11 +46,14 @@ resources_file = 'resources.gresource'
 for path in os.getenv('XDG_DATA_DIRS', '/usr/share/').split(':'):
 	data_path = f'{path}{NAME}' if path.endswith('/') else f'{path}/{NAME}'
 	logging.info(__name__, f'Trying to load GResources from "{data_path}"...')
-	resource = Gio.Resource.load(data_path + '/' + resources_file)
-	if resource:
-		Gio.resources_register(resource)
-		logging.info(__name__, f'Loaded GResources from "{data_path}/{resources_file}"')
-		break
+	try:
+		resource = Gio.Resource.load(data_path + '/' + resources_file)
+	except GLib.GError:
+		continue
+
+	Gio.resources_register(resource)
+	logging.info(__name__, f'Loaded GResources from "{data_path}/{resources_file}"')
+	break
 else:
 	logging.error(__name__, 'Failed to load GResources: not found')
 	sys.exit(1)
