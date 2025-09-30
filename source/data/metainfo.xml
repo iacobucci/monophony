@@ -57,6 +57,13 @@
 	<launchable type="desktop-id">io.gitlab.zehkira.Monophony.desktop</launchable>
 	<content_rating type="oars-1.1"></content_rating>
 	<releases>
+		<release version="4.0.1" date="2025-09-30">
+			<description>
+				<ul>
+					<li>Fixed the app not starting in some cases</li>
+				</ul>
+			</description>
+		</release>
 		<release version="4.0.0" date="2025-09-27">
 			<description>
 				<p>For this release, the app was remade from scratch with a new license. A backwards incompatible change was also made to the song history module, which will result in the loss of your song history. Playlists are not affected.</p>
