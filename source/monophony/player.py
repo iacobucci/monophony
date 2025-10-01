@@ -83,6 +83,7 @@ class Player(GObject.Object):
 
 		self._playbin = Gst.ElementFactory.make('playbin3', None)
 		self._playbin.props.audio_sink = pulse_sink
+		self._playbin.props.video_sink = Gst.ElementFactory.make('fakevideosink', None)
 		self._playbin.set_state(Gst.State.READY)
 		self._playbin.get_bus().add_signal_watch()
 		self._playbin.get_bus().connect('message::error', self._on_bus_error)
