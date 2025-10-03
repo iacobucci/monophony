@@ -1,3 +1,4 @@
+import contextlib
 import glob
 import json
 import os
@@ -141,21 +142,18 @@ class _Downloader:
 		path = get_directory()
 		os.makedirs(path, exist_ok=True)
 		for file in os.listdir(path):
-			if file.endswith(('.part', '.' + NAME)):
+			if file.endswith(NAME):
 				os.remove(path + file)
 				logging.info(__name__, f'Removed abandoned temp file "{file}"')
 				continue
 
-			for song in downloads_group.songs:
-				if path + file == get_file(song):
-					break
-			else:
+			yt_id = 'null'
+			with contextlib.suppress(IndexError):
+				yt_id = file.split('.')[-2][-11:]
+			if Song(yt_id=yt_id) not in downloads_group.songs:
 				os.remove(path + file)
 				logging.warning(__name__, f'Removed unexpected file "{file}"')
 
-		self.write(
-			Group(songs=[song for song in self.read().songs if is_downloaded(song)])
-		)
 		logging.info(__name__, 'Cleaned up downloads')
 		self.lock.unlock()
 
