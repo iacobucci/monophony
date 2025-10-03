@@ -57,6 +57,14 @@
 	<launchable type="desktop-id">io.gitlab.zehkira.Monophony.desktop</launchable>
 	<content_rating type="oars-1.1"></content_rating>
 	<releases>
+		<release version="4.0.2" date="2025-10-03">
+			<description>
+				<ul>
+					<li>Fixed slow startup in some cases</li>
+					<li>Fixed a window with the video appearing sometimes</li>
+				</ul>
+			</description>
+		</release>
 		<release version="4.0.1" date="2025-09-30">
 			<description>
 				<ul>

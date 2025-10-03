@@ -1,4 +1,4 @@
-__version__ = '4.0.1'
+__version__ = '4.0.2'
 ID = 'io.gitlab.zehkira.Monophony' # Full ID per Freedesktop standards
 NAME = 'monophony' # Use for app executable, directories and so on
 DISPLAY_NAME = 'Monophony' # For window titles and such - do not use in logic
