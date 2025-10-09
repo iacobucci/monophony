@@ -6,7 +6,7 @@ from monophony import logging
 from gi.repository import GLib, GObject
 
 
-_DEBUG_VARIABLE = 'DEBUG'
+_DEBUG_VARIABLE = 'MONOPHONY_DEBUG'
 
 
 def is_active() -> bool:

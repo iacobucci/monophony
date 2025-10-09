@@ -26,7 +26,7 @@ test:
     - desktop-file-validate source/data/*.desktop
     - find source/locales/ | tr "\n" " " | grep -vq \.mo
     - make --directory=source/ flatpak
-    - flatpak run --filesystem=$CI_PROJECT_DIR/source/tests/:ro --command=source/tests/tests.py --env=LOG_LEVELS=ERRO ${APP_ID}
+    - flatpak run --filesystem=$CI_PROJECT_DIR/source/tests/:ro --command=source/tests/tests.py --env=MONOPHONY_LOG_LEVELS=ERRO ${APP_ID}
 
 
 .build:

@@ -11,7 +11,7 @@ from monophony import NAME, __version__
 from gi.repository import GLib
 
 
-_LOG_LEVELS_VARIABLE = 'LOG_LEVELS'
+_LOG_LEVELS_VARIABLE = 'MONOPHONY_LOG_LEVELS'
 _DEFAULT_LOG_LEVELS = 'INFO,WARN,ERRO'
 
 
