@@ -1,6 +1,7 @@
 variables:
   APP_ID: io.gitlab.zehkira.Monophony
   RELEASE_BRANCH: release # Branch on which to build and deploy automatically
+  DEV_BRANCH: master # Main development branch into which feature branches are squashed and merged
   FLATPAK_BRANCH: master # Branch of exported flatpak repo, same as in flatpakref file
   IMAGE: alpine:3.22.1
 
@@ -15,7 +16,7 @@ stages:
 test:
   stage: test
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: ($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEV_BRANCH)
   image: ${IMAGE}
   script:
     - apk add appstream bash desktop-file-utils flatpak flatpak-builder make ruff
