@@ -1,9 +1,5 @@
+<!--
+Merge requests into master MUST be squashed
+Merge requests into release MUST NOT be squashed
+-->
 
-
-
-
-<!-- NOTE: Merge requests into master MUST be squashed -->
-
-<!-- Quick actions -->
-/target_branch master
-/rebase
