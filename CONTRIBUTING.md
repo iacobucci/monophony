@@ -11,7 +11,7 @@ The following environment variables are available:
 When running the app, environment variables can be set with `--env`:
 
 ```sh
-flatpak run --env=LOG_LEVELS=WARN,ERRO io.gitlab.zehkira.Monophony
+flatpak run --env=MONOPHONY_LOG_LEVELS=WARN,ERRO io.gitlab.zehkira.Monophony
 ```
 
 ## Translation
