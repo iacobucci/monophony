@@ -98,8 +98,10 @@ class Player(GObject.Object):
 		self._mpris_event_sender = EventSender(self._mpris_server)
 		self._mpris_server.publish()
 
-		self.set_mode(int(settings.load('mode', PlaybackMode.NORMAL)))
-		self.set_volume(float(settings.load('volume', 1.0)))
+		self.set_mode(
+			int(settings.load('mode', PlaybackMode.NORMAL)), save_setting=False
+		)
+		self.set_volume(float(settings.load('volume', 1.0)), save_setting=False)
 
 	@GObject.Signal(name='queue-changed')
 	def _queue_changed(self, _queue: object, _index: int):
@@ -453,18 +455,26 @@ class Player(GObject.Object):
 		logging.info(__name__, f'Set pause to "{pause}"')
 
 	def set_volume(
-		self, volume: float, notify_frontend: bool=True, notify_mpris: bool=True
+		self,
+		volume: float,
+		notify_frontend: bool=True,
+		notify_mpris: bool=True,
+		save_setting: bool=True
 	):
-		settings.save({'volume': volume})
+		if save_setting:
+			settings.save({'volume': volume})
+
 		self._playbin.props.volume = volume
 		if notify_mpris:
 			self._mpris_event_sender.on_volume()
 		if notify_frontend:
 			self.emit('volume-changed', volume)
 
-	def set_mode(self, mode: int):
+	def set_mode(self, mode: int, save_setting: bool=True):
 		self.mode = mode
-		settings.save({'mode': mode})
+		if save_setting:
+			settings.save({'mode': mode})
+
 		self.emit('mode-changed', self.mode)
 
 	def shuffle(self):

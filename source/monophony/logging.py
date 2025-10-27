@@ -64,13 +64,11 @@ def error(source: str, text: Any, details: Any=''):
 
 
 def _log(level: type, source: str, text: str, details: str):
-	if threading.current_thread() is not threading.main_thread():
-		GLib.idle_add(_log, level, source, text, details)
+	if level.name not in log_levels:
 		return
 
-	if level.name not in os.getenv(
-		_LOG_LEVELS_VARIABLE, _DEFAULT_LOG_LEVELS
-	).split(','):
+	if threading.current_thread() is not threading.main_thread():
+		GLib.idle_add(_log, level, source, text, details)
 		return
 
 	text = text.strip()
@@ -99,6 +97,10 @@ def _log(level: type, source: str, text: str, details: str):
 def _get_directory() -> str:
 	return os.getenv('XDG_RUNTIME_DIR', '/var/tmp') + '/' + NAME
 
+
+log_levels = os.getenv(
+	_LOG_LEVELS_VARIABLE, _DEFAULT_LOG_LEVELS
+).split(',')
 
 log_directory = _get_directory()
 os.makedirs(log_directory, exist_ok=True)
