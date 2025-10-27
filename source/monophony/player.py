@@ -392,6 +392,7 @@ class Player(GObject.Object):
 			self.emit('progress-changed', 0)
 		else:
 			self._start_position = position
+		self._last_known_position = self._start_position
 		self.emit('buffering-changed', 0)
 
 		self._mpris_event_sender.emit_all()
