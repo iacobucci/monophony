@@ -57,6 +57,15 @@
 	<launchable type="desktop-id">io.gitlab.zehkira.Monophony.desktop</launchable>
 	<content_rating type="oars-1.1"></content_rating>
 	<releases>
+		<release version="4.1.2" date="2025-11-12">
+			<description>
+				<ul>
+					<li>Improved performance</li>
+					<li>Fixed playback starting at incorrect position in some cases</li>
+					<li>Updated to support latest YT changes</li>
+				</ul>
+			</description>
+		</release>
 		<release version="4.1.1" date="2025-10-23">
 			<description>
 				<ul>
