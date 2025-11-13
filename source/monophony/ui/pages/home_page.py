@@ -72,6 +72,16 @@ class HomePage(Page):
 			weakref.ref(self)
 		)
 
+		open_dir_button = Gtk.Button.new_from_icon_name('folder-symbolic')
+		open_dir_button.props.tooltip_text = _('Playlists Directory')
+		open_dir_button.connect(
+			'clicked',
+			lambda _button:
+				Gio.AppInfo.launch_default_for_uri(
+					'file://' + playlists.get_directory()
+				)
+		)
+
 		self._playlists_group = EditableGroupRowGroup()
 		self._playlists_group.props.title = _('Your Playlists')
 		self._playlists_group.props.margin_start = 12
@@ -126,6 +136,7 @@ class HomePage(Page):
 			lambda _group, playlist, ref: HomePage._on_delete_playlist(ref(), playlist),
 			weakref.ref(self)
 		)
+		self._playlists_group.props.header_suffix.prepend(open_dir_button)
 
 		no_playlists_group = Adw.PreferencesGroup()
 		no_playlists_group.props.title = _('Your Playlists')

@@ -24,7 +24,11 @@ class QueueableRowGroup(PlayableRowGroup):
 			weakref.ref(self)
 		)
 
-		self.props.header_suffix = play_button
+		box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+		box.props.spacing = 6
+		box.append(play_button)
+
+		self.props.header_suffix = box
 
 	@GObject.Signal(name='queue-song', arg_types=(object,))
 	def _queue_song(self, _song: Song):
@@ -42,4 +46,3 @@ class QueueableRowGroup(PlayableRowGroup):
 	def on_play_all(self):
 		group = Group(songs=[row_ref().song for row_ref in self._rows])
 		self.emit('play', group.songs[0], group)
-

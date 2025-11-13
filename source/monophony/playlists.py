@@ -9,18 +9,18 @@ from monophony.data import Artist, Group, Song
 from gi.repository import GLib
 
 
-def _get_directory() -> str:
+def get_directory() -> str:
 	return os.getenv(
 		'XDG_CONFIG_HOME', os.path.expanduser('~/.config')
 	) + '/' + NAME
 
 
 def _get_file_path() -> str:
-	return _get_directory() + '/playlists.json'
+	return get_directory() + '/playlists.json'
 
 
 def _get_external_file_path() -> str:
-	return _get_directory() + '/external-playlists.json'
+	return get_directory() + '/external-playlists.json'
 
 
 def add(playlist: Group) -> str:
@@ -183,7 +183,7 @@ def _write(playlists: list[Group] | None=None, ext_playlists: list[Group] | None
 	)
 	lists_path = _get_file_path()
 	ext_lists_path = _get_external_file_path()
-	os.makedirs(_get_directory(), exist_ok=True)
+	os.makedirs(get_directory(), exist_ok=True)
 
 	if playlists is not None:
 		serialized_playlists = {}
