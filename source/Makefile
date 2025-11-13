@@ -66,6 +66,9 @@ install:
 			--output-file $(LOCALES_DIR)/$${d}LC_MESSAGES/$(NAME).mo; \
 	done
 
+	@# Dependency license data
+	$(INSTALL_DATA) data/licenses.json $(DATA_DIR)/$(NAME)/licenses.json
+
 	@# License
 	cd ..; \
 		$(INSTALL_DATA) LICENSE $(LICENSE_DIR)/$(NAME)/LICENSE

@@ -1,0 +1,134 @@
+[
+	{
+		"name": "Adwaita Icon Theme",
+		"copyright": "",
+		"license": "LGPL-3.0-only",
+		"text": ""
+	},
+	{
+		"name": "cairo",
+		"copyright": "",
+		"license": "LGPL-2.1-only",
+		"text": ""
+	},
+	{
+		"name": "certifi",
+		"copyright": "",
+		"license": "MPL-2.0",
+		"text": ""
+	},
+	{
+		"name": "charset_normalizer",
+		"copyright": "Copyright © 2025 TAHRI Ahmed R.",
+		"license": "MIT",
+		"text": ""
+	},
+	{
+		"name": "Deno",
+		"copyright": "Copyright 2018-2025 the Deno authors",
+		"license": "MIT",
+		"text": ""
+	},
+	{
+		"name": "GLib",
+		"copyright": "",
+		"license": "LGPL-2.1-or-later",
+		"text": ""
+	},
+	{
+		"name": "GStreamer",
+		"copyright": "",
+		"license": "LGPL-2.1-only",
+		"text": ""
+	},
+	{
+		"name": "GTK",
+		"copyright": "",
+		"license": "LGPL-2.1-or-later",
+		"text": ""
+	},
+	{
+		"name": "GTK/roaring",
+		"copyright": "",
+		"license": "Apache-2.0",
+		"text": ""
+	},
+	{
+		"name": "GTK/timsort",
+		"copyright": "",
+		"license": "Apache-2.0",
+		"text": ""
+	},
+	{
+		"name": "idna",
+		"copyright": "Copyright © 2013-2025, Kim Davies and contributors",
+		"license": "BSD-3-Clause",
+		"text": ""
+	},
+	{
+		"name": "libadwaita",
+		"copyright": "",
+		"license": "LGPL-2.1-or-later",
+		"text": ""
+	},
+	{
+		"name": "Mopidy-MPRIS",
+		"copyright": "",
+		"license": "Apache-2.0",
+		"text": ""
+	},
+	{
+		"name": "mprisify",
+		"copyright": "Copyright © Zehkira and contributors",
+		"license": "LGPL-3.0-only",
+		"text": ""
+	},
+	{
+		"name": "pycairo",
+		"copyright": "",
+		"license": "LGPL-2.1-only",
+		"text": ""
+	},
+	{
+		"name": "pydbus",
+		"copyright": "Copyright © 2014, 2015, 2016 Linus Lewandowski",
+		"license": "LGPL-2.1-or-later",
+		"text": ""
+	},
+	{
+		"name": "PyGObject",
+		"copyright": "",
+		"license": "LGPL-2.1-or-later",
+		"text": ""
+	},
+	{
+		"name": "requests",
+		"copyright": "Copyright © 2019 Kenneth Reitz",
+		"license": "Apache-2.0",
+		"text": ""
+	},
+	{
+		"name": "StrEnum",
+		"copyright": "Copyright © 2019 James C Sinclair",
+		"license": "MIT",
+		"text": ""
+	},
+	{
+		"name": "urllib3",
+		"copyright": "Copyright © 2008-2020 Andrey Petrov and contributors",
+		"license": "MIT",
+		"text": ""
+	},
+	{
+		"name": "yt-dlp",
+		"copyright": "",
+		"license": "",
+		"text": "This is free and unencumbered software released into the public domain.\n\nAnyone is free to copy, modify, publish, use, compile, sell, or\ndistribute this software, either in source code form or as a compiled\nbinary, for any purpose, commercial or non-commercial, and by any\nmeans.\n\nIn jurisdictions that recognize copyright laws, the author or authors\nof this software dedicate any and all copyright interest in the\nsoftware to the public domain. We make this dedication for the benefit\nof the public at large and to the detriment of our heirs and\nsuccessors. We intend this dedication to be an overt act of\nrelinquishment in perpetuity of all present and future rights to this\nsoftware under copyright law.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND,\nEXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF\nMERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.\nIN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR\nOTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,\nARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR\nOTHER DEALINGS IN THE SOFTWARE.\n\nFor more information, please refer to <http://unlicense.org/>"
+	},
+	{
+		"name": "ytmusicapi",
+		"copyright": "Copyright © 2024 sigma67",
+		"license": "MIT",
+		"text": ""
+	}
+]

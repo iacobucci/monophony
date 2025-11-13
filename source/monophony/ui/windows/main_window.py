@@ -1,4 +1,7 @@
+import json
+import os
 import time
+import traceback
 import weakref
 
 from monophony import (
@@ -6,6 +9,7 @@ from monophony import (
 	GRESOURCES_PATH,
 	ID,
 	MIN_WIDTH,
+	NAME,
 	__version__,
 	downloads,
 	logging,
@@ -29,7 +33,7 @@ from monophony.ui.windows.import_window import ImportWindow
 from monophony.ui.windows.message_window import MessageWindow
 from monophony.yt import GetArtistTask, GetRecommendationsTask, SearchTask
 
-from gi.repository import Adw, Gio, GObject, Gtk
+from gi.repository import Adw, Gio, GLib, GObject, Gtk
 
 
 class PrepareHomePageTask(Task):
@@ -717,56 +721,57 @@ class MainWindow(Adw.ApplicationWindow):
 		about_dialog.add_link(
 			_('Donate'), 'https://zeh-kira.itch.io/monophony/purchase'
 		)
-		about_dialog.add_legal_section(
-			'mprisify',
-			'Copyright © Zehkira and contributors',
-			Gtk.License.LGPL_3_0_ONLY
-		)
-		about_dialog.add_legal_section('Mopidy-MPRIS', '', Gtk.License.APACHE_2_0)
-		about_dialog.add_legal_section(
-			'StrEnum', 'Copyright © 2019 James C Sinclair', Gtk.License.MIT_X11
-		)
-		about_dialog.add_legal_section('pycairo', '', Gtk.License.LGPL_2_1_ONLY)
-		about_dialog.add_legal_section('cairo', '', Gtk.License.LGPL_2_1_ONLY)
-		about_dialog.add_legal_section(
-			'pydbus',
-			'Copyright © 2014, 2015, 2016 Linus Lewandowski',
-			Gtk.License.LGPL_2_1
-		)
-		about_dialog.add_legal_section('GLib', '', Gtk.License.LGPL_2_1)
-		about_dialog.add_legal_section('PyGObject', '', Gtk.License.LGPL_2_1)
-		about_dialog.add_legal_section(
-			'ytmusicapi', 'Copyright © 2024 sigma67', Gtk.License.MIT_X11
-		)
-		about_dialog.add_legal_section('certifi', '', Gtk.License.MPL_2_0)
-		about_dialog.add_legal_section(
-			'charset_normalizer',
-			'Copyright © 2025 TAHRI Ahmed R.',
-			Gtk.License.MIT_X11
-		)
-		about_dialog.add_legal_section(
-			'idna',
-			'Copyright © 2013-2025, Kim Davies and contributors',
-			Gtk.License.BSD_3
-		)
-		about_dialog.add_legal_section(
-			'requests',
-			'Copyright © 2019 Kenneth Reitz',
-			Gtk.License.APACHE_2_0
-		)
-		about_dialog.add_legal_section(
-			'urllib3',
-			'Copyright © 2008-2020 Andrey Petrov and contributors',
-			Gtk.License.MIT_X11
-		)
-		about_dialog.add_legal_section('GTK', '', Gtk.License.LGPL_2_1)
-		about_dialog.add_legal_section('GTK/roaring', '', Gtk.License.APACHE_2_0)
-		about_dialog.add_legal_section('GTK/timsort', '', Gtk.License.APACHE_2_0)
-		about_dialog.add_legal_section('libadwaita', '', Gtk.License.LGPL_2_1)
-		about_dialog.add_legal_section(
-			'Adwaita Icon Theme', '', Gtk.License.LGPL_3_0_ONLY
-		)
-		about_dialog.add_legal_section('GStreamer', '', Gtk.License.LGPL_2_1_ONLY)
+
+		spdx_licenses = {
+			'': Gtk.License.CUSTOM,
+			'GPL-2.0-or-later': Gtk.License.GPL_2_0,
+			'GPL-3.0-or-later': Gtk.License.GPL_3_0,
+			'LGPL-2.1-or-later': Gtk.License.LGPL_2_1,
+			'LGPL-3.0-or-later': Gtk.License.LGPL_3_0,
+			'BSD-2-Clause': Gtk.License.BSD,
+			'MIT': Gtk.License.MIT_X11,
+			'Artistic-2.0': Gtk.License.ARTISTIC,
+			'GPL-2.0-only': Gtk.License.GPL_2_0_ONLY,
+			'GPL-3.0-only': Gtk.License.GPL_3_0_ONLY,
+			'LGPL-2.1-only': Gtk.License.LGPL_2_1_ONLY,
+			'LGPL-3.0-only': Gtk.License.LGPL_3_0_ONLY,
+			'AGPL-3.0-or-later': Gtk.License.AGPL_3_0,
+			'AGPL-3.0-only': Gtk.License.AGPL_3_0_ONLY,
+			'BSD-3-Clause': Gtk.License.BSD_3,
+			'Apache-2.0': Gtk.License.APACHE_2_0,
+			'MPL-2.0': Gtk.License.MPL_2_0,
+			'0BSD': getattr(Gtk.License, '0BSD')
+		}
+
+		licenses_data = []
+		logging.info(__name__, 'Loading licenses...')
+		for path in os.getenv('XDG_DATA_DIRS', '/usr/share/').split(':'):
+			file_path = f'{path}{"" if path.endswith("/") else "/"}{NAME}/licenses.json'
+			logging.info(__name__, f'Trying to load licenses from "{file_path}"...')
+			try:
+				with open(file_path) as licenses_file:
+					licenses_data = json.load(licenses_file)
+					logging.info(
+						__name__, f'Loaded licenses from "{file_path}"'
+					)
+					break
+			except OSError:
+				continue
+			except json.decoder.JSONDecodeError:
+				logging.error(
+					__name__, 'Failed to load licenses', traceback.format_exc()
+				)
+				break
+		else:
+			logging.error(__name__, 'Failed to load licenses file: not found')
+
+		for data in licenses_data:
+			about_dialog.add_legal_section(
+				GLib.markup_escape_text(data['name'], -1),
+				GLib.markup_escape_text(data['copyright'], -1),
+				spdx_licenses[data['license']],
+				GLib.markup_escape_text(data['text'], -1)
+			)
 
 		about_dialog.present(self)
 
