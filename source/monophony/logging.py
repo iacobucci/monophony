@@ -8,11 +8,10 @@ from typing import Any
 
 from monophony import NAME, __version__
 
-from gi.repository import GLib
-
 
 _LOG_LEVELS_VARIABLE = 'MONOPHONY_LOG_LEVELS'
 _DEFAULT_LOG_LEVELS = 'INFO,WARN,ERRO'
+_lock = threading.Lock()
 
 
 class LogLevel:
@@ -67,9 +66,7 @@ def _log(level: type, source: str, text: str, details: str):
 	if level.name not in log_levels:
 		return
 
-	if threading.current_thread() is not threading.main_thread():
-		GLib.idle_add(_log, level, source, text, details)
-		return
+	_lock.acquire()
 
 	text = text.strip()
 	details = details.strip()
@@ -92,6 +89,8 @@ def _log(level: type, source: str, text: str, details: str):
 			'Failed to write to log file\033[0m\n'
 			f'{traceback.format_exc()}\n'
 		)
+
+	_lock.release()
 
 
 def _get_directory() -> str:
