@@ -1,9 +1,9 @@
 variables:
   APP_ID: io.gitlab.zehkira.Monophony
   RELEASE_BRANCH: release # Branch on which to build and deploy automatically
-  DEV_BRANCH: master # Main development branch into which feature branches are squashed and merged
+  DEV_BRANCH: master # Main development branch into which feature branches are merged
   FLATPAK_BRANCH: master # Branch of exported flatpak repo, same as in flatpakref file
-  IMAGE: alpine:3.22.1
+  IMAGE: alpine:3.22.2
 
 
 stages:
@@ -16,7 +16,7 @@ stages:
 test:
   stage: test
   rules:
-    - if: ($CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEV_BRANCH)
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEV_BRANCH
   image: ${IMAGE}
   script:
     - apk add appstream bash desktop-file-utils flatpak flatpak-builder make ruff
@@ -26,7 +26,7 @@ test:
     - desktop-file-validate source/data/*.desktop
     - find source/locales/ | tr "\n" " " | grep -vq \.mo
     - make --directory=source/ flatpak
-    - flatpak run --filesystem=$CI_PROJECT_DIR/source/tests/:ro --command=source/tests/tests.py --env=MONOPHONY_LOG_LEVELS=ERRO ${APP_ID}
+    - flatpak run --filesystem=$CI_PROJECT_DIR/source/tests/:ro --command=source/tests/tests.py --env=MONOPHONY_LOG_LEVELS=ERRO ${APP_ID} --verbose
 
 
 .build:
@@ -73,7 +73,7 @@ pages:
   image: ${IMAGE}
   script:
     - apk add rsync
-    - find $BUILD_OUTPUT_PATH \( -type d -name .git -prune \) -o -type f -print0 | xargs -0 sed -i -e "s#href=\"\/#href=\"$CI_PAGES_URL/#g" -e "s#src=\"\/#src=\"$CI_PAGES_URL/#g"
+
     - mkdir --parents public
     - rsync -av --exclude='public' --exclude='.git' ${CI_PROJECT_DIR}/repo/ public
   artifacts:
