@@ -7,10 +7,20 @@ variables:
 
 
 stages:
+  - validate
   - test
   - build-x86_64
   - build-aarch64
   - deploy
+
+
+validate-release:
+  stage: validate
+  rules:
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $RELEASE_BRANCH
+  image: ${IMAGE}
+  script:
+    - git tag --points-at HEAD | grep -q v
 
 
 test:
