@@ -20,6 +20,7 @@ validate-release:
     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $RELEASE_BRANCH
   image: ${IMAGE}
   script:
+    - apk add git
     - git tag --points-at HEAD | grep -q v
 
 
