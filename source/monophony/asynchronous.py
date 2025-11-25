@@ -29,7 +29,10 @@ class Task(MemoryDebugger):
 		self.result = None
 		self._canceled = False
 		self._thread = threading.Thread(
-			target=self.__perform, args=self.__args, kwargs=self.__kwargs
+			target=self.__perform,
+			args=self.__args,
+			kwargs=self.__kwargs,
+			name=self.__class__.__qualname__
 		)
 		self._thread.daemon = True
 
@@ -59,4 +62,3 @@ class Task(MemoryDebugger):
 	def start(self):
 		if not self.is_running():
 			self._thread.start()
-
