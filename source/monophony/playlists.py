@@ -2,10 +2,11 @@ import json
 import os
 import time
 
-from monophony import NAME, logging, yt
+from monophony import NAME, yt
 from monophony.asynchronous import Task
 from monophony.data import Artist, Group, Song
 
+import logboth
 from gi.repository import GLib
 
 
@@ -24,7 +25,7 @@ def _get_external_file_path() -> str:
 
 
 def add(playlist: Group) -> str:
-	logging.info(__name__, f'Adding playlist "{playlist.title}"...')
+	logboth.info(__name__, f'Adding playlist "{playlist.title}"...')
 	new_lists = read()
 	old_title = playlist.title
 	playlist.title = make_unique_name(playlist.title)
@@ -39,12 +40,12 @@ def add(playlist: Group) -> str:
 	playlist.songs = unique_songs
 	new_lists.append(playlist)
 	_write(playlists=new_lists)
-	logging.info(__name__, f'Added playlist "{old_title}" as "{playlist.title}"')
+	logboth.info(__name__, f'Added playlist "{old_title}" as "{playlist.title}"')
 	return playlist.title
 
 
 def add_external(playlist: Group):
-	logging.info(__name__, f'Adding external playlist "{playlist.yt_id}"...')
+	logboth.info(__name__, f'Adding external playlist "{playlist.yt_id}"...')
 	lists = read_external()
 
 	song_ids = []
@@ -57,45 +58,45 @@ def add_external(playlist: Group):
 	playlist.songs = unique_songs
 	lists.append(playlist)
 	_write(ext_playlists=lists)
-	logging.info(__name__, 'Added external playlist')
+	logboth.info(__name__, 'Added external playlist')
 
 
 def rename(name: str, new_name: str) -> str:
 	new_name = make_unique_name(new_name)
-	logging.info(__name__, f'Renaming playlist "{name}" to "{new_name}"...')
+	logboth.info(__name__, f'Renaming playlist "{name}" to "{new_name}"...')
 
 	new_lists = read()
 	for playlist in new_lists:
 		if playlist.title == name:
 			playlist.title = new_name
 			_write(playlists=new_lists)
-			logging.info(__name__, 'Renamed playlist')
+			logboth.info(__name__, 'Renamed playlist')
 			return new_name
 
-	logging.error(__name__, 'Failed to rename: playlist not found')
+	logboth.error(__name__, 'Failed to rename: playlist not found')
 	return name
 
 
 def delete(playlist_name: str):
-	logging.info(__name__, f'Deleting playlist "{playlist_name}"...')
+	logboth.info(__name__, f'Deleting playlist "{playlist_name}"...')
 	_write(
 		playlists=[playlist for playlist in read() if playlist.title != playlist_name]
 	)
-	logging.info(__name__, 'Deleted playlist')
+	logboth.info(__name__, 'Deleted playlist')
 
 
 def delete_external(playlist_name: str):
-	logging.info(__name__, f'Deleting external playlist "{playlist_name}"...')
+	logboth.info(__name__, f'Deleting external playlist "{playlist_name}"...')
 	_write(
 		ext_playlists=[
 			playlist for playlist in read_external() if playlist.title != playlist_name
 		]
 	)
-	logging.info(__name__, 'Deleted external playlist')
+	logboth.info(__name__, 'Deleted external playlist')
 
 
 def add_songs(songs: Group, playlist_name: str):
-	logging.info(
+	logboth.info(
 		__name__, f'Adding {len(songs.songs)} songs to playlist "{playlist_name}"...'
 	)
 	new_lists = read()
@@ -109,11 +110,11 @@ def add_songs(songs: Group, playlist_name: str):
 				break
 
 	_write(playlists=new_lists)
-	logging.info(__name__, 'Added songs to playlist')
+	logboth.info(__name__, 'Added songs to playlist')
 
 
 def swap_songs(playlist_name: str, i: int, j: int):
-	logging.info(
+	logboth.info(
 		__name__, f'Swapping songs #{i} and #{j} in playlist "{playlist_name}"...'
 	)
 	new_lists = read()
@@ -125,11 +126,11 @@ def swap_songs(playlist_name: str, i: int, j: int):
 			break
 
 	_write(playlists=new_lists)
-	logging.info(__name__, 'Swapped songs')
+	logboth.info(__name__, 'Swapped songs')
 
 
 def move_song(playlist_name: str, from_i: int, to_i: int):
-	logging.info(
+	logboth.info(
 		__name__,
 		f'Moving song from #{from_i} to #{to_i} in playlist "{playlist_name}"...'
 	)
@@ -142,11 +143,11 @@ def move_song(playlist_name: str, from_i: int, to_i: int):
 			break
 
 	_write(playlists=new_lists)
-	logging.info(__name__, 'Moved song')
+	logboth.info(__name__, 'Moved song')
 
 
 def remove_song(song: Song, playlist_name: str):
-	logging.info(
+	logboth.info(
 		__name__, f'Removing song "{song.yt_id}" from playlist "{playlist_name}"...'
 	)
 	new_lists = read()
@@ -156,7 +157,7 @@ def remove_song(song: Song, playlist_name: str):
 			break
 
 	_write(playlists=new_lists)
-	logging.info(__name__, 'Removed song')
+	logboth.info(__name__, 'Removed song')
 
 
 def make_unique_name(name: str) -> str:
@@ -176,7 +177,7 @@ def make_unique_name(name: str) -> str:
 
 def _write(playlists: list[Group] | None=None, ext_playlists: list[Group] | None=None):
 	lock.lock()
-	logging.info(
+	logboth.info(
 		__name__,
 		f'Writing {len(playlists) if playlists else "no"} playlists and '
 		f'{len(ext_playlists) if ext_playlists else "no"} external playlists...'
@@ -200,7 +201,7 @@ def _write(playlists: list[Group] | None=None, ext_playlists: list[Group] | None
 				indent='\t'
 			)
 
-	logging.info(__name__, 'Done writing playlist and external playlists')
+	logboth.info(__name__, 'Done writing playlist and external playlists')
 	lock.unlock()
 
 
@@ -265,7 +266,7 @@ class ImportTask(Task):
 	def _function(
 		self, name: str, url: str, local: bool, overwrite: bool=False
 	) -> bool:
-		logging.info(__name__, f'Importing playlist "{url}"...')
+		logboth.info(__name__, f'Importing playlist "{url}"...')
 		new_lists = [playlist for playlist in read() if playlist.title != name]
 		new_ext_lists = [
 			playlist for playlist in read_external() if playlist.title != name
@@ -274,7 +275,7 @@ class ImportTask(Task):
 		if not (
 			playlist := yt.get_album_or_playlist(url.split('list=')[-1].split('&')[0])
 		):
-			logging.error(__name__, 'Failed to import playlist')
+			logboth.error(__name__, 'Failed to import playlist')
 			return False
 
 		playlist.title = make_unique_name(
@@ -288,13 +289,13 @@ class ImportTask(Task):
 			new_ext_lists.append(playlist)
 			_write(ext_playlists=new_ext_lists)
 
-		logging.info(__name__, 'Imported playlist')
+		logboth.info(__name__, 'Imported playlist')
 		return True
 
 
 class UpdateExternalTask(Task):
 	def _function(self):
-		logging.info(__name__, 'Updating external playlists...')
+		logboth.info(__name__, 'Updating external playlists...')
 		tasks = []
 		external = read_external()
 		for i, playlist in enumerate(external):
@@ -313,7 +314,7 @@ class UpdateExternalTask(Task):
 				self._update_progress((i / len(tasks)) / 2 + 0.5)
 				time.sleep(0.5)
 
-		logging.info(__name__, 'Updated external playlists')
+		logboth.info(__name__, 'Updated external playlists')
 
 
 # Signleton

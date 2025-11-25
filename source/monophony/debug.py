@@ -1,8 +1,7 @@
 import gc
 import os
 
-from monophony import logging
-
+import logboth
 from gi.repository import GLib, GObject
 
 
@@ -19,7 +18,7 @@ def log_memory_status() -> bool:
 		else:
 			other_count += 1
 
-	logging.info(
+	logboth.info(
 		__name__,
 		f'{gobject_count} GObjects and {other_count} other objects in memory'
 	)
@@ -29,19 +28,18 @@ def log_memory_status() -> bool:
 # Use with multiple inheriance: class Class(MemoryDebugger, ...)
 class MemoryDebugger:
 	def __del__(self):
-		logging.info(__name__, f'Collected {self.__class__.__name__}')
+		logboth.info(__name__, f'Collected {self.__class__.__name__}')
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 
-		logging.info(__name__, f'Initialized {self.__class__.__name__}')
+		logboth.info(__name__, f'Initialized {self.__class__.__name__}')
 
 
 debug_active = os.getenv(_DEBUG_VARIABLE)
 if debug_active:
-	logging.warning(__name__, 'Debug mode enabled, expect low performance')
+	logboth.warning(__name__, 'Debug mode enabled, expect low performance')
 	GLib.timeout_add_seconds(2, log_memory_status)
 else:
 	del MemoryDebugger.__del__
 	del MemoryDebugger.__init__
-

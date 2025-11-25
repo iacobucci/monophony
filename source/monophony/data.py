@@ -2,7 +2,7 @@ import contextlib
 import datetime
 from typing import Any
 
-from monophony import logging
+import logboth
 
 
 class YTItem:
@@ -123,7 +123,7 @@ class TimeString:
 			with contextlib.suppress(ValueError):
 				seconds += int(parts[-3]) * 60 * 60
 		if len(parts) > TimeString.HOURS_POS + 1:
-			logging.warning(
+			logboth.warning(
 				__name__, f'TimeString "{self._string}" has too many parts'
 			)
 

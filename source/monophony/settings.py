@@ -2,18 +2,20 @@ import json
 import os
 from typing import Any
 
-from monophony import NAME, logging
+from monophony import NAME
+
+import logboth
 
 
 def save(values: dict):
-	logging.info(__name__, f'Saving settings "{values}"...')
+	logboth.info(__name__, f'Saving settings "{values}"...')
 
 	settings = _read()
 	for key, value in values.items():
 		settings[key] = value
 
 	_write(settings)
-	logging.info(__name__, 'Saved settings')
+	logboth.info(__name__, 'Saved settings')
 
 
 def load(key: str, default: Any=None) -> Any:
@@ -21,7 +23,7 @@ def load(key: str, default: Any=None) -> Any:
 
 
 def _write(settings: dict):
-	logging.info(__name__, 'Writing settings...')
+	logboth.info(__name__, 'Writing settings...')
 	directory = os.getenv(
 		'XDG_CONFIG_HOME', os.path.expanduser('~/.config')
 	) + '/' + NAME
@@ -31,7 +33,7 @@ def _write(settings: dict):
 	with open(settings_path, 'w') as settings_file:
 		json.dump(settings, settings_file, indent='\t')
 
-	logging.info(__name__, 'Done writing settings')
+	logboth.info(__name__, 'Done writing settings')
 
 
 def _read() -> dict:

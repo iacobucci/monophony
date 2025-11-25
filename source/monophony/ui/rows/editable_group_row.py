@@ -1,12 +1,13 @@
 import weakref
 
-from monophony import logging, playlists
+from monophony import playlists
 from monophony.data import Group, Song
 from monophony.ui.popovers.editable_group_row_popover import EditableGroupRowPopover
 from monophony.ui.rows.editable_song_row import EditableSongRow
 from monophony.ui.rows.group_row import GroupRow
 from monophony.ui.windows.rename_window import RenameWindow
 
+import logboth
 from gi.repository import GLib, GObject, Gtk
 
 
@@ -70,7 +71,7 @@ class EditableGroupRow(GroupRow):
 		)
 
 	def update_contents(self):
-		logging.info(
+		logboth.info(
 			__name__, f'Updating row contents for playlist "{self.group.title}"...'
 		)
 
@@ -79,7 +80,7 @@ class EditableGroupRow(GroupRow):
 				self.group = playlist
 				break
 		else:
-			logging.error(
+			logboth.error(
 				__name__,
 				'Failed to update row contents - '
 				f'playlist "{self.group.title}" does not exist'
@@ -87,7 +88,7 @@ class EditableGroupRow(GroupRow):
 			return
 
 		super().update_contents()
-		logging.info(__name__, 'Updated row contents')
+		logboth.info(__name__, 'Updated row contents')
 
 	def _on_move_song(self, from_song: Song, to_song: Song):
 		i = self.group.songs.index(from_song)

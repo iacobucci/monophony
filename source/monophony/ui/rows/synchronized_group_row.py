@@ -1,6 +1,6 @@
 import weakref
 
-from monophony import logging, playlists
+from monophony import playlists
 from monophony.data import Group
 from monophony.ui.popovers.synchronized_group_row_popover import (
 	SynchronizedGroupRowPopover,
@@ -8,6 +8,7 @@ from monophony.ui.popovers.synchronized_group_row_popover import (
 from monophony.ui.rows.group_row import GroupRow
 from monophony.ui.rows.song_row import SongRow
 
+import logboth
 from gi.repository import GObject, Gtk
 
 
@@ -52,7 +53,7 @@ class SynchronizedGroupRow(GroupRow):
 		button.set_popover(self._popover)
 
 	def update_contents(self):
-		logging.info(
+		logboth.info(
 			__name__,
 			f'Updating row contents for external playlist "{self.group.title}"...'
 		)
@@ -62,7 +63,7 @@ class SynchronizedGroupRow(GroupRow):
 				self.group = playlist
 				break
 		else:
-			logging.error(
+			logboth.error(
 				__name__,
 				'Failed to update row contents - '
 				f'external playlist "{self.group.title}" does not exist'
@@ -70,4 +71,4 @@ class SynchronizedGroupRow(GroupRow):
 			return
 
 		super().update_contents()
-		logging.info(__name__, 'Updated row contents')
+		logboth.info(__name__, 'Updated row contents')

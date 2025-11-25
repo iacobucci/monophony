@@ -72,6 +72,12 @@
 		"text": ""
 	},
 	{
+		"name": "logboth",
+		"copyright": "Copyright © Zehkira and contributors",
+		"license": "0BSD",
+		"text": ""
+	},
+	{
 		"name": "Mopidy-MPRIS",
 		"copyright": "",
 		"license": "Apache-2.0",

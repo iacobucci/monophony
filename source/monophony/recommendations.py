@@ -1,8 +1,10 @@
 import json
 import os
 
-from monophony import NAME, logging
+from monophony import NAME
 from monophony.data import Artist, Group, Song
+
+import logboth
 
 
 def _get_directory() -> str:
@@ -16,7 +18,7 @@ def _get_file_path() -> str:
 
 
 def write(recommendations: list[Group]):
-	logging.info(__name__, f'Writing {len(recommendations)} recommendations...')
+	logboth.info(__name__, f'Writing {len(recommendations)} recommendations...')
 	recommendations_path = _get_file_path()
 	os.makedirs(_get_directory(), exist_ok=True)
 
@@ -26,7 +28,7 @@ def write(recommendations: list[Group]):
 	with open(recommendations_path, 'w') as recommendations_file:
 		json.dump(serialized_recommendations, recommendations_file, indent='\t')
 
-	logging.info(__name__, 'Done writing recommendations')
+	logboth.info(__name__, 'Done writing recommendations')
 
 
 def read() -> list[Group]:
@@ -51,4 +53,3 @@ def read() -> list[Group]:
 			]
 	except (OSError, json.decoder.JSONDecodeError):
 		return []
-

@@ -3,6 +3,7 @@
 
 import gettext
 import os
+import platform
 import sys
 import threading
 import traceback
@@ -15,18 +16,19 @@ gi.require_versions({
 })
 
 
-from monophony import NAME, logging
+from monophony import NAME, __version__
 from monophony.app import Application
 
+import logboth
 from gi.repository import Gio, GLib
 
 
-sys.excepthook = lambda exception, value, trace: logging.error(
+sys.excepthook = lambda exception, value, trace: logboth.error(
 	__name__,
 	'Unhandled exception',
 	''.join(traceback.format_exception(exception, value, trace))
 )
-threading.excepthook = lambda args: logging.error(
+threading.excepthook = lambda args: logboth.error(
 	f'{__name__} (thread "{args.thread.name}")',
 	'Unhandled exception in thread',
 	''.join(
@@ -34,43 +36,60 @@ threading.excepthook = lambda args: logging.error(
 	)
 )
 
+os_release = {}
+try:
+	os_release = platform.freedesktop_os_release()
+except OSError:
+	logboth.warning(__name__, 'Could not read OS release file')
+
+os_info_string = ''
+for key in ('PRETTY_NAME', 'NAME', 'ID', 'ID_LIKE', 'VERSION', 'VERSION_ID'):
+	if value := os_release.get(key):
+		os_info_string += f'{key}: {value}\n'
+
 container = os.getenv('container', 'unknown') # noqa: SIM112 - Container is lowercase
 if container != 'flatpak':
-	logging.warning(
+	logboth.warning(
 		__name__,
 		f'App was installed from unofficial source. Container type: {container}'
 	)
 
-logging.info(__name__, 'Loading GResources...')
+logboth.info(
+	__name__,
+	f'{NAME} {__version__} on {platform.platform(aliased=True)}',
+	os_info_string.strip('\n')
+)
+
+logboth.info(__name__, 'Loading GResources...')
 resources_file = 'resources.gresource'
 for path in os.getenv('XDG_DATA_DIRS', '/usr/share/').split(':'):
 	data_path = f'{path}{NAME}' if path.endswith('/') else f'{path}/{NAME}'
-	logging.info(__name__, f'Trying to load GResources from "{data_path}"...')
+	logboth.info(__name__, f'Trying to load GResources from "{data_path}"...')
 	try:
 		resource = Gio.Resource.load(data_path + '/' + resources_file)
 	except GLib.GError:
 		continue
 
 	Gio.resources_register(resource)
-	logging.info(__name__, f'Loaded GResources from "{data_path}/{resources_file}"')
+	logboth.info(__name__, f'Loaded GResources from "{data_path}/{resources_file}"')
 	break
 else:
-	logging.error(__name__, 'Failed to load GResources: not found')
+	logboth.error(__name__, 'Failed to load GResources: not found')
 	sys.exit(1)
 
-logging.info(__name__, 'Installing translation...')
+logboth.info(__name__, 'Installing translation...')
 for path in os.getenv('XDG_DATA_DIRS', '/usr/share/').split(':'):
 	locale_path = f'{path}locale' if path.endswith('/') else f'{path}/locale'
-	logging.info(__name__, f'Trying to install translation from "{locale_path}"...')
+	logboth.info(__name__, f'Trying to install translation from "{locale_path}"...')
 	if 'share' in path and os.path.isdir(locale_path):
 		gettext.translation(NAME, locale_path, fallback=True).install()
-		logging.info(
+		logboth.info(
 			__name__, f'Installed translation from "{locale_path}/{NAME}/"'
 		)
 		break
 else:
-	logging.error(__name__, 'Failed to install translation: not found')
+	logboth.error(__name__, 'Failed to install translation: not found')
 	sys.exit(1)
 
 Application().run()
-logging.info(__name__, 'Exited')
+logboth.info(__name__, 'Exited')

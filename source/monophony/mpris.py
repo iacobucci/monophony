@@ -1,6 +1,7 @@
-from monophony import ID, logging
+from monophony import ID
 from monophony.data import PlaybackMode, PlaybackState
 
+import logboth
 from mprisify.adapters import MprisAdapter
 from mprisify.adapters import PlayState as MprisPlayState
 from mprisify.events import PlayerEventAdapter as MprisPlayerEventAdapter
@@ -43,7 +44,7 @@ class EventHandler(MprisAdapter):
 		elif self._player.state == PlaybackState.NONE:
 			playstate = MprisPlayState.STOPPED
 
-		logging.info(__name__, f'Reported playstate as "{playstate}"')
+		logboth.info(__name__, f'Reported playstate as "{playstate}"')
 		return playstate
 
 	def is_repeating(self) -> bool:
@@ -98,7 +99,7 @@ class EventHandler(MprisAdapter):
 				'xesam:artist': [song.author.name]
 			}
 
-		logging.info(__name__, 'Reported metadata for current song', metadata)
+		logboth.info(__name__, 'Reported metadata for current song', metadata)
 		return metadata
 
 

@@ -2,22 +2,23 @@ import copy
 import random
 import time
 
-from monophony import DISPLAY_NAME, ID, downloads, logging, recents, settings, yt
+from monophony import DISPLAY_NAME, ID, downloads, recents, settings, yt
 from monophony.asynchronous import Task
 from monophony.data import Group, PlaybackMode, PlaybackState, Song
 from monophony.mpris import EventHandler, EventSender, Server
 
+import logboth
 from gi.repository import GObject, Gst
 
 
 class ReportProgressTask(Task):
 	def _function(self):
-		logging.info(__name__, 'Progress reporting started')
+		logboth.info(__name__, 'Progress reporting started')
 		while not self.is_canceled():
 			self._update_progress()
 			time.sleep(1)
 
-		logging.info(__name__, 'Progress reporting stopped')
+		logboth.info(__name__, 'Progress reporting stopped')
 
 
 class FindRadioSongsTask(Task):
@@ -27,28 +28,28 @@ class FindRadioSongsTask(Task):
 
 class FindURITask(Task):
 	def _function(self, song: Song, known_uris: dict) -> str | None:
-		logging.info(
+		logboth.info(
 			__name__, f'Looking for "{song.yt_id}" song URI locally and online...'
 		)
 		if uri := known_uris.get(song.yt_id):
-			logging.info(__name__, 'Found already known song URI')
+			logboth.info(__name__, 'Found already known song URI')
 			return uri
 
 		if downloads.is_downloaded(song):
 			song_path = downloads.get_file(song)
 			if song_path:
-				logging.info(__name__, 'Found local song URI')
+				logboth.info(__name__, 'Found local song URI')
 				return 'file://' + song_path
 
 		if self.is_canceled():
-			logging.info(__name__, 'Canceled URI lookup')
+			logboth.info(__name__, 'Canceled URI lookup')
 			return None
 
 		if uri := yt.get_song_uri(song):
-			logging.info(__name__, 'Found online song URI')
+			logboth.info(__name__, 'Found online song URI')
 			return uri
 
-		logging.error(__name__, 'Failed to find song URI')
+		logboth.error(__name__, 'Failed to find song URI')
 		return None
 
 
@@ -156,27 +157,27 @@ class Player(GObject.Object):
 				self._find_uri_task.start()
 				return
 
-		logging.info(__name__, 'Found all song URIs for current queue')
+		logboth.info(__name__, 'Found all song URIs for current queue')
 
 	def _on_buffering(self, _bus: Gst.Bus, message: Gst.Message):
 		percentage = message.parse_buffering()
 		self.emit('buffering-changed', percentage / 100.0)
 		if percentage < 100: # noqa: PLR2004 - 100%
 			if not self.buffering:
-				logging.info(__name__, 'Buffering...')
+				logboth.info(__name__, 'Buffering...')
 				self._playbin.set_state(Gst.State.PAUSED)
 				self.buffering = True
 
 			return
 
-		logging.info(__name__, 'Done buffering')
+		logboth.info(__name__, 'Done buffering')
 		self.buffering = False
 		if self.state != PlaybackState.NONE:
 			self._playbin.set_state(Gst.State.PLAYING)
 			self.state = PlaybackState.PLAYING
 			self.emit('state-changed', self.state)
 			if self._start_position > 0:
-				logging.info(__name__, f'Seeking to {self._start_position}ns')
+				logboth.info(__name__, f'Seeking to {self._start_position}ns')
 				self._playbin.seek_simple(
 					Gst.Format.TIME,
 					Gst.SeekFlags.FLUSH | Gst.SeekFlags.ACCURATE,
@@ -185,12 +186,12 @@ class Player(GObject.Object):
 				self._start_position = 0
 			return
 
-		logging.info(
+		logboth.info(
 			__name__, 'Ignoring end of buffering as state is already NONE'
 		)
 
 	def _on_bus_error(self, _bus: Gst.Bus, message: Gst.Message):
-		logging.error(__name__, 'Bus error', message.parse_error().gerror.message)
+		logboth.error(__name__, 'Bus error', message.parse_error().gerror.message)
 		self.pop_uri(self._queue.songs[self._queue_index].yt_id)
 		self.play(
 			self._queue.songs[self._queue_index],
@@ -200,16 +201,16 @@ class Player(GObject.Object):
 
 	def _on_latency(self, _bus: Gst.Bus, _message: Gst.Message):
 		if self._playbin.recalculate_latency():
-			logging.info(__name__, 'Recalculated latency')
+			logboth.info(__name__, 'Recalculated latency')
 		else:
-			logging.error(__name__, 'Failed to recalculate latency')
+			logboth.error(__name__, 'Failed to recalculate latency')
 
 	def _on_radio_songs_found(self, task: FindRadioSongsTask):
 		if task.is_canceled() or self._radio_task is not task:
 			return
 
 		if not task.result:
-			logging.warning(__name__, 'No radio songs found')
+			logboth.warning(__name__, 'No radio songs found')
 			self.play(self._queue.songs[self._queue_index], self._queue)
 			return
 
@@ -220,17 +221,17 @@ class Player(GObject.Object):
 		if success != Gst.StateChangeReturn.SUCCESS:
 			return
 		if state == Gst.State.PLAYING and self.paused:
-			logging.info(__name__, 'Adjusted state to paused after change')
+			logboth.info(__name__, 'Adjusted state to paused after change')
 			self._playbin.set_state(Gst.State.PAUSED)
 
 	def _on_stream_start(self, _bus: Gst.Bus, _message: Gst.Message):
 		if self.state == PlaybackState.LOADING and not self.buffering:
-			logging.info(__name__, 'Stream started')
+			logboth.info(__name__, 'Stream started')
 			self._playbin.set_state(Gst.State.PLAYING)
 			self.state = PlaybackState.PLAYING
 			self.emit('state-changed', self.state)
 			if self._start_position:
-				logging.info(__name__, f'Seeking to {self._start_position}ns')
+				logboth.info(__name__, f'Seeking to {self._start_position}ns')
 				self._playbin.seek_simple(
 					Gst.Format.TIME,
 					Gst.SeekFlags.FLUSH | Gst.SeekFlags.ACCURATE,
@@ -239,7 +240,7 @@ class Player(GObject.Object):
 				self._start_position = 0
 
 	def _on_stream_end(self, _bus: Gst.Bus, _message):
-		logging.info(__name__, 'Stream has ended')
+		logboth.info(__name__, 'Stream has ended')
 		self.next()
 
 	def _report_progress(self, _task: ReportProgressTask):
@@ -255,17 +256,17 @@ class Player(GObject.Object):
 			self._song_uris.pop(next(iter(self._song_uris.keys())))
 
 		self._song_uris[yt_id] = uri
-		logging.info(__name__, f'Added URI for song "{yt_id}" to known')
+		logboth.info(__name__, f'Added URI for song "{yt_id}" to known')
 
 	def _start_playback(self, task: FindURITask, position: int=0):
 		if task.is_canceled() or self._find_uri_task is not task:
-			logging.info(__name__, 'Ignoring callback from canceled URI lookup task')
+			logboth.info(__name__, 'Ignoring callback from canceled URI lookup task')
 			return
 
 		song = self._queue.songs[self._queue_index]
 		uri = task.result
 		if not uri:
-			logging.error(__name__, f'Failed to find URI for song "{song.yt_id}"')
+			logboth.error(__name__, f'Failed to find URI for song "{song.yt_id}"')
 			self.play(song, self._queue, position)
 			return
 
@@ -285,7 +286,7 @@ class Player(GObject.Object):
 		# Don't actually start yet - wait for messages on the bus
 		self._playbin.props.uri = uri
 		self._playbin.set_state(Gst.State.PAUSED)
-		logging.info(__name__, 'Started playback')
+		logboth.info(__name__, 'Started playback')
 
 	def add_to_queue(self, group: Group):
 		if self._queue.songs:
@@ -314,7 +315,7 @@ class Player(GObject.Object):
 		return self._playbin.props.volume
 
 	def move_song(self, song: Song, target: Song):
-		logging.info(
+		logboth.info(
 			__name__, f'Moving song "{song.yt_id}" to "{target.yt_id}" in queue...'
 		)
 		current_song = self._queue.songs[self._queue_index]
@@ -330,7 +331,7 @@ class Player(GObject.Object):
 
 		self._queue_index = self._queue.songs.index(current_song)
 		self.emit('queue-changed', self._queue, self._queue_index)
-		logging.info(__name__, 'Moved song in queue')
+		logboth.info(__name__, 'Moved song in queue')
 
 	def next(self, from_user: bool=False):
 		if self.mode == PlaybackMode.RADIO:
@@ -374,7 +375,7 @@ class Player(GObject.Object):
 		self.stop()
 
 	def play(self, song: Song, group: Group, position: int=0):
-		logging.info(
+		logboth.info(
 			__name__, f'Playback of song "{song.yt_id}" at {position}ns requested'
 		)
 
@@ -412,7 +413,7 @@ class Player(GObject.Object):
 
 	def pop_uri(self, yt_id: str) -> str | None:
 		if yt_id in self._song_uris:
-			logging.info(__name__, f'Popped known URI for song "{yt_id}"')
+			logboth.info(__name__, f'Popped known URI for song "{yt_id}"')
 			return self._song_uris.pop(yt_id)
 
 		return None
@@ -442,7 +443,7 @@ class Player(GObject.Object):
 		self._mpris_event_sender.on_seek(value)
 
 	def set_pause(self, pause: bool):
-		logging.info(__name__, f'Setting pause to "{pause}"...')
+		logboth.info(__name__, f'Setting pause to "{pause}"...')
 		self.paused = pause
 
 		if not self.buffering and self.state != PlaybackState.LOADING:
@@ -452,7 +453,7 @@ class Player(GObject.Object):
 
 		self.emit('pause-changed', pause)
 		self._mpris_event_sender.on_playpause()
-		logging.info(__name__, f'Set pause to "{pause}"')
+		logboth.info(__name__, f'Set pause to "{pause}"')
 
 	def set_volume(
 		self,
@@ -478,7 +479,7 @@ class Player(GObject.Object):
 		self.emit('mode-changed', self.mode)
 
 	def shuffle(self):
-		logging.info(__name__, 'Shuffling songs...')
+		logboth.info(__name__, 'Shuffling songs...')
 		back_part = self._queue.songs[:self._queue_index]
 		front_part = self._queue.songs[self._queue_index + 1:]
 
@@ -495,10 +496,10 @@ class Player(GObject.Object):
 					self.emit('queue-changed', self._queue, self._queue_index)
 					break
 
-		logging.info(__name__, 'Shuffled songs')
+		logboth.info(__name__, 'Shuffled songs')
 
 	def stop(self):
-		logging.info(__name__, 'Stopping playback...')
+		logboth.info(__name__, 'Stopping playback...')
 		self._find_uri_task.cancel()
 		self._progress_task.cancel()
 		self._radio_task.cancel()
@@ -512,4 +513,4 @@ class Player(GObject.Object):
 		self._queue_index = 0
 		self.emit('queue-changed', self._queue, self._queue_index)
 		self._mpris_event_sender.emit_all()
-		logging.info(__name__, 'Stopped playback')
+		logboth.info(__name__, 'Stopped playback')

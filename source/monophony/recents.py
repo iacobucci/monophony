@@ -2,8 +2,10 @@ import json
 import os
 import traceback
 
-from monophony import NAME, logging
+from monophony import NAME
 from monophony.data import Artist, Group, Song
+
+import logboth
 
 
 MAX_SONGS = 15
@@ -23,24 +25,24 @@ def _write(group: Group):
 	if len(group.songs) > MAX_SONGS:
 		group.songs = group.songs[:MAX_SONGS]
 
-	logging.info(__name__, f'Writing {len(group.songs)} songs to recents...')
+	logboth.info(__name__, f'Writing {len(group.songs)} songs to recents...')
 	os.makedirs(_get_directory(), exist_ok=True)
 	try:
 		with open(_get_file_path(), 'w') as recents_file:
 			json.dump(group.serialize()['contents'], recents_file, indent='\t')
 	except OSError:
-		logging.error(__name__, 'Failed to write to recents', traceback.format_exc())
+		logboth.error(__name__, 'Failed to write to recents', traceback.format_exc())
 		return
 
-	logging.info(__name__, 'Done writing to recents')
+	logboth.info(__name__, 'Done writing to recents')
 
 
 def add(song: Song):
-	logging.info(__name__, f'Adding song "{song.yt_id}" to recents...')
+	logboth.info(__name__, f'Adding song "{song.yt_id}" to recents...')
 	group = read()
 	group.songs = [song, *group.songs]
 	_write(group)
-	logging.info(__name__, 'Added song to recents')
+	logboth.info(__name__, 'Added song to recents')
 
 
 def clear():

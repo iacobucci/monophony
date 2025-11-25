@@ -12,7 +12,6 @@ from monophony import (
 	NAME,
 	__version__,
 	downloads,
-	logging,
 	recommendations,
 	settings,
 )
@@ -33,6 +32,7 @@ from monophony.ui.windows.import_window import ImportWindow
 from monophony.ui.windows.message_window import MessageWindow
 from monophony.yt import GetArtistTask, GetRecommendationsTask, SearchTask
 
+import logboth
 from gi.repository import Adw, Gio, GLib, GObject, Gtk
 
 
@@ -74,6 +74,8 @@ class MainWindow(Adw.ApplicationWindow):
 		super().__init__(**kwargs)
 
 		self._downloader = downloads.downloader
+		self._downloader.clean_up()
+
 		self._inhibit_suspend_cookie = 0
 		self._last_search_query = None
 		self._last_artist = None
@@ -435,9 +437,9 @@ class MainWindow(Adw.ApplicationWindow):
 		self._player.stop()
 
 	def _on_close(self) -> bool:
-		logging.info(__name__, 'Close requested')
+		logboth.info(__name__, 'Close requested')
 		if self._player.get_queue().songs:
-			logging.info(__name__, 'Still playing - hiding instead of closing')
+			logboth.info(__name__, 'Still playing - hiding instead of closing')
 			self.props.visible = False
 			return True
 
@@ -523,14 +525,14 @@ class MainWindow(Adw.ApplicationWindow):
 
 	def _on_loading_progress(self, task: Task, progress: float):
 		if task.is_canceled() or task is not self._current_browsing_task:
-			logging.info(
+			logboth.info(
 				__name__, f'Ignoring progress update "{progress}" from canceled task'
 			)
 			return
 
 		page = self._navigation_view.props.visible_page
 		if not isinstance(page, LoadingPage):
-			logging.info(
+			logboth.info(
 				__name__, f'Ignoring progress update "{progress}" as loading is done'
 			)
 			return
@@ -598,7 +600,7 @@ class MainWindow(Adw.ApplicationWindow):
 		)
 		self._navigation_view.push(loading_page)
 
-		logging.info(__name__, f'Searching for "{query}" with filter "{filter_}"...')
+		logboth.info(__name__, f'Searching for "{query}" with filter "{filter_}"...')
 
 		self._current_browsing_task.cancel()
 		self._current_browsing_task = SearchTask(
@@ -613,7 +615,7 @@ class MainWindow(Adw.ApplicationWindow):
 
 	def _on_search_finished(self, task: SearchTask):
 		if task.is_canceled() or self._current_browsing_task is not task:
-			logging.info(__name__, 'Ignoring callback from canceled search task')
+			logboth.info(__name__, 'Ignoring callback from canceled search task')
 			return
 
 		filter_ = task.extra_data
@@ -623,21 +625,21 @@ class MainWindow(Adw.ApplicationWindow):
 
 		page = None
 		if results is None:
-			logging.error(__name__, 'Failed to search')
+			logboth.error(__name__, 'Failed to search')
 			page = StatusPage(
 				_('Failed to Search'),
 				_('Check your internet connection and try again'),
 				'dialog-error-symbolic'
 			)
 		elif results == []:
-			logging.warning(__name__, 'Done searching, no results')
+			logboth.warning(__name__, 'Done searching, no results')
 			page = StatusPage(
 				_('No Results'),
 				_('Try searching for something else'),
 				'dialog-information-symbolic'
 			)
 		else:
-			logging.info(__name__, 'Done searching')
+			logboth.info(__name__, 'Done searching')
 			page = ResultsPage(results, filter_)
 			page.connect(
 				'play',
@@ -714,7 +716,7 @@ class MainWindow(Adw.ApplicationWindow):
 		about_dialog = Adw.AboutDialog.new_from_appdata(
 			GRESOURCES_PATH + '/metainfo.xml', __version__
 		)
-		about_dialog.props.debug_info = logging.get_log()
+		about_dialog.props.debug_info = logboth.read()
 		about_dialog.props.debug_info_filename = 'log.txt'
 		about_dialog.props.translator_credits = _('translator-credits')
 		about_dialog.props.copyright = 'Copyright © Zehkira and contributors'
@@ -744,26 +746,26 @@ class MainWindow(Adw.ApplicationWindow):
 		}
 
 		licenses_data = []
-		logging.info(__name__, 'Loading licenses...')
+		logboth.info(__name__, 'Loading licenses...')
 		for path in os.getenv('XDG_DATA_DIRS', '/usr/share/').split(':'):
 			file_path = f'{path}{"" if path.endswith("/") else "/"}{NAME}/licenses.json'
-			logging.info(__name__, f'Trying to load licenses from "{file_path}"...')
+			logboth.info(__name__, f'Trying to load licenses from "{file_path}"...')
 			try:
 				with open(file_path) as licenses_file:
 					licenses_data = json.load(licenses_file)
-					logging.info(
+					logboth.info(
 						__name__, f'Loaded licenses from "{file_path}"'
 					)
 					break
 			except OSError:
 				continue
 			except json.decoder.JSONDecodeError:
-				logging.error(
+				logboth.error(
 					__name__, 'Failed to load licenses', traceback.format_exc()
 				)
 				break
 		else:
-			logging.error(__name__, 'Failed to load licenses file: not found')
+			logboth.error(__name__, 'Failed to load licenses file: not found')
 
 		for data in licenses_data:
 			about_dialog.add_legal_section(
@@ -787,7 +789,7 @@ class MainWindow(Adw.ApplicationWindow):
 			self._toolbar_view.props.reveal_bottom_bars = False
 			self._uninhibit_suspend()
 			if not self.props.visible:
-				logging.info(__name__, 'Playback ended while window hidden')
+				logboth.info(__name__, 'Playback ended while window hidden')
 				self.close()
 			return
 
@@ -817,7 +819,7 @@ class MainWindow(Adw.ApplicationWindow):
 		)
 		self._navigation_view.push(loading_page)
 
-		logging.info(__name__, f'Showing artist "{artist.yt_id}"...')
+		logboth.info(__name__, f'Showing artist "{artist.yt_id}"...')
 		self._current_browsing_task.cancel()
 		self._current_browsing_task = GetArtistTask(
 			progress_callback=self._on_loading_progress,
@@ -831,7 +833,7 @@ class MainWindow(Adw.ApplicationWindow):
 
 	def _on_view_artist_finished(self, task: GetArtistTask):
 		if task.is_canceled() or self._current_browsing_task is not task:
-			logging.info(__name__, 'Ignoring callback from canceled view artist task')
+			logboth.info(__name__, 'Ignoring callback from canceled view artist task')
 			return
 
 		results = task.result
@@ -841,21 +843,21 @@ class MainWindow(Adw.ApplicationWindow):
 
 		page = None
 		if results is None:
-			logging.error(__name__, 'Failed to load artist page')
+			logboth.error(__name__, 'Failed to load artist page')
 			page = StatusPage(
 				_('Failed to Load Artist Page'),
 				_('Check your internet connection and try again'),
 				'dialog-error-symbolic'
 			)
 		elif results == []:
-			logging.warning(__name__, 'Loaded empty artist page')
+			logboth.warning(__name__, 'Loaded empty artist page')
 			page = StatusPage(
 				_('Empty Artist Page'),
 				_('No content found from this artist'),
 				'dialog-information-symbolic'
 			)
 		else:
-			logging.info(__name__, 'Loaded artist page')
+			logboth.info(__name__, 'Loaded artist page')
 			page = ArtistPage(results, filter_)
 			page.connect(
 				'play',
@@ -932,5 +934,5 @@ class MainWindow(Adw.ApplicationWindow):
 		self._player.set_volume(volume, notify_frontend=False)
 
 	def present(self):
-		logging.info(__name__, 'Presenting window')
+		logboth.info(__name__, 'Presenting window')
 		super().present()
