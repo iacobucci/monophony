@@ -4,7 +4,7 @@ import pathlib
 import logboth
 
 
-__version__ = '4.1.2'
+__version__ = '4.2.0'
 ID = 'io.gitlab.zehkira.Monophony' # Full ID per Freedesktop standards
 NAME = 'monophony' # Use for app executable, directories and so on
 DISPLAY_NAME = 'Monophony' # For window titles and such - do not use in logic
