@@ -48,8 +48,8 @@
 				},
 				{
 					"type": "file",
-					"url": "https://files.pythonhosted.org/packages/88/ac/a91784a8f9be3eff10959ccd2a680181941194d7ee7da2c7be10e9c32ab5/ytmusicapi-1.11.1-py3-none-any.whl",
-					"sha256": "bcaf208fd18c9b5b8971bc4436b17af132a4296de98708049d7638fdba90f6c9"
+					"url": "https://files.pythonhosted.org/packages/08/ba/b653a4190a1017eca60f69ce94be078c0c2f78d5b899b7fa0583524f320a/ytmusicapi-1.11.2-py3-none-any.whl",
+					"sha256": "5cdf21aca5233918e558fa4161eea9e1b71f40294ad61b34bb7fa53de36fda3b"
 				}
 			]
 		},
