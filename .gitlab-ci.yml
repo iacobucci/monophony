@@ -35,7 +35,7 @@ test:
     - ruff check source
     - appstreamcli validate --explain --strict source/data/metainfo.xml
     - desktop-file-validate source/data/*.desktop
-    - find source/locales/ | tr "\n" " " | grep -vq \.mo
+    - find source/locales/ | tr "\n" " " | grep -vq \.mo || (echo "[ERROR] Found .mo files"; false)
     - make --directory=source/ flatpak
     - flatpak run --filesystem=$CI_PROJECT_DIR/source/tests/:ro --command=source/tests/tests.py --env=MONOPHONY_LOG_LEVELS=ERRO ${APP_ID} --verbose
 
