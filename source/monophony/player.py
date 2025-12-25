@@ -429,6 +429,15 @@ class Player(GObject.Object):
 		if len(self._queue.songs) > 1:
 			current_song = self._queue.songs[self._queue_index]
 			self._queue.songs.remove(song)
+
+			# Removal of current song does not account for loop/radio properly
+			# due to how complex that would be. It just plays the next or previous
+			# song in queue (whichever is possible)
+			if current_song not in self._queue.songs:
+				self._queue_index = min(self._queue_index, len(self._queue.songs) - 1)
+				self.play(self._queue.songs[self._queue_index], self._queue)
+				return
+
 			self._queue_index = self._queue.songs.index(current_song)
 			self.emit('queue-changed', self._queue, self._queue_index)
 			return
