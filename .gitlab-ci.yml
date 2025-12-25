@@ -35,9 +35,16 @@ test:
     - ruff check source
     - appstreamcli validate --explain --strict source/data/metainfo.xml
     - desktop-file-validate source/data/*.desktop
-    - find source/locales/ | tr "\n" " " | grep -vq \.mo || (echo "[ERROR] Found .mo files"; false)
     - >
-      cat $(find . -name *.svg) | grep -q inkscape: && (echo "[ERROR] SVGs are not plain"; false)
+      if (find source/locales/ | tr "\n" " " | grep -q \.mo); then
+        echo "[ERROR] *.mo files exist"
+        false
+      fi
+    - >
+      if (cat $(find . -name *.svg) | grep -q inkscape:); then
+        echo "[ERROR] SVGs are not plain"
+        false
+      fi
     - make --directory=source/ flatpak
     - flatpak run --filesystem=$CI_PROJECT_DIR/source/tests/:ro --command=source/tests/tests.py --env=MONOPHONY_LOG_LEVELS=ERRO ${APP_ID} --verbose
 
