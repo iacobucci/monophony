@@ -14,59 +14,9 @@ class QueueSidebar(Adw.Bin):
 	def __init__(self):
 		super().__init__()
 
-		clear_button = Gtk.Button.new_from_icon_name('media-playback-stop-symbolic')
-		clear_button.props.tooltip_text = _('Stop')
-		clear_button.props.halign = Gtk.Align.FILL
-		clear_button.props.hexpand = True
-		clear_button.add_css_class('destructive-action')
-		clear_button.connect(
-			'clicked',
-			lambda _button, ref: ref().emit('clear-queue'),
-			weakref.ref(self)
-		)
-
-		self._shuffle_button = Gtk.Button.new_from_icon_name(
-			'media-playlist-shuffle-symbolic'
-		)
-		self._shuffle_button.props.tooltip_text = _('Shuffle')
-		self._shuffle_button.props.halign = Gtk.Align.FILL
-		self._shuffle_button.props.hexpand = True
-		self._shuffle_button.connect(
-			'clicked',
-			lambda _button, ref: ref().emit('shuffle-queue'),
-			weakref.ref(self)
-		)
-
-		button_content = Adw.ButtonContent()
-		button_content.props.label = _('Add to...')
-		button_content.props.icon_name = 'list-add-symbolic'
-		add_button = Gtk.Button()
-		add_button.props.child = button_content
-		add_button.connect(
-			'clicked',
-			lambda _button, ref: ref().emit('add-group-to', Group()),
-			weakref.ref(self)
-		)
-
-		internal_buttons_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-		internal_buttons_box.props.spacing = 6
-		internal_buttons_box.props.halign = Gtk.Align.FILL
-		internal_buttons_box.props.hexpand = True
-		internal_buttons_box.append(clear_button)
-		internal_buttons_box.append(self._shuffle_button)
-
-		buttons_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-		buttons_box.props.spacing = 6
-		buttons_box.props.margin_start = 6
-		buttons_box.append(internal_buttons_box)
-		buttons_box.append(add_button)
-
 		self._queue_group = QueueRowGroup()
-		self._queue_group.props.title = _('Currently Playing')
-		self._queue_group.props.description = '00:00:00'
 		self._queue_group.props.margin_start = 12
 		self._queue_group.props.margin_end = 12
-		self._queue_group.props.header_suffix = buttons_box
 		self._queue_group.connect(
 			'play',
 			lambda _group, song, group, ref: ref().emit('play', song, group),
@@ -134,15 +84,72 @@ class QueueSidebar(Adw.Bin):
 		self.hide_button = Gtk.Button.new_from_icon_name('go-previous-symbolic')
 		self.hide_button.props.tooltip_text = _('Back')
 
+		self._title_widget = Adw.WindowTitle(
+			title=_('Queue'), subtitle='00:00:00'
+		)
+
 		header_bar = Adw.HeaderBar()
-		header_bar.props.title_widget = Adw.WindowTitle(title=_('Queue'))
+		header_bar.props.title_widget = self._title_widget
 		header_bar.pack_start(self.hide_button)
 
-		toolbar_view = Adw.ToolbarView()
-		toolbar_view.props.content = pages_box
-		toolbar_view.add_top_bar(header_bar)
+		clear_button = Gtk.Button.new_from_icon_name('media-playback-stop-symbolic')
+		clear_button.props.tooltip_text = _('Stop')
+		clear_button.props.halign = Gtk.Align.FILL
+		clear_button.props.hexpand = False
+		clear_button.add_css_class('destructive-action')
+		clear_button.add_css_class('raised')
+		clear_button.connect(
+			'clicked',
+			lambda _button, ref: ref().emit('clear-queue'),
+			weakref.ref(self)
+		)
 
-		self.props.child = toolbar_view
+		self._shuffle_button = Gtk.Button.new_from_icon_name(
+			'media-playlist-shuffle-symbolic'
+		)
+		self._shuffle_button.props.tooltip_text = _('Shuffle')
+		self._shuffle_button.props.halign = Gtk.Align.FILL
+		self._shuffle_button.props.hexpand = False
+		self._shuffle_button.props.sensitive = False
+		self._shuffle_button.add_css_class('raised')
+		self._shuffle_button.connect(
+			'clicked',
+			lambda _button, ref: ref().emit('shuffle-queue'),
+			weakref.ref(self)
+		)
+
+		button_content = Adw.ButtonContent()
+		button_content.props.label = _('Add to...')
+		button_content.props.icon_name = 'list-add-symbolic'
+		add_button = Gtk.Button()
+		add_button.props.child = button_content
+		add_button.add_css_class('raised')
+		add_button.connect(
+			'clicked',
+			lambda _button, ref: ref().emit('add-group-to', Group()),
+			weakref.ref(self)
+		)
+
+		buttons_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+		buttons_box.props.margin_top = 9
+		buttons_box.props.margin_bottom = 8
+		buttons_box.props.spacing = 6
+		buttons_box.props.halign = Gtk.Align.CENTER
+		buttons_box.hexpand = False
+		buttons_box.append(clear_button)
+		buttons_box.append(add_button)
+		buttons_box.append(self._shuffle_button)
+
+		controls_bar = Adw.HeaderBar()
+		controls_bar.props.title_widget = buttons_box
+
+		self._toolbar_view = Adw.ToolbarView()
+		self._toolbar_view.props.reveal_bottom_bars = False
+		self._toolbar_view.props.content = pages_box
+		self._toolbar_view.add_top_bar(header_bar)
+		self._toolbar_view.add_bottom_bar(controls_bar)
+
+		self.props.child = self._toolbar_view
 
 	@GObject.Signal(name='play', arg_types=(object, object))
 	def _play(self, _song: Song, _group: Group):
@@ -190,6 +197,7 @@ class QueueSidebar(Adw.Bin):
 	def update_contents(self, group: Group, song_index: int):
 		self._queue_group.update_contents(group.songs, song_index)
 		self._status_page.props.visible = not bool(group.songs)
+		self._toolbar_view.props.reveal_bottom_bars = bool(group.songs)
 		self._shuffle_button.props.sensitive = (
 			len(group.songs) >= self._min_songs_for_shuffle
 		)
@@ -198,7 +206,7 @@ class QueueSidebar(Adw.Bin):
 		for song in group.songs:
 			total_seconds += TimeString(string=song.length).as_seconds()
 
-		self._queue_group.props.description = TimeString(
+		self._title_widget.props.subtitle = TimeString(
 			seconds=total_seconds
 		).as_string()
 
