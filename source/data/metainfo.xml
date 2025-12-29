@@ -57,6 +57,15 @@
 	<launchable type="desktop-id">io.gitlab.zehkira.Monophony.desktop</launchable>
 	<content_rating type="oars-1.1"></content_rating>
 	<releases>
+		<release version="4.3.0" date="2025-12-29">
+			<description>
+				<ul>
+					<li>Rearranged queue controls</li>
+					<li>Fixed current song not being removable from queue</li>
+					<li>Updated to support latest YT changes</li>
+				</ul>
+			</description>
+		</release>
 		<release version="4.2.1" date="2025-12-10">
 			<description>
 				<ul>
