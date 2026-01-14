@@ -57,6 +57,13 @@
 	<launchable type="desktop-id">io.gitlab.zehkira.Monophony.desktop</launchable>
 	<content_rating type="oars-1.1"></content_rating>
 	<releases>
+		<release version="4.3.1" date="2026-01-14">
+			<description>
+				<ul>
+					<li>Fixed volume control via system integration (MPRIS) not working</li>
+				</ul>
+			</description>
+		</release>
 		<release version="4.3.0" date="2025-12-29">
 			<description>
 				<ul>
