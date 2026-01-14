@@ -1,3 +1,5 @@
+import decimal
+
 from monophony import ID
 from monophony.data import PlaybackMode, PlaybackState
 
@@ -56,8 +58,8 @@ class EventHandler(MprisAdapter):
 	def get_volume(self):
 		return self._player.get_volume()
 
-	def set_volume(self, volume: float):
-		self._player.set_volume(volume, notify_mpris=False)
+	def set_volume(self, volume: decimal.Decimal):
+		self._player.set_volume(float(volume), notify_mpris=False)
 
 	def is_mute(self) -> bool:
 		return False
