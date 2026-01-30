@@ -1,327 +1,237 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8\n"
 
-#: monophony/ui/pages/artist_page.py:11
+msgid "Playlist"
+msgstr ""
+
+msgid "About"
+msgstr ""
+
+msgid "Queue"
+msgstr ""
+
+msgid "Playback Mode"
+msgstr ""
+
+msgid "Previous"
+msgstr ""
+
+msgid "Pause"
+msgstr ""
+
+msgid "Next"
+msgstr ""
+
+msgid "Volume"
+msgstr ""
+
+msgid "Normal Playback"
+msgstr ""
+
+msgid "Repeat Song"
+msgstr ""
+
+msgid "Repeat Queue"
+msgstr ""
+
+msgid "Autoplay Similar"
+msgstr ""
+
+msgid "Search..."
+msgstr ""
+
 msgid "Artist Page"
 msgstr ""
 
-#: monophony/ui/pages/home_page.py:26
 msgid "Recommended"
 msgstr ""
 
-#: monophony/ui/pages/home_page.py:76 monophony/ui/pages/home_page.py:131
+msgid "Playlists Directory"
+msgstr ""
+
 msgid "Your Playlists"
 msgstr ""
 
-#: monophony/ui/pages/home_page.py:133
 msgid "Playlists you create will appear here"
 msgstr ""
 
-#: monophony/ui/pages/home_page.py:148 monophony/ui/windows/import_window.py:52
 msgid "Import"
 msgstr ""
 
-#: monophony/ui/pages/home_page.py:161
 msgid "Synchronized Playlists"
 msgstr ""
 
-#: monophony/ui/pages/home_page.py:217
 msgid "Downloads Directory"
 msgstr ""
 
-#: monophony/ui/pages/home_page.py:227
 msgid "Downloads"
 msgstr ""
 
-#: monophony/ui/pages/home_page.py:259
 msgid "Clear"
 msgstr ""
 
-#: monophony/ui/pages/home_page.py:267
 msgid "Recently Played"
 msgstr ""
 
-#: monophony/ui/pages/home_page.py:304 monophony/ui/windows/main_window.py:712
 msgid "Donate"
 msgstr ""
 
-#: monophony/ui/pages/home_page.py:348
 msgid "Home"
 msgstr ""
 
-#: monophony/ui/pages/home_page.py:407 monophony/ui/pages/home_page.py:436
 #, python-brace-format
 msgid "Deleted playlist \"{name}\""
 msgstr ""
 
-#: monophony/ui/pages/home_page.py:411 monophony/ui/pages/home_page.py:440
 msgid "Undo"
 msgstr ""
 
-#: monophony/ui/pages/loading_page.py:21
 msgid "Loading..."
 msgstr ""
 
-#: monophony/ui/pages/results_page.py:27 monophony/ui/pages/results_page.py:47
-#: monophony/ui/pages/results_page.py:67 monophony/ui/pages/results_page.py:87
-#: monophony/ui/pages/results_page.py:107
 msgid "Show All"
 msgstr ""
 
-#: monophony/ui/pages/results_page.py:126
 msgid "Songs"
 msgstr ""
 
-#: monophony/ui/pages/results_page.py:129
 msgid "Videos"
 msgstr ""
 
-#: monophony/ui/pages/results_page.py:132
 msgid "Albums and Singles"
 msgstr ""
 
-#: monophony/ui/pages/results_page.py:135
 msgid "Playlists"
 msgstr ""
 
-#: monophony/ui/pages/results_page.py:138
 msgid "Artists"
 msgstr ""
 
-#: monophony/ui/pages/results_page.py:147
 msgid "Top Result"
 msgstr ""
 
-#: monophony/ui/pages/results_page.py:221
 msgid "Search Results"
 msgstr ""
 
-#: monophony/ui/rows/artist_row.py:15 monophony/ui/rows/artist_row.py:20
-#: monophony/ui/popovers/group_row_popover.py:23
-#: monophony/ui/popovers/song_row_popover.py:23
-msgid "View Artist"
-msgstr ""
-
-#: monophony/ui/rows/group_row.py:22 monophony/ui/rows/song_row.py:34
-msgid "More"
-msgstr ""
-
-#: monophony/ui/rows/song_row.py:29
-msgid "Downloaded"
-msgstr ""
-
-#: monophony/ui/rows/song_row.py:46
-msgid "Play"
-msgstr ""
-
-#: monophony/ui/windows/add_window.py:24
-msgid "New Playlist"
-msgstr ""
-
-#: monophony/ui/windows/add_window.py:40
-msgid "Add"
-msgstr ""
-
-#: monophony/ui/windows/add_window.py:55
-msgid "Add to Playlists..."
-msgstr ""
-
-#: monophony/ui/windows/import_window.py:18
-msgid "Playlist URL"
-msgstr ""
-
-#: monophony/ui/windows/import_window.py:29
-#: monophony/ui/windows/rename_window.py:15
-msgid "Playlist Name"
-msgstr ""
-
-#: monophony/ui/windows/import_window.py:33
-msgid "Synchronized"
-msgstr ""
-
-#: monophony/ui/windows/import_window.py:35
-msgid "Synchronized playlists are updated automatically and can't be edited"
-msgstr ""
-
-#: monophony/ui/windows/import_window.py:69
-msgid "Import Playlist..."
-msgstr ""
-
-#: monophony/ui/windows/message_window.py:12
-msgid "Ok"
-msgstr ""
-
-#: monophony/ui/windows/rename_window.py:35
-msgid "Rename Playlist..."
-msgstr ""
-
-#: monophony/ui/windows/main_window.py:373
-msgid "Playing"
-msgstr ""
-
-#: monophony/ui/windows/main_window.py:454
-msgid "Download Failed"
-msgstr ""
-
-#: monophony/ui/windows/main_window.py:454
-msgid "Some songs could not be downloaded"
-msgstr ""
-
-#: monophony/ui/windows/main_window.py:503
-msgid "Failed to Import"
-msgstr ""
-
-#: monophony/ui/windows/main_window.py:504
-#: monophony/ui/windows/main_window.py:619
-#: monophony/ui/windows/main_window.py:836
-msgid "Check your internet connection and try again"
-msgstr ""
-
-#: monophony/ui/windows/main_window.py:618
-msgid "Failed to Search"
-msgstr ""
-
-#: monophony/ui/windows/main_window.py:625
-msgid "No Results"
-msgstr ""
-
-#: monophony/ui/windows/main_window.py:626
-msgid "Try searching for something else"
-msgstr ""
-
-#: monophony/ui/windows/main_window.py:709
-msgid "translator-credits"
-msgstr ""
-
-#: monophony/ui/windows/main_window.py:835
-msgid "Failed to Load Artist Page"
-msgstr ""
-
-#: monophony/ui/windows/main_window.py:842
-msgid "Empty Artist Page"
-msgstr ""
-
-#: monophony/ui/windows/main_window.py:843
-msgid "No content found from this artist"
-msgstr ""
-
-#: monophony/ui/bars/header_bar.py:15
-msgid "About"
-msgstr ""
-
-#: monophony/ui/bars/player_bar.py:93 monophony/ui/queue_sidebar.py:138
-msgid "Queue"
-msgstr ""
-
-#: monophony/ui/bars/player_bar.py:120
-msgid "Playback Mode"
-msgstr ""
-
-#: monophony/ui/bars/player_bar.py:127
-msgid "Previous"
-msgstr ""
-
-#: monophony/ui/bars/player_bar.py:143
-msgid "Pause"
-msgstr ""
-
-#: monophony/ui/bars/player_bar.py:152
-msgid "Next"
-msgstr ""
-
-#: monophony/ui/bars/player_bar.py:165
-msgid "Volume"
-msgstr ""
-
-#: monophony/ui/bars/player_bar.py:236
-msgid "Normal Playback"
-msgstr ""
-
-#: monophony/ui/bars/player_bar.py:237
-msgid "Repeat Song"
-msgstr ""
-
-#: monophony/ui/bars/player_bar.py:238
-msgid "Repeat Queue"
-msgstr ""
-
-#: monophony/ui/bars/player_bar.py:239
-msgid "Autoplay Similar"
-msgstr ""
-
-#: monophony/ui/bars/search_bar.py:11
-msgid "Search..."
-msgstr ""
-
-#: monophony/ui/popovers/editable_group_row_popover.py:14
 msgid "Rename..."
 msgstr ""
 
-#: monophony/ui/popovers/editable_group_row_popover.py:17
-#: monophony/ui/popovers/synchronized_group_row_popover.py:14
 msgid "Delete"
 msgstr ""
 
-#: monophony/ui/popovers/editable_song_row_popover.py:14
 msgid "Remove From Playlist"
 msgstr ""
 
-#: monophony/ui/popovers/group_row_popover.py:20
-#: monophony/ui/popovers/song_row_popover.py:21
 msgid "Add to Queue"
 msgstr ""
 
-#: monophony/ui/popovers/group_row_popover.py:21
-#: monophony/ui/popovers/song_row_popover.py:22
-#: monophony/ui/queue_sidebar.py:41
 msgid "Add to..."
 msgstr ""
 
-#: monophony/ui/popovers/group_row_popover.py:24
-#: monophony/ui/popovers/song_row_popover.py:29
+msgid "View Artist"
+msgstr ""
+
 msgid "Download"
 msgstr ""
 
-#: monophony/ui/popovers/importable_group_row_popover.py:14
 msgid "Import..."
 msgstr ""
 
-#: monophony/ui/popovers/queue_song_row_popover.py:15
 msgid "Remove From Queue"
 msgstr ""
 
-#: monophony/ui/popovers/song_row_popover.py:26
 msgid "Remove From Downloads"
 msgstr ""
 
-#: monophony/ui/row_groups/queueable_row_group.py:20
-msgid "Play All"
-msgstr ""
-
-#: monophony/ui/queue_sidebar.py:18
-msgid "Stop"
-msgstr ""
-
-#: monophony/ui/queue_sidebar.py:31
-msgid "Shuffle"
-msgstr ""
-
-#: monophony/ui/queue_sidebar.py:65
-msgid "Currently Playing"
-msgstr ""
-
-#: monophony/ui/queue_sidebar.py:116
 msgid "Queue Empty"
 msgstr ""
 
-#: monophony/ui/queue_sidebar.py:117
 msgid "Nothing is playing right now"
 msgstr ""
 
-#: monophony/ui/queue_sidebar.py:135
 msgid "Back"
 msgstr ""
 
-#: monophony/playlists.py:167
-msgid "Playlist"
+msgid "Stop"
+msgstr ""
+
+msgid "Shuffle"
+msgstr ""
+
+msgid "Play All"
+msgstr ""
+
+msgid "More"
+msgstr ""
+
+msgid "Downloaded"
+msgstr ""
+
+msgid "Play"
+msgstr ""
+
+msgid "New Playlist"
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Add to Playlists..."
+msgstr ""
+
+msgid "Playlist URL"
+msgstr ""
+
+msgid "Playlist Name"
+msgstr ""
+
+msgid "Synchronized"
+msgstr ""
+
+msgid "Synchronized playlists are updated automatically and can't be edited"
+msgstr ""
+
+msgid "Import Playlist..."
+msgstr ""
+
+msgid "Download Failed"
+msgstr ""
+
+msgid "Some songs could not be downloaded"
+msgstr ""
+
+msgid "Playing"
+msgstr ""
+
+msgid "Failed to Import"
+msgstr ""
+
+msgid "Check your internet connection and try again"
+msgstr ""
+
+msgid "Failed to Search"
+msgstr ""
+
+msgid "No Results"
+msgstr ""
+
+msgid "Try searching for something else"
+msgstr ""
+
+msgid "translator-credits"
+msgstr ""
+
+msgid "Failed to Load Artist Page"
+msgstr ""
+
+msgid "Empty Artist Page"
+msgstr ""
+
+msgid "No content found from this artist"
+msgstr ""
+
+msgid "Ok"
+msgstr ""
+
+msgid "Rename Playlist..."
 msgstr ""

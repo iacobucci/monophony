@@ -100,5 +100,7 @@ flatpak:
 translation:
 	printf 'msgid \"\"\nmsgstr \"Content-Type: text/plain; charset=UTF-8\\n\"' \
 		> locales/all.pot
-	find $(NAME) -iname "*.py" | xargs xgettext --omit-header -j -o locales/all.pot
+	git ls-files \
+		| grep ".py$$" \
+		| xargs xgettext --no-location --omit-header -j -o locales/all.pot
 .PHONY: translation

@@ -1,6 +1,6 @@
 [project]
 name = 'monophony'
-dynamic = ['version']
+dynamic = ['optional-dependencies', 'version']
 requires-python = '>=3.12'
 
 [build-system]
@@ -9,6 +9,7 @@ build-backend = 'setuptools.build_meta'
 
 [tool.setuptools.dynamic]
 version = {attr='monophony.__version__'}
+optional-dependencies = {dev={file=['requirements-dev.txt']}}
 
 [tool.setuptools.packages.find]
 include = ['monophony*']

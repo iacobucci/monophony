@@ -1,57 +1,57 @@
 variables:
   APP_ID: io.gitlab.zehkira.Monophony
-  RELEASE_BRANCH: release # Branch on which to build and deploy automatically
-  DEV_BRANCH: master # Main development branch into which feature branches are merged
+  MAIN_BRANCH: master # Main development branch into which feature branches are merged
   FLATPAK_BRANCH: master # Branch of exported flatpak repo, same as in flatpakref file
-  IMAGE: alpine:3.22.2
+  IMAGE: alpine:3.23.3
 
 
 stages:
-  - validate
   - test
   - build-x86_64
   - build-aarch64
   - deploy
 
 
-validate-release:
-  stage: validate
-  rules:
-    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $RELEASE_BRANCH
-  image: ${IMAGE}
-  script:
-    - apk add git
-    - git tag --points-at HEAD | grep -q v
-
-
 test:
   stage: test
   rules:
-    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEV_BRANCH
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $MAIN_BRANCH
   image: ${IMAGE}
   script:
-    - apk add appstream bash desktop-file-utils flatpak flatpak-builder make ruff
+    - apk add appstream bash desktop-file-utils flatpak flatpak-builder gettext git libarchive-tools make py3-pip
 
+    - python3 -m venv .venv
+    - source .venv/bin/activate
+    - python3 -m pip install -r source/requirements-dev.txt
     - ruff check source
+    - deactivate
+
     - appstreamcli validate --explain --strict source/data/metainfo.xml
     - desktop-file-validate source/data/*.desktop
+    - make --directory=source/ translation
     - >
-      if (find source/locales/ | tr "\n" " " | grep -q \.mo); then
-        echo "[ERROR] *.mo files exist"
+      if ! (git diff --exit-code); then
+        echo "[ERROR] Translation template is outdated - run 'make translation'";
         false
       fi
     - >
-      if (cat $(find . -name *.svg) | grep -q inkscape:); then
-        echo "[ERROR] SVGs are not plain"
+      if (find source/locales/ | tr "\n" " " | grep -q "\.mo"); then
+        echo "[ERROR] *.mo files committed - delete them"
         false
       fi
+    - >
+      if (cat $(find . -name "*.svg") | grep -q "inkscape:"); then
+        echo "[ERROR] SVG files are not plain - re-export as plain"
+        false
+      fi
+
     - make --directory=source/ flatpak
     - flatpak run --filesystem=$CI_PROJECT_DIR/source/tests/:ro --command=source/tests/tests.py --env=MONOPHONY_LOG_LEVELS=ERRO ${APP_ID} --verbose
 
 
 .build:
   rules:
-    - if: $CI_COMMIT_BRANCH == $RELEASE_BRANCH
+    - if: $CI_COMMIT_BRANCH == $MAIN_BRANCH && $CI_JOB_MANUAL == true
   image: ${IMAGE}
   script:
     - apk add flatpak flatpak-builder
@@ -89,7 +89,7 @@ build-aarch64:
 pages:
   stage: deploy
   rules:
-    - if: $CI_COMMIT_BRANCH == $RELEASE_BRANCH
+    - if: $CI_COMMIT_BRANCH == $MAIN_BRANCH && $CI_JOB_MANUAL == true
   image: ${IMAGE}
   script:
     - apk add rsync
