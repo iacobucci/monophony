@@ -124,14 +124,14 @@
 				{
 					"only-arches": ["x86_64"],
 					"type": "archive",
-					"url": "https://github.com/denoland/deno/releases/download/v2.5.6/deno-x86_64-unknown-linux-gnu.zip",
-					"sha256": "fd4f6abc1b6a134fa9a4dba56519f1631f44c88e04e4e3e9a8ff5975dfa66e1a"
+					"url": "https://github.com/denoland/deno/releases/download/v2.6.7/deno-x86_64-unknown-linux-gnu.zip",
+					"sha256": "c5626c9ee10e87201706fc5e64ed5a44b31527d98c130f164e149e1477c0a87d"
 				},
 				{
 					"only-arches": ["aarch64"],
 					"type": "archive",
-					"url": "https://github.com/denoland/deno/releases/download/v2.5.6/deno-aarch64-unknown-linux-gnu.zip",
-					"sha256": "f5e60ae3dfceb61e5e5a41f22129e40a8bc17f6393b59e75d7ca19ceef32d824"
+					"url": "https://github.com/denoland/deno/releases/download/v2.6.7/deno-aarch64-unknown-linux-gnu.zip",
+					"sha256": "d2aedfa8c73e258cce78dc80e8d0e764a69d4a09d946d32f0c29eef46592b82f"
 				}
 			]
 		},
@@ -144,8 +144,8 @@
 			],
 			"sources": [{
 				"type": "file",
-				"url": "https://github.com/yt-dlp/yt-dlp/releases/download/2025.12.08/yt-dlp",
-				"sha256": "aed043cabf6b352dfd5438afff595e31532538d5af7c8f4f95ced1e6f1b35c2a"
+				"url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.01.29/yt-dlp",
+				"sha256": "d4d50a0cc6bfadba0851b086f1cda17c5b557f8c6f8fbf377794f877cb20eba2"
 			}]
 		},
 		{
