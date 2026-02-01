@@ -56,7 +56,7 @@ test:
   manual_confirmation: 'Build and deploy?'
   image: ${IMAGE}
   script:
-    - apk add flatpak flatpak-builder
+    - apk add flatpak flatpak-builder libarchive-tools
 
     - flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
