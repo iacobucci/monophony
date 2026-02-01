@@ -1,19 +1,11 @@
-## Editing code and other text files
+# Use of generative AI
+
+Use of AI to generate code and other data for this project is forbidden due to ambiguity regarding copyright.
+
+# Editing code and other text files
 
 Before making any changes, make sure that your editor supports [EditorConfig](https://editorconfig.org/).
 
-## Debugging
+# Translation
 
-The following environment variables are available:
-- `MONOPHONY_DEBUG`: Print memory information to help with finding leaks (unset by default)
-- `MONOPHONY_LOG_LEVELS`: Only print log messages of specified levels (`INFO,WARN,ERRO` by default)
-
-When running the app, environment variables can be set with `--env`:
-
-```sh
-flatpak run --env=MONOPHONY_LOG_LEVELS=WARN,ERRO io.gitlab.zehkira.Monophony
-```
-
-## Translation
-
-Standard translation files are located in `source/locales`. 
+Standard translation files are located in [`source/locales/`](source/locales).
