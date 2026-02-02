@@ -50,10 +50,6 @@ test:
 
 
 .build:
-  rules:
-    - if: $CI_COMMIT_BRANCH == $MAIN_BRANCH
-      when: manual
-  manual_confirmation: 'Build and deploy?'
   image: ${IMAGE}
   script:
     - apk add flatpak flatpak-builder libarchive-tools
@@ -77,6 +73,10 @@ test:
 build-x86_64:
   extends: .build
   stage: build-x86_64
+  rules:
+    - if: $CI_COMMIT_BRANCH == $MAIN_BRANCH
+      when: manual
+  manual_confirmation: 'Build and deploy?'
   variables:
     ARCH: x86_64
 
@@ -84,6 +84,10 @@ build-x86_64:
 build-aarch64:
   extends: .build
   stage: build-aarch64
+  rules:
+    - if: $CI_COMMIT_BRANCH == $MAIN_BRANCH
+  needs:
+    - build-x86_64
   variables:
     ARCH: aarch64
 
