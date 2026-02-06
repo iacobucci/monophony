@@ -57,6 +57,13 @@
 	<launchable type="desktop-id">io.gitlab.zehkira.Monophony.desktop</launchable>
 	<content_rating type="oars-1.1"></content_rating>
 	<releases>
+		<release version="4.3.3" date="2026-02-06">
+			<description>
+				<ul>
+					<li>Updated to support latest YT changes</li>
+				</ul>
+			</description>
+		</release>
 		<release version="4.3.2" date="2026-02-01">
 			<description>
 				<ul>
