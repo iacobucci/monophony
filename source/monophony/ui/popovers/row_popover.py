@@ -16,4 +16,4 @@ class RowPopover(MemoryDebugger, Gtk.PopoverMenu):
 			)
 
 	def emit_signal_from_action(self, action: str, _property: None):
-		self.emit(action.split('.')[-1])
+		self.emit(action.rsplit('.', maxsplit=1)[-1])

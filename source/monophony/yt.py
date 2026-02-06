@@ -186,7 +186,7 @@ def get_similar_songs(song: Song, ignore: Group | None=None) -> Group | None:
 		f'{len(ignore.songs) if ignore else 0} songs...'
 	)
 	yt = ytmusicapi.YTMusic()
-	ignore = ignore if ignore else Group()
+	ignore = ignore or Group()
 
 	try:
 		data = yt.get_watch_playlist(song.yt_id, radio=True)['tracks']
@@ -500,7 +500,7 @@ class SearchTask(Task):
 		self._update_progress(0.1)
 		try:
 			if '?v=' in query and '/' in query:
-				song = get_song(query.split('?v=')[-1].split('&')[0])
+				song = get_song(query.rsplit('?v=', maxsplit=1)[-1].split('&')[0])
 				if song:
 					logboth.info(__name__, 'Done searching - got song from URL')
 					return [SearchResult('song', True, song)]
@@ -509,7 +509,7 @@ class SearchTask(Task):
 				)
 				return None
 			if 'youtu.be/' in query:
-				song = get_song(query.split('youtu.be/')[-1].split('?')[0])
+				song = get_song(query.rsplit('youtu.be/', maxsplit=1)[-1].split('?')[0])
 				if song:
 					logboth.info(__name__, 'Done searching - got song from URL')
 					return [SearchResult('song', True, song)]

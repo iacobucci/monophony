@@ -42,7 +42,7 @@ class Song(YTItem):
 	):
 		super().__init__(yt_id)
 		self.title = title or ''
-		self.author = author if author else Artist()
+		self.author = author or Artist()
 		self.length = length or ''
 		self.thumbnail = thumbnail or ''
 
@@ -69,8 +69,8 @@ class Group(YTItem):
 
 		self._songs = []
 		self.title = title or ''
-		self.author = author if author else Artist()
-		self.songs = songs if songs else []
+		self.author = author or Artist()
+		self.songs = songs or []
 
 	@property
 	def songs(self) -> list:

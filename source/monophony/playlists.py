@@ -272,9 +272,9 @@ class ImportTask(Task):
 			playlist for playlist in read_external() if playlist.title != name
 		]
 
-		if not (
-			playlist := yt.get_album_or_playlist(url.split('list=')[-1].split('&')[0])
-		):
+		if not (playlist := yt.get_album_or_playlist(
+			url.rsplit('list=', maxsplit=1)[-1].split('&')[0]
+		)):
 			logboth.error(__name__, 'Failed to import playlist')
 			return False
 
