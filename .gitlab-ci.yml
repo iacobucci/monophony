@@ -7,6 +7,7 @@ variables:
 
 stages:
   - test
+  - validate-release
   - build-x86_64
   - build-aarch64
   - deploy
@@ -70,13 +71,30 @@ test:
       - repo
 
 
+validate-release:
+  stage: validate-release
+  rules:
+    - if: $CI_COMMIT_BRANCH == $MAIN_BRANCH
+      when: manual
+  manual_confirmation: 'Build and deploy?'
+  image: ${IMAGE}
+  script:
+    - apk add git xmlstarlet
+
+    - metainfo_release="v$(xmlstarlet sel -t -v //component/releases/*[1]/@version source/data/metainfo.xml)"
+    - git_tag="$(git tag | tail -1)"
+    - >
+      if ! [ "$metainfo_release" = "$git_tag" ]; then
+        echo "[ERROR] Latest tag does not match latest release version in metainfo ($git_tag, $metainfo_release)"
+        false
+      fi
+
+
 build-x86_64:
   extends: .build
   stage: build-x86_64
   rules:
     - if: $CI_COMMIT_BRANCH == $MAIN_BRANCH
-      when: manual
-  manual_confirmation: 'Build and deploy?'
   variables:
     ARCH: x86_64
 
