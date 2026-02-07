@@ -271,13 +271,20 @@ class MainWindow(Adw.ApplicationWindow):
 		)
 		self._home_page.update_downloads(self._downloader.get_downloads())
 
+		loading_page = LoadingPage()
+		loading_page.connect(
+			'show-about',
+			lambda _page, ref: MainWindow._on_show_about(ref()),
+			weakref.ref(self)
+		)
+
 		self._navigation_view = Adw.NavigationView()
-		self._navigation_view.add(LoadingPage())
 		self._navigation_view.connect(
 			'popped',
 			lambda _view, page, ref: MainWindow._on_page_popped(ref(), page),
 			weakref.ref(self)
 		)
+		self._navigation_view.add(loading_page)
 
 		self._player_bar = PlayerBar()
 		self._player_bar.connect(
