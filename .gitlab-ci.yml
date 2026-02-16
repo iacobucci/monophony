@@ -1,15 +1,13 @@
 variables:
   APP_ID: io.gitlab.zehkira.Monophony
-  MAIN_BRANCH: master # Main development branch into which feature branches are merged
+  MAIN_BRANCH: master
   FLATPAK_BRANCH: master # Branch of exported flatpak repo, same as in flatpakref file
-  IMAGE: alpine:3.23.3
+  IMAGE: alpine:3.23
 
 
 stages:
   - test
-  - validate-release
-  - build-x86_64
-  - build-aarch64
+  - build
   - deploy
 
 
@@ -17,13 +15,24 @@ test:
   stage: test
   rules:
     - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $MAIN_BRANCH
-  image: ${IMAGE}
+  image: $IMAGE
   script:
-    - apk add appstream bash desktop-file-utils flatpak flatpak-builder gettext git libarchive-tools make py3-pip
+    - >
+      apk add \
+        appstream \
+        bash \
+        desktop-file-utils \
+        flatpak \
+        flatpak-builder \
+        gettext \
+        git \
+        libarchive-tools \
+        make \
+        python3
 
     - python3 -m venv .venv
     - source .venv/bin/activate
-    - python3 -m pip install -r source/requirements-dev.txt
+    - pip3 install -r source/requirements-dev.txt
     - ruff check source
     - deactivate
 
@@ -36,88 +45,114 @@ test:
         false
       fi
     - >
-      if (find source/locales/ | tr "\n" " " | grep -q "\.mo"); then
+      if (git ls-files source/locales/ | tr "\n" " " | grep -q "\.mo"); then
         echo "[ERROR] *.mo files committed - delete them"
         false
       fi
     - >
-      if (cat $(find . -name "*.svg") | grep -q "inkscape:"); then
+      if (cat $(git ls-files | grep "\.svg$") | grep -q "inkscape:"); then
         echo "[ERROR] SVG files are not plain - re-export as plain"
         false
       fi
 
     - make --directory=source/ flatpak
-    - flatpak run --filesystem=$CI_PROJECT_DIR/source/tests/:ro --command=source/tests/tests.py --env=MONOPHONY_LOG_LEVELS=ERRO ${APP_ID} --verbose
+    - >
+      flatpak run \
+        --filesystem="$CI_PROJECT_DIR/source/tests/:ro" \
+        --command=source/tests/tests.py \
+        --env=MONOPHONY_LOG_LEVELS=ERRO \
+        "$APP_ID" \
+        --verbose
 
 
-.build:
-  image: ${IMAGE}
+build:
+  stage: build
+  rules:
+    - if: $CI_COMMIT_BRANCH == $MAIN_BRANCH
+      when: manual
+  image: $IMAGE
+  variables:
+    TARGETS: x86_64 aarch64
   script:
-    - apk add flatpak flatpak-builder libarchive-tools
+    - apk add flatpak flatpak-builder libarchive-tools xmlstarlet
 
-    - flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    - >
+      metainfo_release="v$( \
+        xmlstarlet sel \
+          -t \
+          -v \
+          /component/releases/*[1]/@version \
+          source/data/metainfo.xml \
+      )"
+    - git_tag="$(git tag | tail -1)"
+    - >
+      if ! [ "$metainfo_release" = "$git_tag" ]; then
+        echo "[ERROR] Latest tag does not match latest release in metainfo"
+        echo "($git_tag != $metainfo_release)"
+        false
+      fi
 
     - gpg --list-keys --with-keygrip
     - echo "allow-preset-passphrase" >> ~/.gnupg/gpg-agent.conf
     - gpg-connect-agent reloadagent /bye
-    - cat $GPG_PASSPHRASE | /usr/libexec/gpg-preset-passphrase --preset $GPG_KEY_GREP
-    - gpg --import --batch ${GPG_PRIVATE_KEY}
+    - >
+      cat "$GPG_PASSPHRASE" | \
+        /usr/libexec/gpg-preset-passphrase --preset "$GPG_KEY_GREP"
+    - gpg --import --batch "$GPG_PRIVATE_KEY"
 
-    - flatpak-builder build --arch=${ARCH} --user --install-deps-from=flathub --gpg-sign=${GPG_KEY_ID} --disable-rofiles-fuse --disable-updates --force-clean --repo=repo --default-branch=${FLATPAK_BRANCH} $CI_PROJECT_DIR/source/data/manifest.json
-    - flatpak build-bundle --arch=${ARCH} --gpg-sign=${GPG_KEY_ID} repo ${APP_ID}.flatpak --runtime-repo=flathub ${APP_ID} ${FLATPAK_BRANCH}
-    - flatpak build-update-repo --gpg-sign=${GPG_KEY_ID} --generate-static-deltas --prune repo/
+    - >
+      flatpak remote-add \
+        --user \
+        --if-not-exists \
+        flathub \
+        https://flathub.org/repo/flathub.flatpakrepo
+
+    - >
+      for ARCH in "$TARGETS"
+        do
+          flatpak-builder build \
+            --arch="$ARCH" \
+            --user \
+            --install-deps-from=flathub \
+            --gpg-sign="$GPG_KEY_ID" \
+            --disable-rofiles-fuse \
+            --disable-updates \
+            --force-clean \
+            --repo=repo \
+            --default-branch="$FLATPAK_BRANCH" \
+            "$CI_PROJECT_DIR/source/data/manifest.json"
+
+          flatpak build-bundle \
+            --arch="$ARCH" \
+            --gpg-sign="$GPG_KEY_ID" \
+            repo \
+            "$APP_ID.flatpak" \
+            --runtime-repo=flathub \
+            "$APP_ID" \
+            "$FLATPAK_BRANCH"
+        done
+    - >
+      flatpak build-update-repo \
+        --gpg-sign="$GPG_KEY_ID" \
+        --generate-static-deltas \
+        --prune \
+        repo/
   artifacts:
     paths:
       - repo
 
 
-validate-release:
-  stage: validate-release
-  rules:
-    - if: $CI_COMMIT_BRANCH == $MAIN_BRANCH
-      when: manual
-  manual_confirmation: 'Build and deploy?'
-  image: ${IMAGE}
-  script:
-    - apk add git xmlstarlet
-
-    - metainfo_release="v$(xmlstarlet sel -t -v //component/releases/*[1]/@version source/data/metainfo.xml)"
-    - git_tag="$(git tag | tail -1)"
-    - >
-      if ! [ "$metainfo_release" = "$git_tag" ]; then
-        echo "[ERROR] Latest tag does not match latest release version in metainfo ($git_tag, $metainfo_release)"
-        false
-      fi
-
-
-build-x86_64:
-  extends: .build
-  stage: build-x86_64
-  rules:
-    - if: $CI_COMMIT_BRANCH == $MAIN_BRANCH
-  variables:
-    ARCH: x86_64
-
-
-build-aarch64:
-  extends: .build
-  stage: build-aarch64
-  rules:
-    - if: $CI_COMMIT_BRANCH == $MAIN_BRANCH
-  variables:
-    ARCH: aarch64
-
-
-pages:
+deploy:
   stage: deploy
   rules:
     - if: $CI_COMMIT_BRANCH == $MAIN_BRANCH
-  image: ${IMAGE}
+      when: manual
+  image: $IMAGE
   script:
     - apk add rsync
 
     - mkdir --parents public
-    - rsync -av --exclude='public' --exclude='.git' ${CI_PROJECT_DIR}/repo/ public
+    - rsync -av --exclude="public" --exclude=".git" "$CI_PROJECT_DIR/repo/" public
   artifacts:
     paths:
       - public
