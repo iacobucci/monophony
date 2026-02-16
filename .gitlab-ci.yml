@@ -108,7 +108,7 @@ build:
         https://flathub.org/repo/flathub.flatpakrepo
 
     - >
-      for ARCH in "$TARGETS"
+      for ARCH in $TARGETS
         do
           flatpak-builder build \
             --arch="$ARCH" \
