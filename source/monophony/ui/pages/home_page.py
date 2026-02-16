@@ -343,8 +343,8 @@ class HomePage(Page):
 		self._page.add(no_playlists_group)
 		self._page.add(import_group)
 		self._page.add(self._external_playlists_group)
-		self._page.add(self._downloads_group)
 		self._page.add(self._history_group)
+		self._page.add(self._downloads_group)
 		self._page.add(donate_group)
 
 		self._search_bar = SearchBar()
