@@ -142,7 +142,7 @@ build:
       - repo
 
 
-deploy:
+pages:
   stage: deploy
   rules:
     - if: $CI_COMMIT_BRANCH == $MAIN_BRANCH
