@@ -57,6 +57,13 @@
 	<launchable type="desktop-id">io.gitlab.zehkira.Monophony.desktop</launchable>
 	<content_rating type="oars-1.1"></content_rating>
 	<releases>
+		<release version="4.4.1" date="2026-02-17">
+			<description>
+				<ul>
+					<li>Fixed some songs loading forever</li>
+				</ul>
+			</description>
+		</release>
 		<release version="4.4.0" date="2026-02-16">
 			<description>
 				<ul>
