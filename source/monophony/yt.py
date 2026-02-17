@@ -1,4 +1,5 @@
 import contextlib
+import re
 import subprocess
 import time
 import traceback
@@ -158,6 +159,32 @@ def _parse_single_result(yt: ytmusicapi.YTMusic, data: dict) -> SearchResult | N
 
 def get_song_uri(song: Song) -> str | None:
 	logboth.info(__name__, f'Getting URI for song "{song.yt_id}"...')
+	try:
+		response = requests.get(
+			f'https://music.youtube.com/watch?v={song.yt_id}', timeout=5
+		)
+	except requests.exceptions.RequestException:
+		logboth.error(__name__, 'Failed to get song URI', traceback.format_exc())
+		return None
+
+	response_match = re.search('/watch\\?v=...........', response.text)
+	if response_match:
+		new_id = response_match[0].split('=')[-1]
+		if len(new_id) != 11: # noqa: PLR2004 - YT ID length
+			logboth.warning(
+				__name__,
+				f'Got invalid id "{new_id}" for redirect from song "{song.yt_id}"'
+			)
+		elif new_id != song.yt_id:
+			logboth.info(__name__, f'Redirected song "{song.yt_id}" to "{new_id}"')
+			song.yt_id = new_id
+	else:
+		logboth.warning(
+			__name__,
+			f'No redirect information returned for song "{song.yt_id}"',
+			response.text
+		)
+
 	out, err = subprocess.Popen(
 		[
 			'yt-dlp',
