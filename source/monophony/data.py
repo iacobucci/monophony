@@ -287,16 +287,16 @@ class TimeString:
 		'''
 		seconds = 0
 		parts = self._string.split(':')
-		if len(parts) > TimeString.SECONDS_POS:
+		if len(parts) > TimeString._SECONDS_POS:
 			with contextlib.suppress(ValueError):
 				seconds += int(parts[-1])
-		if len(parts) > TimeString.MINUTES_POS:
+		if len(parts) > TimeString._MINUTES_POS:
 			with contextlib.suppress(ValueError):
 				seconds += int(parts[-2]) * 60
-		if len(parts) > TimeString.HOURS_POS:
+		if len(parts) > TimeString._HOURS_POS:
 			with contextlib.suppress(ValueError):
 				seconds += int(parts[-3]) * 60 * 60
-		if len(parts) > TimeString.HOURS_POS + 1:
+		if len(parts) > TimeString._HOURS_POS + 1:
 			logboth.warning(
 				__name__, f'TimeString "{self._string}" has too many parts'
 			)
