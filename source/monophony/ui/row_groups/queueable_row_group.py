@@ -1,3 +1,5 @@
+'''Row group widget for queueable rows.'''
+
 import weakref
 
 from monophony.data import Group, Song
@@ -8,10 +10,16 @@ from gi.repository import GObject, Gtk
 
 
 class QueueableRowGroup(PlayableRowGroup):
+	'''Row group widget for queueable rows.
+
+	Song rows are queueable.
+	'''
+
 	__gtype_name__ = __qualname__
 	_row_type = SongRow
 
 	def __init__(self):
+		'''Initialize the widget.'''
 		super().__init__()
 
 		play_button = Gtk.Button.new_from_icon_name(
@@ -35,6 +43,10 @@ class QueueableRowGroup(PlayableRowGroup):
 		return
 
 	def add(self, row: _row_type):
+		'''Add a queueable row.
+
+		:param row: Row to add.
+		'''
 		super().add(row)
 
 		row.connect(
@@ -44,5 +56,6 @@ class QueueableRowGroup(PlayableRowGroup):
 		)
 
 	def on_play_all(self):
+		'''Emit play signal with all songs.'''
 		group = Group(songs=[row_ref().song for row_ref in self._rows])
 		self.emit('play', group.songs[0], group)

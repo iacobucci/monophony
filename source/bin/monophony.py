@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # ruff: noqa: E402 - Allow gi.require_versions()
 
+'''App executable.'''
+
 import gettext
 import os
 import platform

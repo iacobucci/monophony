@@ -1,3 +1,10 @@
+'''Recommended playlists storage.
+
+Does not fetch or generate recommendations.
+
+Not thread-safe.
+'''
+
 import json
 import os
 
@@ -18,6 +25,10 @@ def _get_file_path() -> str:
 
 
 def write(recommendations: list[Group]):
+	'''Overwrite recommendations with new list.
+
+	:param recommendations: List of playlists.
+	'''
 	logboth.info(__name__, f'Writing {len(recommendations)} recommendations...')
 	recommendations_path = _get_file_path()
 	os.makedirs(_get_directory(), exist_ok=True)
@@ -32,6 +43,10 @@ def write(recommendations: list[Group]):
 
 
 def read() -> list[Group]:
+	'''Get recommendations.
+
+	:return: List of playlists.
+	'''
 	try:
 		with open(_get_file_path()) as recommendations_file:
 			return [

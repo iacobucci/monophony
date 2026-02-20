@@ -1,3 +1,5 @@
+'''Group row widget for editable song rows.'''
+
 import weakref
 
 from monophony import playlists
@@ -12,10 +14,13 @@ from gi.repository import GLib, GObject, Gtk
 
 
 class EditableGroupRow(GroupRow):
+	'''Group row widget for editable song rows.'''
+
 	__gtype_name__ = __qualname__
 	_row_type = EditableSongRow
 
 	def __init__(self, group: Group):
+		'''Initialize the widget for a group.'''
 		super().__init__(group)
 
 		self._more_button.set_create_popup_func(
@@ -57,6 +62,10 @@ class EditableGroupRow(GroupRow):
 		button.set_popover(self._popover)
 
 	def add_row(self, row: _row_type):
+		'''Add an editable song row.
+
+		:param row: Row to add.
+		'''
 		super().add_row(row)
 		row.connect(
 			'move-song',
@@ -71,6 +80,10 @@ class EditableGroupRow(GroupRow):
 		)
 
 	def update_contents(self):
+		'''Replace rows with new rows generated from playlist backend.
+
+		The playlist fetched is one matching the current group title.
+		'''
 		logboth.info(
 			__name__, f'Updating row contents for playlist "{self.group.title}"...'
 		)

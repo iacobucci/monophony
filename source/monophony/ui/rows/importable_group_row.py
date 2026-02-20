@@ -1,3 +1,5 @@
+'''Importable group row widget.'''
+
 import weakref
 
 from monophony.data import Group
@@ -9,10 +11,16 @@ from gi.repository import GObject, Gtk
 
 
 class ImportableGroupRow(GroupRow):
+	'''Importable group row widget.'''
+
 	__gtype_name__ = __qualname__
 	_row_type = SongRow
 
 	def __init__(self, group: Group):
+		'''Initialize the widget for a group.
+
+		:param group: Group to initialize for.
+		'''
 		super().__init__(group)
 
 		self._more_button.set_create_popup_func(
@@ -52,4 +60,3 @@ class ImportableGroupRow(GroupRow):
 			weakref.ref(self)
 		)
 		button.set_popover(self._popover)
-

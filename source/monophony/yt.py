@@ -1,3 +1,5 @@
+'''Wrappers for YT.'''
+
 import contextlib
 import re
 import subprocess
@@ -16,12 +18,20 @@ import ytmusicapi
 # parsing error. They can be safely interpreted as a "not found" response from YTM. In
 # the case of an internet connection error, requests.exceptions.ConnectionError is
 # raised instead
-YTMUSICAPI_PARSING_EXCEPTIONS = (AttributeError, KeyError, TypeError)
+_YTMUSICAPI_PARSING_EXCEPTIONS = (AttributeError, KeyError, TypeError)
 
 
 class SearchResult:
-	# Raises KeyError on unknown type
+	'''Wrapper for supported search result type.'''
+
 	def __init__(self, type_: str, top: bool, item: YTItem | None=None):
+		'''Initialize result for type.
+
+		:param type_: Result type.
+		:param top: Whether this is a top result.
+		:param item: Optional item data.
+		:raise KeyError: On unsupported type.
+		'''
 		if type_ == 'single':
 			type_ = 'album'
 
@@ -133,10 +143,10 @@ def _parse_single_result(yt: ytmusicapi.YTMusic, data: dict) -> SearchResult | N
 		try:
 			try:
 				playlist = yt.get_playlist(result.item.yt_id, limit=None)
-			except YTMUSICAPI_PARSING_EXCEPTIONS:
+			except _YTMUSICAPI_PARSING_EXCEPTIONS:
 				playlist = yt.get_album(result.item.yt_id)
 		except (
-			*YTMUSICAPI_PARSING_EXCEPTIONS,
+			*_YTMUSICAPI_PARSING_EXCEPTIONS,
 			ytmusicapi.exceptions.YTMusicUserError, # Invalid ID
 			requests.exceptions.ConnectionError
 		):
@@ -158,6 +168,11 @@ def _parse_single_result(yt: ytmusicapi.YTMusic, data: dict) -> SearchResult | N
 
 
 def get_song_uri(song: Song) -> str | None:
+	'''Get YT playback URI from song ID.
+
+	:param song: Song to get URI for.
+	:return: Playback URI, if found.
+	'''
 	logboth.info(__name__, f'Getting URI for song "{song.yt_id}"...')
 	try:
 		response = requests.get(
@@ -207,6 +222,12 @@ def get_song_uri(song: Song) -> str | None:
 
 
 def get_similar_songs(song: Song, ignore: Group | None=None) -> Group | None:
+	'''Get group of songs similar to a song.
+
+	:param song: Song.
+	:param ignore: Group of songs to ignore while searching.
+	:return: Group of similar songs, if found.
+	'''
 	logboth.info(
 		__name__,
 		f'Getting similar song to "{song.yt_id}" ignoring '
@@ -217,7 +238,7 @@ def get_similar_songs(song: Song, ignore: Group | None=None) -> Group | None:
 
 	try:
 		data = yt.get_watch_playlist(song.yt_id, radio=True)['tracks']
-	except (*YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.ConnectionError):
+	except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.ConnectionError):
 		logboth.error(
 			__name__, 'Failed to get similar song', traceback.format_exc()
 		)
@@ -246,12 +267,17 @@ def get_similar_songs(song: Song, ignore: Group | None=None) -> Group | None:
 
 
 def get_song(id_: str) -> Song | None:
+	'''Get song from YT ID.
+
+	:param id_: YT ID of song.
+	:return: Song, if found.
+	'''
 	logboth.info(__name__, f'Getting song "{id_}"...')
 	yt = ytmusicapi.YTMusic()
 
 	try:
 		result = yt.get_song(id_)['videoDetails']
-	except (*YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.ConnectionError):
+	except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.ConnectionError):
 		logboth.error(
 			__name__, 'Failed to get song', traceback.format_exc()
 		)
@@ -267,6 +293,11 @@ def get_song(id_: str) -> Song | None:
 
 
 def get_album_or_playlist(yt_id: str) -> Group | None:
+	'''Get group from YT ID.
+
+	:param yt_id: YT ID of album or playlist.
+	:return: Group, if found.
+	'''
 	logboth.info(__name__, f'Getting album/playlist "{yt_id}"...')
 
 	if result := _parse_single_result(
@@ -284,6 +315,16 @@ def get_album_or_playlist(yt_id: str) -> Group | None:
 
 
 class ParseResultsTask(Task):
+	'''Task for parsing raw ytmusicapi data and constructing a list of search results.
+
+	.. code-block::
+
+		ParseResultsTask(
+			args=(ytmusicapi.YTMusic(), raw_data, limit)
+		)
+
+	'''
+
 	def _function(
 		self, yt: ytmusicapi.YTMusic, data: list[dict], limit: int | None=None,
 	) -> list[SearchResult] | None:
@@ -324,6 +365,16 @@ class ParseResultsTask(Task):
 
 
 class GetArtistTask(Task):
+	'''Task for getting list of search results from artist ID.
+
+	.. code-block::
+
+		GetArtistTask(
+			args=(artist_id, type_filter, limit)
+		)
+
+	'''
+
 	def _on_parse_progress_update(self, task: ParseResultsTask, progress: float):
 		if not task.is_canceled():
 			self._update_progress(0.5 + progress / 2)
@@ -343,11 +394,11 @@ class GetArtistTask(Task):
 			try:
 				data = yt.get_artist(browse_id)
 				logboth.info(__name__, 'Fetched artist')
-			except YTMUSICAPI_PARSING_EXCEPTIONS:
+			except _YTMUSICAPI_PARSING_EXCEPTIONS:
 				logboth.info(__name__, 'No such artist, fetching as user instead...')
 				data = yt.get_user(browse_id)
 				logboth.info(__name__, 'Fetched artist as user')
-		except (*YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.ConnectionError):
+		except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.ConnectionError):
 			logboth.error(
 				__name__,
 				'Failed to get artist - could not fetch',
@@ -377,12 +428,12 @@ class GetArtistTask(Task):
 			try:
 				try:
 					tracks = yt.get_playlist(group.get('browseId', ''))['tracks']
-				except YTMUSICAPI_PARSING_EXCEPTIONS:
+				except _YTMUSICAPI_PARSING_EXCEPTIONS:
 					logboth.info(
 						__name__,
 						f'Got no {type_}, trying with get_user_videos instead...'
 					)
-					# Does not raise YTMUSICAPI_PARSING_EXCEPTIONS, ever
+					# Does not raise _YTMUSICAPI_PARSING_EXCEPTIONS, ever
 					tracks = yt.get_user_videos(browse_id, group.get('params', ''))
 			except requests.exceptions.ConnectionError:
 				logboth.error(__name__, 'Failed to get artist', traceback.format_exc())
@@ -423,12 +474,12 @@ class GetArtistTask(Task):
 					lists = yt.get_artist_albums(
 						group.get('browseId', ''), group.get('params', '')
 					)
-				except YTMUSICAPI_PARSING_EXCEPTIONS:
+				except _YTMUSICAPI_PARSING_EXCEPTIONS:
 					logboth.info(
 						__name__,
 						f'Got no {type_}, trying with get_user_playlists instead...'
 					)
-					# Does not raise YTMUSICAPI_PARSING_EXCEPTIONS, ever
+					# Does not raise _YTMUSICAPI_PARSING_EXCEPTIONS, ever
 					lists = yt.get_user_playlists(browse_id, group.get('params', ''))
 			except requests.exceptions.ConnectionError:
 				logboth.error(__name__, 'Failed to get artist', traceback.format_exc())
@@ -478,13 +529,15 @@ class GetArtistTask(Task):
 
 
 class GetRecommendationsTask(Task):
+	'''Task for fetching list of recommended playlists.'''
+
 	def _function(self) -> list[Group] | None:
 		logboth.info(__name__, 'Getting recommendations...')
 		yt = ytmusicapi.YTMusic()
 
 		try:
 			data = yt.get_home()
-		except (*YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.ConnectionError):
+		except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.ConnectionError):
 			logboth.error(
 				__name__, 'Failed to get recommendations', traceback.format_exc()
 			)
@@ -514,6 +567,16 @@ class GetRecommendationsTask(Task):
 
 
 class SearchTask(Task):
+	'''Task for searching YT.
+
+	.. code-block::
+
+		SearchTask(
+			args=(query, type_filter, limit)
+		)
+
+	'''
+
 	def _on_parse_progress_update(self, task: ParseResultsTask, progress: float):
 		if not task.is_canceled():
 			self._update_progress(0.5 + progress / 2)
@@ -527,7 +590,9 @@ class SearchTask(Task):
 		self._update_progress(0.1)
 		try:
 			if '?v=' in query and '/' in query:
-				song = get_song(query.rsplit('?v=', maxsplit=1)[-1].split('&')[0])
+				song = get_song(
+					query.rsplit('?v=', maxsplit=1)[-1].split('&', maxsplit=1)[0]
+				)
 				if song:
 					logboth.info(__name__, 'Done searching - got song from URL')
 					return [SearchResult('song', True, song)]
@@ -536,7 +601,9 @@ class SearchTask(Task):
 				)
 				return None
 			if 'youtu.be/' in query:
-				song = get_song(query.rsplit('youtu.be/', maxsplit=1)[-1].split('?')[0])
+				song = get_song(
+					query.rsplit('youtu.be/', maxsplit=1)[-1].split('?', maxsplit=1)[0]
+				)
 				if song:
 					logboth.info(__name__, 'Done searching - got song from URL')
 					return [SearchResult('song', True, song)]
@@ -550,7 +617,7 @@ class SearchTask(Task):
 				yt.search(query, filter=filter_, limit=100) if filter_
 					else yt.search(query)
 			)
-		except (*YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.ConnectionError):
+		except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.ConnectionError):
 			logboth.error(__name__, 'Failed to search', traceback.format_exc())
 			return None
 

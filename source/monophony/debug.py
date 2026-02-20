@@ -1,3 +1,9 @@
+'''Debugging tools.
+
+When the environment variable ``MONOPHONY_DEBUG`` is set, memory status is logged
+automatically every 2 seconds.
+'''
+
 import gc
 import os
 
@@ -8,7 +14,7 @@ from gi.repository import GLib, GObject
 _DEBUG_VARIABLE = 'MONOPHONY_DEBUG'
 
 
-def log_memory_status() -> bool:
+def _log_memory_status() -> bool:
 	gobject_count = 0
 	other_count = 0
 	gc.collect()
@@ -25,21 +31,34 @@ def log_memory_status() -> bool:
 	return True
 
 
-# Use with multiple inheriance: class Class(MemoryDebugger, ...)
 class MemoryDebugger:
+	'''An object that logs information about its own initialization and deletion.
+
+	The environment variable ``MONOPHONY_DEBUG`` must be set for this class to
+	do anything.
+
+	Most classes should inherit from this first to allow for better debugging:
+
+	.. code-block::
+
+		class Class(MemoryDebugger, ...)
+
+	'''
+
 	def __del__(self):
+		'''Log own class name on deletion.'''
 		logboth.info(__name__, f'Collected {self.__class__.__name__}')
 
 	def __init__(self, *args, **kwargs):
+		'''Log own class name on initialization.'''
 		super().__init__(*args, **kwargs)
 
 		logboth.info(__name__, f'Initialized {self.__class__.__name__}')
 
 
-debug_active = os.getenv(_DEBUG_VARIABLE)
-if debug_active:
+if os.getenv(_DEBUG_VARIABLE):
 	logboth.warning(__name__, 'Debug mode enabled, expect low performance')
-	GLib.timeout_add_seconds(2, log_memory_status)
+	GLib.timeout_add_seconds(2, _log_memory_status)
 else:
 	del MemoryDebugger.__del__
 	del MemoryDebugger.__init__

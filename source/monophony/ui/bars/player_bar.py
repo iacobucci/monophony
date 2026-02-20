@@ -1,3 +1,5 @@
+'''Player bar widget.'''
+
 import weakref
 
 from monophony import ID
@@ -7,9 +9,12 @@ from gi.repository import Adw, Gdk, Gio, GLib, GObject, GstAudio, Gtk, Pango
 
 
 class PlayerBar(Gtk.Box):
+	'''Player bar widget with playback controls and song info.'''
+
 	__gtype_name__ = __qualname__
 
 	def __init__(self):
+		'''Initialize the widget.'''
 		super().__init__(orientation=Gtk.Orientation.VERTICAL)
 
 		self._buffer_bar = Gtk.ProgressBar()
@@ -261,6 +266,10 @@ class PlayerBar(Gtk.Box):
 		self.emit('mode-changed', mode)
 
 	def update_song(self, song: Song):
+		'''Update displayed song info.
+
+		:param song: Song to display.
+		'''
 		# Simply using .props.label would create a new child label and discard
 		# previously set properties
 		self._title_link.props.child.props.label = song.title
@@ -270,22 +279,42 @@ class PlayerBar(Gtk.Box):
 		self._artist_label.props.label = song.author.name
 
 	def update_pause(self, pause: bool):
+		'''Update the displayed pause state.
+
+		:param pause: Pause state.
+		'''
 		self._pause_button.props.icon_name = (
 			f'media-playback-{"start" if pause else "pause"}-symbolic'
 		)
 
 	def update_progress(self, progress: float):
+		'''Update the progress bar.
+
+		:param progress: Progress fraction (0.0-1.0).
+		'''
 		self._progress_bar.set_value(progress)
 
 	def update_state(self, state: int):
+		'''Update the displayed playback state.
+
+		:param state: ``PlaybackState``.
+		'''
 		self._spinner.props.visible = state == PlaybackState.LOADING
 		self._pause_button.props.visible = not self._spinner.props.visible
 		self._progress_bar.props.sensitive = state != PlaybackState.LOADING
 
 	def update_buffering(self, progress: float):
+		'''Update the buffer bar progress.
+
+		:param progress: Progress fraction (0.0-1.0).
+		'''
 		self._buffer_bar.props.fraction = progress
 
 	def update_volume(self, volume: float):
+		'''Update volume slider.
+
+		:param volume: Volume.
+		'''
 		self._volume_button.props.value = GstAudio.stream_volume_convert_volume(
 			GstAudio.StreamVolumeFormat.LINEAR,
 			GstAudio.StreamVolumeFormat.CUBIC,
@@ -293,6 +322,10 @@ class PlayerBar(Gtk.Box):
 		)
 
 	def update_mode(self, mode: int):
+		'''Update displayed player mode.
+
+		:param mode: ``PlaybackMode``.
+		'''
 		self._mode = mode
 		self._mode_button.props.icon_name = {
 			PlaybackMode.NORMAL: 'media-playlist-consecutive-symbolic',

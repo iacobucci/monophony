@@ -1,12 +1,20 @@
+'''Loading page widget.'''
+
 from monophony.ui.pages.page import Page
 
 from gi.repository import Adw
 
 
 class LoadingPage(Page):
+	'''Loading page widget.
+
+	Display only. Needs to be managed externally.
+	'''
+
 	__gtype_name__ = __qualname__
 
 	def __init__(self):
+		'''Initialize the widget at 0%.'''
 		super().__init__()
 
 		spinner = Adw.SpinnerPaintable()
@@ -21,4 +29,8 @@ class LoadingPage(Page):
 		self.props.title = _('Loading...')
 
 	def update_progress(self, progress: float):
+		'''Set % progress based on fraction.
+
+		:param progress: Progress fraction (0.0-1.0).
+		'''
 		self._status_page.props.description = f'{int(progress * 100)}%'

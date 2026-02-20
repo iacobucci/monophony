@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # ruff: noqa: S101 - Asserts used in tests
 # ruff: noqa: SLF001 - Private members used in tests
+# ruff: noqa: D100 D101 D102
 
 import os
 import shutil

@@ -1,3 +1,5 @@
+'''Main application module.'''
+
 from monophony import ID
 from monophony.ui.windows.main_window import MainWindow
 
@@ -5,9 +7,12 @@ from gi.repository import Adw, Gio
 
 
 class Application(Adw.Application):
+	'''Manages windows and application state on a high level.'''
+
 	__gtype_name__ = __qualname__
 
 	def __init__(self):
+		'''Initialize without a window.'''
 		super().__init__(
 			application_id=ID,
 			flags=Gio.ApplicationFlags.DEFAULT_FLAGS
@@ -15,6 +20,7 @@ class Application(Adw.Application):
 		self._window = None
 
 	def do_activate(self):
+		'''Raise a window if one exists, otherwise create one.'''
 		windows = self.get_windows()
 
 		if len(windows) > 0:

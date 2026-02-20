@@ -1,3 +1,5 @@
+'''Synchronized group row widget.'''
+
 import weakref
 
 from monophony import playlists
@@ -13,10 +15,16 @@ from gi.repository import GObject, Gtk
 
 
 class SynchronizedGroupRow(GroupRow):
+	'''Synchronized group row widget.'''
+
 	__gtype_name__ = __qualname__
 	_row_type = SongRow
 
 	def __init__(self, group: Group):
+		'''Initialize the widget for a group.
+
+		:param group: Group to initialize for.
+		'''
 		super().__init__(group)
 
 		self._more_button.set_create_popup_func(
@@ -53,6 +61,10 @@ class SynchronizedGroupRow(GroupRow):
 		button.set_popover(self._popover)
 
 	def update_contents(self):
+		'''Replace rows with new rows generated from playlist backend.
+
+		The playlist fetched is one matching the current group title.
+		'''
 		logboth.info(
 			__name__,
 			f'Updating row contents for external playlist "{self.group.title}"...'

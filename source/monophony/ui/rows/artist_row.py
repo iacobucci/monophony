@@ -1,3 +1,5 @@
+'''Artist row widget.'''
+
 from monophony.data import Artist
 from monophony.debug import MemoryDebugger
 
@@ -5,9 +7,15 @@ from gi.repository import Adw, GLib, GObject, Gtk
 
 
 class ArtistRow(MemoryDebugger, Adw.ActionRow):
+	'''Artist row widget.'''
+
 	__gtype_name__ = __qualname__
 
 	def __init__(self, artist: Artist):
+		'''Initialize the widget for an artist.
+
+		:param artist: Artist to initialize for.
+		'''
 		super().__init__()
 
 		self.artist = artist

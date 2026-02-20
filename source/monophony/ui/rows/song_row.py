@@ -1,3 +1,5 @@
+'''Song row widget.'''
+
 import weakref
 
 from monophony import downloads
@@ -9,9 +11,15 @@ from gi.repository import Adw, GLib, GObject, Gtk
 
 
 class SongRow(MemoryDebugger, Adw.ActionRow):
+	'''Song row widget.'''
+
 	__gtype_name__ = __qualname__
 
 	def __init__(self, song: Song):
+		'''Initialize the widget for a song.
+
+		:param song: Song to initialize for.
+		'''
 		super().__init__()
 
 		self.song = song
@@ -109,5 +117,6 @@ class SongRow(MemoryDebugger, Adw.ActionRow):
 		button.props.popover = popover
 
 	def update_download_status(self):
+		'''Show spinner or downloaded symbol based on song download status.'''
 		self._spinner.props.visible = downloads.is_being_downloaded(self.song)
 		self._downloaded_image.props.visible = downloads.is_downloaded(self.song)

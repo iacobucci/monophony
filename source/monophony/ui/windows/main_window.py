@@ -1,3 +1,5 @@
+'''Main window.'''
+
 import json
 import os
 import time
@@ -37,6 +39,8 @@ from gi.repository import Adw, Gio, GLib, GObject, Gtk
 
 
 class PrepareHomePageTask(Task):
+	'''Task for initializing the home page's contents.'''
+
 	def _on_progress_update(self, task: Task, progress: float):
 		if isinstance(task, GetRecommendationsTask):
 			self._recommendations_progress = progress
@@ -68,9 +72,12 @@ class PrepareHomePageTask(Task):
 
 
 class MainWindow(Adw.ApplicationWindow):
+	'''Main window.'''
+
 	__gtype_name__ = __qualname__
 
 	def __init__(self, **kwargs):
+		'''Initialize the window.'''
 		super().__init__(**kwargs)
 
 		self._downloader = downloads.downloader
@@ -941,5 +948,6 @@ class MainWindow(Adw.ApplicationWindow):
 		self._player.set_volume(volume, notify_frontend=False)
 
 	def present(self):
+		'''Present the window.'''
 		logboth.info(__name__, 'Presenting window')
 		super().present()

@@ -1,1 +1,1 @@
-
+'''Popovers for widgets.'''

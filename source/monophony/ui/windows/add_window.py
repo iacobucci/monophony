@@ -1,3 +1,5 @@
+'''Window for adding a group to playlists and creating new playlists.'''
+
 import weakref
 
 from monophony import MIN_WIDTH, playlists
@@ -8,7 +10,13 @@ from gi.repository import Adw, Gtk
 
 
 class AddWindow(MemoryDebugger, Adw.Dialog):
+	'''Add window.'''
+
 	def __init__(self, group: Group):
+		'''Initialize the window.
+
+		:param group: Group to add to playlists.
+		'''
 		super().__init__()
 
 		self._selected_lists = []

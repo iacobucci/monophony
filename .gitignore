@@ -3,6 +3,7 @@
 *.flatpak
 *~
 .*_cache/
+.docbuild
 .flatpak-builder/
 .repo/
 __pycache__/

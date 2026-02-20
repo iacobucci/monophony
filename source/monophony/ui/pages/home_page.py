@@ -1,3 +1,5 @@
+'''Home page widget.'''
+
 import weakref
 
 from monophony import downloads, playlists, recents, recommendations
@@ -15,9 +17,15 @@ from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
 
 
 class HomePage(Page):
+	'''Home page widget.
+
+	Displays recommendations, playlists, external playlists, recent songs and downloads.
+	'''
+
 	__gtype_name__ = __qualname__
 
 	def __init__(self):
+		'''Initialize the widget.'''
 		super().__init__()
 
 		self._deleted_playlists = []
@@ -475,15 +483,22 @@ class HomePage(Page):
 		launcher.launch()
 
 	def focus_search(self):
+		'''Switch focus to search bar.'''
 		self._search_bar.focus_search()
 
 	def update_external_playlists(self):
+		'''Update external playlists widget content with local data.'''
 		self._external_playlists_group.update_contents(playlists.read_external())
 
 	def update_downloads(self, downloads: Group):
+		'''Update downloads widget with provided group.
+
+		:param downloads: New downloads group.
+		'''
 		self._downloads_group.update_contents(downloads.songs)
 
 	def update_download_status(self):
+		'''Make all child widgets update their download statuses.'''
 		for group in (
 			self._recommended_group,
 			self._playlists_group,
@@ -494,11 +509,14 @@ class HomePage(Page):
 			group.update_download_status()
 
 	def update_history(self):
+		'''Update recent songs widget content.'''
 		new_contents = recents.read().songs
 		self._history_group.update_contents(new_contents)
 
 	def update_playlists(self):
+		'''Update playlists widget content.'''
 		self._playlists_group.update_contents(playlists.read())
 
 	def update_recommendations(self):
+		'''Update recommendations widget content with local data.'''
 		self._recommended_group.update_contents(recommendations.read())

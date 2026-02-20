@@ -1,3 +1,5 @@
+'''Audio playback.'''
+
 import copy
 import random
 import time
@@ -12,6 +14,11 @@ from gi.repository import GObject, Gst
 
 
 class ReportProgressTask(Task):
+	'''Task for continually reporting playback progress.
+
+	Calls its progress callback every second until canceled.
+	'''
+
 	def _function(self):
 		logboth.info(__name__, 'Progress reporting started')
 		while not self.is_canceled():
@@ -22,11 +29,37 @@ class ReportProgressTask(Task):
 
 
 class FindRadioSongsTask(Task):
+	'''Task for finding similar songs.
+
+	A group of songs to ignore can be provided. This can for example prevent attempts
+	to add duplicate songs when adding radio songs to queue.
+
+	.. code-block::
+
+		FindRadioSongsTask(
+			args=(song, group_to_ignore)
+		)
+
+	'''
+
 	def _function(self, from_song: Song, ignore_songs: Group) -> Group | None:
 		return yt.get_similar_songs(from_song, ignore_songs)
 
 
 class FindURITask(Task):
+	'''Task for finding playback URI for a song.
+
+	A dictionary of already known URIs can be provided to prevent unneeded work.
+
+	.. code-block::
+
+		known_song_uris = {'aSDfghJklZx': 'https://...'}
+		FindURITask(
+			args=(song, known_song_uris)
+		)
+
+	'''
+
 	def _function(self, song: Song, known_uris: dict) -> str | None:
 		logboth.info(
 			__name__, f'Looking for "{song.yt_id}" song URI locally and online...'
@@ -54,7 +87,17 @@ class FindURITask(Task):
 
 
 class Player(GObject.Object):
+	'''Player for groups of songs from YT and offline sources.
+
+	Automatically handles playback errors and fetching of playback URIs. Includes
+	MPRIS integration.
+	'''
+
 	def __init__(self):
+		'''Initialize.
+
+		There should only ever be one player instance.
+		'''
 		super().__init__()
 
 		Gst.init([])
@@ -67,10 +110,18 @@ class Player(GObject.Object):
 		self._song_uris = {}
 		self._queue = Group()
 		self._queue_index = 0
+
 		self.mode = PlaybackMode.NORMAL
+		'''Current playback mode.'''
+
 		self.state = PlaybackState.NONE
+		'''Current player state.'''
+
 		self.paused = False
+		'''Whether playback is paused.'''
+
 		self.buffering = False
+		'''Whether buffering is in progress.'''
 
 		pulse_sink = Gst.ElementFactory.make('pulsesink', None)
 		pulse_sink.props.client_name = DISPLAY_NAME
@@ -289,6 +340,12 @@ class Player(GObject.Object):
 		logboth.info(__name__, 'Started playback')
 
 	def add_to_queue(self, group: Group):
+		'''Add group of songs to the end of the queue.
+
+		If the queue was empty, start playback automatically.
+
+		:param group: Group of songs to add.
+		'''
 		if self._queue.songs:
 			self._queue.songs += group.songs
 			self.emit('queue-changed', self._queue, self._queue_index)
@@ -297,24 +354,52 @@ class Player(GObject.Object):
 		self.play(group.songs[0], group)
 
 	def get_current_song(self) -> Song | None:
+		'''Get current song regardless of playback state.
+
+		:return: Current song, if any.
+		'''
 		if self._queue.songs:
 			return self._queue.songs[self._queue_index]
 
 		return None
 
 	def get_duration_ns(self) -> float:
+		'''Get current song duraton in ns.
+
+		:return: Song duration.
+		'''
 		return self._playbin.query_duration(Gst.Format.TIME)[1]
 
 	def get_position_ns(self) -> float:
+		'''Get current playback position in ns.
+
+		:return: Playback position.
+		'''
 		return self._playbin.query_position(Gst.Format.TIME)[1]
 
 	def get_queue(self) -> Group:
+		'''Get current queue.
+
+		:return: Current queue group.
+		'''
 		return self._queue
 
 	def get_volume(self) -> float:
+		'''Get player volume.
+
+		:return: Volume.
+		'''
 		return self._playbin.props.volume
 
 	def move_song(self, song: Song, target: Song):
+		'''Move song in queue to the position of another song.
+
+		The songs are swapped if they are right next to each other. Otherwise, ``song``
+		is moved to the index before ``target``.
+
+		:param song: Song to move.
+		:param target: Song to move to.
+		'''
 		logboth.info(
 			__name__, f'Moving song "{song.yt_id}" to "{target.yt_id}" in queue...'
 		)
@@ -334,6 +419,13 @@ class Player(GObject.Object):
 		logboth.info(__name__, 'Moved song in queue')
 
 	def next(self, from_user: bool=False):
+		'''Skip to next song in queue.
+
+		This also handles situations such as the current song ending. The actual result
+		of this operation will vary based on mode and state.
+
+		:param from_user: Whether the user initiated this operation.
+		'''
 		if self.mode == PlaybackMode.RADIO:
 			if len(self._queue.songs) > self._queue_index + 1:
 				self.play(self._queue.songs[self._queue_index + 1], self._queue)
@@ -375,6 +467,12 @@ class Player(GObject.Object):
 		self.stop()
 
 	def play(self, song: Song, group: Group, position: int=0):
+		'''Play a song starting at a position and enqueue its group.
+
+		:param song: Song to play.
+		:param group: Group to enqueue. Must contain ``song``.
+		:param position: Initial playback position in ns.
+		'''
 		logboth.info(
 			__name__, f'Playback of song "{song.yt_id}" at {position}ns requested'
 		)
@@ -412,6 +510,11 @@ class Player(GObject.Object):
 		self._find_uri_task.start()
 
 	def pop_uri(self, yt_id: str) -> str | None:
+		'''Get and remove stored playback URI for YT ID.
+
+		:param yt_id: Song ID for which to get a URI.
+		:return: The URI, if any.
+		'''
 		if yt_id in self._song_uris:
 			logboth.info(__name__, f'Popped known URI for song "{yt_id}"')
 			return self._song_uris.pop(yt_id)
@@ -419,6 +522,10 @@ class Player(GObject.Object):
 		return None
 
 	def previous(self):
+		'''Skip to previous song in queue.
+
+		If the current song is the first song in queue, it is restarted instead.
+		'''
 		if self._queue_index > 0:
 			self.play(self._queue.songs[self._queue_index - 1], self._queue)
 			return
@@ -426,6 +533,12 @@ class Player(GObject.Object):
 		self.seek(0)
 
 	def remove_from_queue(self, song: Song):
+		'''Remove song from queue.
+
+		Can gracefully remove any song - even the currently playing one.
+
+		:param song: Song to remove from queue.
+		'''
 		if len(self._queue.songs) > 1:
 			current_song = self._queue.songs[self._queue_index]
 			self._queue.songs.remove(song)
@@ -445,6 +558,10 @@ class Player(GObject.Object):
 		self.stop()
 
 	def seek(self, value: float):
+		'''Move playback position to fraction.
+
+		:param value: Fraction to move to (0.0-1.0).
+		'''
 		seek_position = round(self.get_duration_ns() * value)
 		self._playbin.seek_simple(
 			Gst.Format.TIME, Gst.SeekFlags.FLUSH, max(seek_position, 0)
@@ -452,6 +569,10 @@ class Player(GObject.Object):
 		self._mpris_event_sender.on_seek(value)
 
 	def set_pause(self, pause: bool):
+		'''Set pause state.
+
+		:param pause: Pause state.
+		'''
 		logboth.info(__name__, f'Setting pause to "{pause}"...')
 		self.paused = pause
 
@@ -471,6 +592,15 @@ class Player(GObject.Object):
 		notify_mpris: bool=True,
 		save_setting: bool=True
 	):
+		'''Set the volume.
+
+		The notify flags exist to prevent loops.
+
+		:param volume: Volume.
+		:param notify_frontend: Whether to update the UI.
+		:param notify_mpris: Whether to send an MPRIS status update.
+		:param save_setting: Whether to save the new volume in settings.
+		'''
 		if save_setting:
 			settings.save({'volume': volume})
 
@@ -481,6 +611,10 @@ class Player(GObject.Object):
 			self.emit('volume-changed', volume)
 
 	def set_mode(self, mode: int, save_setting: bool=True):
+		'''Set the playback mode.
+
+		:param save_setting: Whether to save the new mode in settings.
+		'''
 		self.mode = mode
 		if save_setting:
 			settings.save({'mode': mode})
@@ -488,6 +622,7 @@ class Player(GObject.Object):
 		self.emit('mode-changed', self.mode)
 
 	def shuffle(self):
+		'''Randomize order of songs in queue.'''
 		logboth.info(__name__, 'Shuffling songs...')
 		back_part = self._queue.songs[:self._queue_index]
 		front_part = self._queue.songs[self._queue_index + 1:]
@@ -508,6 +643,7 @@ class Player(GObject.Object):
 		logboth.info(__name__, 'Shuffled songs')
 
 	def stop(self):
+		'''Stop playback and clear the queue.'''
 		logboth.info(__name__, 'Stopping playback...')
 		self._find_uri_task.cancel()
 		self._progress_task.cancel()

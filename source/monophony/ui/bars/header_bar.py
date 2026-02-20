@@ -1,3 +1,5 @@
+'''Header bar widget.'''
+
 import weakref
 
 from monophony.debug import MemoryDebugger
@@ -6,9 +8,12 @@ from gi.repository import Adw, GObject, Gtk
 
 
 class HeaderBar(MemoryDebugger, Adw.Bin):
+	'''Header bar widget with "about" button.'''
+
 	__gtype_name__ = __qualname__
 
 	def __init__(self):
+		'''Initialize the widget.'''
 		super().__init__()
 
 		about_button = Gtk.Button.new_from_icon_name('help-about-symbolic')

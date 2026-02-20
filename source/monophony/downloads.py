@@ -1,3 +1,5 @@
+'''Download functionality and downloaded song management.'''
+
 import contextlib
 import glob
 import json
@@ -14,16 +16,28 @@ from gi.repository import GLib
 
 
 def get_directory() -> str:
+	'''Get downloaded song storage directory.
+
+	:return: Directory path.
+	'''
 	return os.getenv(
 		'XDG_DATA_HOME', os.path.expanduser('~/.local/share')
 	) + f'/{NAME}/'
 
 
 def get_temp_directory() -> str:
+	'''Get working directory used for downloads.
+
+	:return: Directory path.
+	'''
 	return os.getenv('XDG_RUNTIME_DIR', '/var/tmp') + f'/{NAME}/downloads/'
 
 
 def get_file(song: Song) -> str | None:
+	'''Get downloaded song path, if any.
+
+	:return: Song file path.
+	'''
 	files = [
 		file for file in glob.glob(get_directory() + '*' + song.yt_id + '*')
 		if not file.endswith('.' + NAME)
@@ -41,16 +55,37 @@ def get_file(song: Song) -> str | None:
 
 
 def is_being_downloaded(song: Song) -> bool:
+	'''Check if song is currently being downloaded.
+
+	:return: Download state.
+	'''
 	return os.path.exists(get_directory() + song.yt_id + '.' + NAME)
 
 
 def is_downloaded(song: Song) -> bool:
+	'''Check if song has finished downloading.
+
+	:return: Downloaded state.
+	'''
 	return (
 		song.yt_id and get_file(song) and not is_being_downloaded(song)
 	)
 
 
 class DownloadTask(Task):
+	'''Task for downloading any number of songs.
+
+	.. code-block::
+
+		DownloadTask(
+			args=(
+				monophony.downloads.downloader,
+				monophony.data.Group()
+			)
+		)
+
+	'''
+
 	def _function(self, downloader: '_Downloader', group: Group) -> bool:
 		downloader.lock.lock()
 		logboth.info(__name__, f'Downloading {len(group.songs)} songs...')
@@ -288,5 +323,8 @@ class _Downloader:
 		self.lock.unlock()
 
 
-# Singleton for thread safety
 downloader = _Downloader()
+'''Downloader singleton for thread safety.
+
+For use with ``DownloadTask``.
+'''

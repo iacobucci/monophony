@@ -104,3 +104,72 @@ translation:
 		| grep ".py$$" \
 		| xargs xgettext --no-location --omit-header -j -o locales/all.pot
 .PHONY: translation
+
+
+define DOCS_TEMPLATE
+{%- block content %}
+	{% block body %} {% endblock %}
+{%- endblock %}
+endef
+export DOCS_TEMPLATE
+
+define DOCS_CONFIG
+html_theme = 'basic'
+html_theme_options = {'nosidebar': 'true'}
+html_permalinks = False
+html_show_sourcelink = False
+html_show_copyright = False
+html_show_sphinx = False
+endef
+export DOCS_CONFIG
+
+define DOCS_CLEANUP_SCRIPT
+import re
+
+with open('.docbuild/_build/index.html', 'r+') as file:
+	text = file.read()
+
+	# Remove hyperlinks
+	for match in re.findall('<a.*?internal.*?>.*?<\\/a>', text, flags=re.MULTILINE):
+		text = text.replace(
+			match, re.sub('<a.*?>', '', match, count=1).removesuffix('</a>')
+		)
+
+	# Remove useless tag pairs, double newlines and surrounding whitespace
+	text = re.sub('<[^\\/>]*><\\/[^>]*>', '', text).replace('\n\n', '\n').strip()
+
+	file.seek(0)
+	file.write('<!-- Auto-generated, do not edit -->\n' + text + '\n')
+	file.truncate()
+endef
+export DOCS_CLEANUP_SCRIPT
+
+define DOCS_GENERATION_SCRIPT
+rm -rf .docbuild
+
+python3 -m venv --system-site-packages .venv
+source .venv/bin/activate
+pip3 install -r requirements-doc.txt
+sphinx-apidoc -o .docbuild --full --module-first -a $(NAME)
+echo "$$DOCS_TEMPLATE" >> .docbuild/_templates/layout.html
+echo "$$DOCS_CONFIG" >> .docbuild/conf.py
+sed -n -i '/.. toctree::/,$$p' .docbuild/index.rst
+PYTHONPATH="$$PYTHONPATH:$$(pwd)" sphinx-build \
+	--builder singlehtml \
+	.docbuild/ \
+	.docbuild/_build/
+deactivate
+
+python3 -c "$$DOCS_CLEANUP_SCRIPT"
+cp .docbuild/_build/index.html ../docs/REFERENCE.md
+endef
+export DOCS_GENERATION_SCRIPT
+
+# Generates docs for the currently installed app version
+docs:
+	echo "$$DOCS_GENERATION_SCRIPT" | flatpak run \
+		--command="sh" \
+		--filesystem="$$(dirname $$(pwd))" \
+		--env=MONOPHONY_LOG_LEVELS=ERRO \
+		$(ID)
+.PHONY: docs

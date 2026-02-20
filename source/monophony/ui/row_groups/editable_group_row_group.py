@@ -1,3 +1,5 @@
+'''Row group widget for editable group rows.'''
+
 import weakref
 
 from monophony.data import Group
@@ -8,6 +10,8 @@ from gi.repository import GObject
 
 
 class EditableGroupRowGroup(GroupRowGroup):
+	'''Row group widget for editable group rows.'''
+
 	__gtype_name__ = __qualname__
 	_row_type = EditableGroupRow
 
@@ -16,6 +20,10 @@ class EditableGroupRowGroup(GroupRowGroup):
 		return
 
 	def add(self, row: _row_type):
+		'''Add an editable group row.
+
+		:param row: Row to add.
+		'''
 		super().add(row)
 
 		row.connect(
@@ -23,4 +31,3 @@ class EditableGroupRowGroup(GroupRowGroup):
 			lambda _row, playlist, ref: ref().emit('delete-playlist', playlist),
 			weakref.ref(self)
 		)
-

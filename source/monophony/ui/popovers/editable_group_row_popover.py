@@ -1,13 +1,20 @@
+'''Popover widget for editable group rows.'''
+
 from monophony.ui.popovers.group_row_popover import GroupRowPopover
 
 from gi.repository import GObject
 
 
 class EditableGroupRowPopover(GroupRowPopover):
+	'''Popover widget for editable group rows.'''
+
 	__gtype_name__ = __qualname__
+
 	actions = (*GroupRowPopover.actions, 'rename-playlist', 'delete-playlist')
+	'''Actions (signals) supported by this widget.'''
 
 	def __init__(self):
+		'''Initialize the widget.'''
 		super().__init__(False)
 
 		self.props.menu_model.append(

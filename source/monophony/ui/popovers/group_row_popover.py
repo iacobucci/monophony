@@ -1,9 +1,13 @@
+'''Popover widget for group rows.'''
+
 from monophony.ui.popovers.row_popover import RowPopover
 
 from gi.repository import Gio, GObject
 
 
 class GroupRowPopover(RowPopover):
+	'''Popover widget for group rows.'''
+
 	__gtype_name__ = __qualname__
 	actions = (
 		*RowPopover.actions,
@@ -12,8 +16,13 @@ class GroupRowPopover(RowPopover):
 		'view-artist',
 		'download-group'
 	)
+	'''Actions (signals) supported by this widget.'''
 
 	def __init__(self, viewable_artist: bool):
+		'''Initialize widget.
+
+		:param viewable_artist: Whether the group has a viewable artist.
+		'''
 		super().__init__()
 
 		menu = Gio.Menu()

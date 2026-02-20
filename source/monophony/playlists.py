@@ -1,3 +1,10 @@
+'''Playlist management.
+
+Playlists can be local (editable) or external (synchronized with YT).
+
+Thread-safe via module-wide lock.
+'''
+
 import json
 import os
 import time
@@ -11,6 +18,10 @@ from gi.repository import GLib
 
 
 def get_directory() -> str:
+	'''Get playlist storage directory.
+
+	:return: Directory path.
+	'''
 	return os.getenv(
 		'XDG_CONFIG_HOME', os.path.expanduser('~/.config')
 	) + '/' + NAME
@@ -25,6 +36,10 @@ def _get_external_file_path() -> str:
 
 
 def add(playlist: Group) -> str:
+	'''Create a new local playlist.
+
+	:param playlist: The playlist to create.
+	'''
 	logboth.info(__name__, f'Adding playlist "{playlist.title}"...')
 	new_lists = read()
 	old_title = playlist.title
@@ -45,6 +60,10 @@ def add(playlist: Group) -> str:
 
 
 def add_external(playlist: Group):
+	'''Create a new external playlist.
+
+	:param playlist: The playlist to create.
+	'''
 	logboth.info(__name__, f'Adding external playlist "{playlist.yt_id}"...')
 	lists = read_external()
 
@@ -62,6 +81,16 @@ def add_external(playlist: Group):
 
 
 def rename(name: str, new_name: str) -> str:
+	'''Rename a local playlist.
+
+	If the new name is not unique, it will be altered. Always use the returned value.
+
+	External playlists cannot be renamed.
+
+	:param name: Old playlist name.
+	:param new_name: New playlist name.
+	:return: The final playlist name.
+	'''
 	new_name = make_unique_name(new_name)
 	logboth.info(__name__, f'Renaming playlist "{name}" to "{new_name}"...')
 
@@ -78,6 +107,10 @@ def rename(name: str, new_name: str) -> str:
 
 
 def delete(playlist_name: str):
+	'''Delete a local playlist.
+
+	:playlist_name: Name of playlist to delete.
+	'''
 	logboth.info(__name__, f'Deleting playlist "{playlist_name}"...')
 	_write(
 		playlists=[playlist for playlist in read() if playlist.title != playlist_name]
@@ -86,6 +119,10 @@ def delete(playlist_name: str):
 
 
 def delete_external(playlist_name: str):
+	'''Delete an external playlist.
+
+	:playlist_name: Name of playlist to delete.
+	'''
 	logboth.info(__name__, f'Deleting external playlist "{playlist_name}"...')
 	_write(
 		ext_playlists=[
@@ -96,6 +133,11 @@ def delete_external(playlist_name: str):
 
 
 def add_songs(songs: Group, playlist_name: str):
+	'''Add a group of songs to a local playlist.
+
+	:param songs: Group of songs to add.
+	:param playlist_name: Name of playlist to add to.
+	'''
 	logboth.info(
 		__name__, f'Adding {len(songs.songs)} songs to playlist "{playlist_name}"...'
 	)
@@ -114,6 +156,12 @@ def add_songs(songs: Group, playlist_name: str):
 
 
 def swap_songs(playlist_name: str, i: int, j: int):
+	'''Swap song positions in local playlist.
+
+	:param playlist_name: Name of playlist to modify.
+	:param i: First song index.
+	:param j: Second song index.
+	'''
 	logboth.info(
 		__name__, f'Swapping songs #{i} and #{j} in playlist "{playlist_name}"...'
 	)
@@ -130,6 +178,12 @@ def swap_songs(playlist_name: str, i: int, j: int):
 
 
 def move_song(playlist_name: str, from_i: int, to_i: int):
+	'''Move song to index in local playlist.
+
+	:param playlist_name: Name of playlist to modify.
+	:param from_i: Index of song to move.
+	:param to_i: Index to move song to.
+	'''
 	logboth.info(
 		__name__,
 		f'Moving song from #{from_i} to #{to_i} in playlist "{playlist_name}"...'
@@ -147,6 +201,11 @@ def move_song(playlist_name: str, from_i: int, to_i: int):
 
 
 def remove_song(song: Song, playlist_name: str):
+	'''Remove song from local playlist.
+
+	:param song: Song to remove.
+	:param playlist_name: Name of playlist to remove.
+	'''
 	logboth.info(
 		__name__, f'Removing song "{song.yt_id}" from playlist "{playlist_name}"...'
 	)
@@ -161,6 +220,12 @@ def remove_song(song: Song, playlist_name: str):
 
 
 def make_unique_name(name: str) -> str:
+	'''Generate a unique playlist name from a name.
+
+	If the name is already unique and non-empty, it will be returned as-is.
+
+	:name: Original playlist name.
+	'''
 	taken_names = (
 		[playlist.title for playlist in read()] +
 		[playlist.title for playlist in read_external()]
@@ -176,7 +241,7 @@ def make_unique_name(name: str) -> str:
 
 
 def _write(playlists: list[Group] | None=None, ext_playlists: list[Group] | None=None):
-	lock.lock()
+	_lock.lock()
 	logboth.info(
 		__name__,
 		f'Writing {len(playlists) if playlists else "no"} playlists and '
@@ -202,11 +267,15 @@ def _write(playlists: list[Group] | None=None, ext_playlists: list[Group] | None
 			)
 
 	logboth.info(__name__, 'Done writing playlist and external playlists')
-	lock.unlock()
+	_lock.unlock()
 
 
 def read() -> list[Group]:
-	lock.lock()
+	'''Get all local playlists.
+
+	:return: List of playlists.
+	'''
+	_lock.lock()
 	try:
 		with open(_get_file_path()) as lists_file:
 			result = [
@@ -226,15 +295,19 @@ def read() -> list[Group]:
 					]
 				) for name, songs in json.load(lists_file).items()
 			]
-			lock.unlock()
+			_lock.unlock()
 			return result
 	except (OSError, json.decoder.JSONDecodeError):
-		lock.unlock()
+		_lock.unlock()
 		return []
 
 
 def read_external() -> list[Group]:
-	lock.lock()
+	'''Get all external playlists.
+
+	:return: List of playlists.
+	'''
+	_lock.lock()
 	try:
 		with open(_get_external_file_path()) as lists_file:
 			result = [
@@ -255,14 +328,24 @@ def read_external() -> list[Group]:
 					]
 				) for playlist in json.load(lists_file)
 			]
-			lock.unlock()
+			_lock.unlock()
 			return result
 	except (OSError, json.decoder.JSONDecodeError):
-		lock.unlock()
+		_lock.unlock()
 		return []
 
 
 class ImportTask(Task):
+	'''Task for importing playlists from YT as local or external.
+
+	.. code-block::
+
+		ImportTask(
+			args=(name, url, local, overwrite)
+		)
+
+	'''
+
 	def _function(
 		self, name: str, url: str, local: bool, overwrite: bool=False
 	) -> bool:
@@ -273,7 +356,7 @@ class ImportTask(Task):
 		]
 
 		if not (playlist := yt.get_album_or_playlist(
-			url.rsplit('list=', maxsplit=1)[-1].split('&')[0]
+			url.rsplit('list=', maxsplit=1)[-1].split('&', maxsplit=1)[0]
 		)):
 			logboth.error(__name__, 'Failed to import playlist')
 			return False
@@ -294,6 +377,8 @@ class ImportTask(Task):
 
 
 class UpdateExternalTask(Task):
+	'''Task for updating (synchronizing) external playlists.'''
+
 	def _function(self):
 		logboth.info(__name__, 'Updating external playlists...')
 		tasks = []
@@ -318,4 +403,4 @@ class UpdateExternalTask(Task):
 
 
 # Signleton
-lock = GLib.Mutex()
+_lock = GLib.Mutex()

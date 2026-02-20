@@ -1,3 +1,5 @@
+'''Queue sidebar widget.'''
+
 import weakref
 
 from monophony.data import Artist, Group, Song, TimeString
@@ -8,10 +10,13 @@ from gi.repository import Adw, GObject, Gtk
 
 
 class QueueSidebar(Adw.Bin):
+	'''Queue sidebar widget.'''
+
 	__gtype_name__ = __qualname__
 	_min_songs_for_shuffle = 3
 
 	def __init__(self):
+		'''Initialize the widget.'''
 		super().__init__()
 
 		self._queue_group = QueueRowGroup()
@@ -192,9 +197,18 @@ class QueueSidebar(Adw.Bin):
 		return
 
 	def add_song_row(self, song: Song):
+		'''Add song row to queue display.
+
+		:param song: Song to add row for.
+		'''
 		self._queue_group.add(QueueSongRow(song))
 
 	def update_contents(self, group: Group, song_index: int):
+		'''Display a song group with a specific song highlighted.
+
+		:param group: Group of songs to display.
+		:param song_index: Currently playing song.
+		'''
 		self._queue_group.update_contents(group.songs, song_index)
 		self._status_page.props.visible = not bool(group.songs)
 		self._toolbar_view.props.reveal_bottom_bars = bool(group.songs)
@@ -211,4 +225,5 @@ class QueueSidebar(Adw.Bin):
 		).as_string()
 
 	def update_download_status(self):
+		'''Make the child group widget update its download status.'''
 		self._queue_group.update_download_status()

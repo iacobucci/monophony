@@ -1,9 +1,13 @@
+'''Popover widget for song rows.'''
+
 from monophony.ui.popovers.row_popover import RowPopover
 
 from gi.repository import Gio, GObject
 
 
 class SongRowPopover(RowPopover):
+	'''Popover widget for song rows.'''
+
 	__gtype_name__ = __qualname__
 	actions = (
 		*RowPopover.actions,
@@ -13,8 +17,14 @@ class SongRowPopover(RowPopover):
 		'undownload-song',
 		'download-song'
 	)
+	'''Actions (signals) supported by this widget.'''
 
 	def __init__(self, downloaded: bool, being_downloaded: bool):
+		'''Initialize the widget.
+
+		:param downloaded: Whether the song has been downloaded.
+		:param being_downloaded: Whether the song is being downloaded.
+		'''
 		super().__init__()
 
 		menu = Gio.Menu()

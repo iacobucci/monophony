@@ -1,3 +1,5 @@
+'''Row group widget for importable group rows.'''
+
 import weakref
 
 from monophony.data import Group
@@ -8,6 +10,8 @@ from gi.repository import GObject
 
 
 class ImportableGroupRowGroup(GroupRowGroup):
+	'''Row group widget for importable group rows.'''
+
 	__gtype_name__ = __qualname__
 	_row_type = ImportableGroupRow
 
@@ -16,6 +20,10 @@ class ImportableGroupRowGroup(GroupRowGroup):
 		return
 
 	def add(self, row: _row_type):
+		'''Add an importable group row.
+
+		:param row: Row to add.
+		'''
 		super().add(row)
 
 		row.connect(

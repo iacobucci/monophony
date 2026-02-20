@@ -1,3 +1,5 @@
+'''Window for importing playlists.'''
+
 import weakref
 
 from monophony import MIN_WIDTH
@@ -9,7 +11,13 @@ from gi.repository import Adw, GObject, Gtk
 
 
 class ImportWindow(MemoryDebugger, Adw.Dialog):
+	'''Import window.'''
+
 	def __init__(self, group: Group | None=None):
+		'''Initialize the window.
+
+		:param group: Group to import. If not provided, a URL can be entered.
+		'''
 		super().__init__()
 
 		self._group = Group() if group is None else group

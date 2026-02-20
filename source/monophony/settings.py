@@ -1,3 +1,8 @@
+'''Settings management.
+
+Not thread-safe.
+'''
+
 import json
 import os
 from typing import Any
@@ -8,6 +13,10 @@ import logboth
 
 
 def save(values: dict):
+	'''Save some data.
+
+	:param values: Data to save.
+	'''
 	logboth.info(__name__, f'Saving settings "{values}"...')
 
 	settings = _read()
@@ -19,6 +28,13 @@ def save(values: dict):
 
 
 def load(key: str, default: Any=None) -> Any:
+	'''Load saved data by key with default.
+
+	:param key: Key to load value for.
+	:param default: Fallback value if not found.
+
+	:return: The retrieved value.
+	'''
 	return _read().get(key, default)
 
 

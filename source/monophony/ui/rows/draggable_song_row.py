@@ -1,3 +1,5 @@
+'''Draggable song row widget.'''
+
 import weakref
 
 from monophony.data import Song
@@ -7,9 +9,15 @@ from gi.repository import Gdk, GObject, Gtk
 
 
 class DraggableSongRow(SongRow):
+	'''Draggable song row widget.'''
+
 	__gtype_name__ = __qualname__
 
 	def __init__(self, song: Song):
+		'''Initialize the widget for a song.
+
+		:param song: Song to initialize for.
+		'''
 		super().__init__(song)
 
 		self.drag_source = Gtk.DragSource()

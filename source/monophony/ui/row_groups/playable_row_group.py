@@ -1,3 +1,5 @@
+'''Row group widget for playable rows.'''
+
 import weakref
 
 from monophony.data import Group, Song
@@ -7,8 +9,13 @@ from gi.repository import GObject, Gtk
 
 
 class PlayableRowGroup(RowGroup):
+	'''Row group widget for playable rows.
+
+	Song rows and group rows are playable, as opposed to artist rows.
+	'''
+
 	__gtype_name__ = __qualname__
-	_row_type = Gtk.ListBoxRow # SongRow | GroupRow
+	_row_type = Gtk.ListBoxRow
 
 	@GObject.Signal(name='play', arg_types=(object, object))
 	def _play(self, _song: Song, _group: Group):
@@ -27,6 +34,10 @@ class PlayableRowGroup(RowGroup):
 		return
 
 	def add(self, row: _row_type):
+		'''Add a playable row.
+
+		:param row: Row to add.
+		'''
 		super().add(row)
 
 		row.connect(
@@ -51,5 +62,6 @@ class PlayableRowGroup(RowGroup):
 		)
 
 	def update_download_status(self):
+		'''Make child rows update their download statuses.'''
 		for row in self._rows:
 			row().update_download_status()

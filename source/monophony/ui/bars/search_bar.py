@@ -1,10 +1,14 @@
+'''Search bar widget.'''
 from gi.repository import Adw, GObject, Gtk
 
 
 class SearchBar(Adw.Bin):
+	'''Search bar widget.'''
+
 	__gtype_name__ = __qualname__
 
 	def __init__(self):
+		'''Initialize the widget.'''
 		super().__init__()
 
 		self._search_entry = Gtk.SearchEntry()
@@ -34,4 +38,5 @@ class SearchBar(Adw.Bin):
 		return
 
 	def focus_search(self):
+		'''Make the search entry grab input focus.'''
 		self._search_entry.grab_focus()

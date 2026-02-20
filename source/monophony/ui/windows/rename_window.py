@@ -1,3 +1,5 @@
+'''Window for renaming local playlists.'''
+
 import weakref
 
 from monophony.debug import MemoryDebugger
@@ -6,7 +8,13 @@ from gi.repository import Adw, GObject
 
 
 class RenameWindow(MemoryDebugger, Adw.Dialog):
+	'''Rename window.'''
+
 	def __init__(self, original_name: str):
+		'''Initialize with playlist name.
+
+		:param original_name: Name to rename from.
+		'''
 		super().__init__()
 
 		self.original_name = original_name

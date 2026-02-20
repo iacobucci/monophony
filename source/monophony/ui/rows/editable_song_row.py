@@ -1,3 +1,5 @@
+'''Editable song row widget.'''
+
 import weakref
 
 from monophony import downloads
@@ -9,9 +11,12 @@ from gi.repository import GObject, Gtk
 
 
 class EditableSongRow(DraggableSongRow):
+	'''Editable song row widget.'''
+
 	__gtype_name__ = __qualname__
 
 	def __init__(self, song: Song):
+		'''Initialize the widget for a song.'''
 		super().__init__(song)
 
 		self._more_button.set_create_popup_func(

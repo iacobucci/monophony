@@ -1,3 +1,5 @@
+'''Page widget.'''
+
 import weakref
 
 from monophony.debug import MemoryDebugger
@@ -7,9 +9,15 @@ from gi.repository import Adw, GObject
 
 
 class Page(MemoryDebugger, Adw.NavigationPage):
+	'''Page widget with header bar, toast overlay and toolbar view.
+
+	Inherit from this instead of using it directly.
+	'''
+
 	__gtype_name__ = __qualname__
 
 	def __init__(self):
+		'''Initialize the widget.'''
 		super().__init__()
 
 		# Must hold reference, otherwise the bar's weakref to self fails

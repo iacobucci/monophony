@@ -1,3 +1,5 @@
+'''Row group widget for queue song rows.'''
+
 import weakref
 
 from monophony.data import Song
@@ -8,6 +10,8 @@ from gi.repository import GObject
 
 
 class QueueRowGroup(PlayableRowGroup):
+	'''Row group widget for queue song rows.'''
+
 	__gtype_name__ = __qualname__
 	_row_type = QueueSongRow
 
@@ -19,7 +23,11 @@ class QueueRowGroup(PlayableRowGroup):
 	def _unqueue_song(self, _song: Song):
 		return
 
-	def add(self, row: QueueSongRow):
+	def add(self, row: _row_type):
+		'''Add a queue song row.
+
+		:param row: Row to add.
+		'''
 		super().add(row)
 
 		row.connect(
@@ -34,6 +42,11 @@ class QueueRowGroup(PlayableRowGroup):
 		)
 
 	def update_contents(self, new_songs: list[Song], song_index: int):
+		'''Replace current rows with rows generated from list of songs.
+
+		:param new_songs: List of new songs to show.
+		:param song_index: Currently playing song to highlight.
+		'''
 		super().update_contents(new_songs)
 
 		for i, row_ref in enumerate(self._rows):

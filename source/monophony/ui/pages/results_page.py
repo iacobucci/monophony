@@ -1,3 +1,5 @@
+'''Results page widget.'''
+
 import weakref
 
 from monophony.data import Artist, Group, Song
@@ -15,9 +17,16 @@ from gi.repository import Adw, GLib, GObject
 
 
 class ResultsPage(Page):
+	'''Results page widget for displaying search results.'''
+
 	__gtype_name__ = __qualname__
 
 	def __init__(self, results: list[SearchResult], filter_: str | None):
+		'''Initialize the widget with results and optional filter.
+
+		:param results: List of search results to display.
+		:param filter: Search filter used.
+		'''
 		super().__init__()
 
 		self._results = results
@@ -303,6 +312,7 @@ class ResultsPage(Page):
 		return False
 
 	def update_download_status(self):
+		'''Make all child widgets update their download statuses.'''
 		for group in (
 			self._top_group,
 			self._songs_group,

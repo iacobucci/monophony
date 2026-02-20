@@ -1,3 +1,5 @@
+'''Group row widget.'''
+
 import weakref
 
 from monophony.data import Artist, Group, Song, TimeString
@@ -9,10 +11,19 @@ from gi.repository import Adw, GLib, GObject, Gtk
 
 
 class GroupRow(MemoryDebugger, Adw.ExpanderRow):
+	'''Group row widget.
+
+	Holds song rows.
+	'''
+
 	__gtype_name__ = __qualname__
 	_row_type = SongRow
 
 	def __init__(self, group: Group):
+		'''Initialize the widget for a group.
+
+		:param group: Group to initialize for.
+		'''
 		super().__init__()
 
 		self.group = group
@@ -100,6 +111,10 @@ class GroupRow(MemoryDebugger, Adw.ExpanderRow):
 		button.set_popover(self._popover)
 
 	def add_row(self, row: _row_type):
+		'''Add an existing song row.
+
+		:param row: Row to add.
+		'''
 		row.connect(
 			'play',
 			lambda _row, song, _group, g_row: g_row().emit('play', song, g_row().group),
@@ -134,13 +149,19 @@ class GroupRow(MemoryDebugger, Adw.ExpanderRow):
 		super().add_row(row)
 
 	def add_song(self, song: Song):
+		'''Create and add a row for a song.
+
+		:param song: Song to create row for.
+		'''
 		self.add_row(self._row_type(song))
 
 	def update_download_status(self):
+		'''Make child rows update their download status.'''
 		for row_ref in self._rows:
 			row_ref().update_download_status()
 
 	def update_contents(self):
+		'''Replace rows with new rows generated from own group.'''
 		for row_ref in self._rows:
 			self.remove(row_ref())
 
@@ -152,6 +173,7 @@ class GroupRow(MemoryDebugger, Adw.ExpanderRow):
 		self.update_subtitle()
 
 	def update_subtitle(self):
+		'''Calculate total group time and set subtitle.'''
 		total_seconds = 0
 		for song in self.group.songs:
 			total_seconds += TimeString(string=song.length).as_seconds()
