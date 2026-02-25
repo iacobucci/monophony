@@ -16,7 +16,7 @@ import ytmusicapi
 
 # Exceptions raised by some (but not all) ytmusicapi functions in case of a data
 # parsing error. They can be safely interpreted as a "not found" response from YTM. In
-# the case of an internet connection error, requests.exceptions.ConnectionError is
+# the case of an internet connection error, requests.exceptions.RequestException is
 # raised instead
 _YTMUSICAPI_PARSING_EXCEPTIONS = (AttributeError, KeyError, TypeError)
 
@@ -148,7 +148,7 @@ def _parse_single_result(yt: ytmusicapi.YTMusic, data: dict) -> SearchResult | N
 		except (
 			*_YTMUSICAPI_PARSING_EXCEPTIONS,
 			ytmusicapi.exceptions.YTMusicUserError, # Invalid ID
-			requests.exceptions.ConnectionError
+			requests.exceptions.RequestException
 		):
 			logboth.error(
 				__name__, 'Failed to parse a result', traceback.format_exc()
@@ -238,7 +238,7 @@ def get_similar_songs(song: Song, ignore: Group | None=None) -> Group | None:
 
 	try:
 		data = yt.get_watch_playlist(song.yt_id, radio=True)['tracks']
-	except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.ConnectionError):
+	except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.RequestException):
 		logboth.error(
 			__name__, 'Failed to get similar song', traceback.format_exc()
 		)
@@ -277,7 +277,7 @@ def get_song(id_: str) -> Song | None:
 
 	try:
 		result = yt.get_song(id_)['videoDetails']
-	except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.ConnectionError):
+	except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.RequestException):
 		logboth.error(
 			__name__, 'Failed to get song', traceback.format_exc()
 		)
@@ -398,7 +398,7 @@ class GetArtistTask(Task):
 				logboth.info(__name__, 'No such artist, fetching as user instead...')
 				data = yt.get_user(browse_id)
 				logboth.info(__name__, 'Fetched artist as user')
-		except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.ConnectionError):
+		except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.RequestException):
 			logboth.error(
 				__name__,
 				'Failed to get artist - could not fetch',
@@ -435,7 +435,7 @@ class GetArtistTask(Task):
 					)
 					# Does not raise _YTMUSICAPI_PARSING_EXCEPTIONS, ever
 					tracks = yt.get_user_videos(browse_id, group.get('params', ''))
-			except requests.exceptions.ConnectionError:
+			except requests.exceptions.RequestException:
 				logboth.error(__name__, 'Failed to get artist', traceback.format_exc())
 				return None
 
@@ -481,7 +481,7 @@ class GetArtistTask(Task):
 					)
 					# Does not raise _YTMUSICAPI_PARSING_EXCEPTIONS, ever
 					lists = yt.get_user_playlists(browse_id, group.get('params', ''))
-			except requests.exceptions.ConnectionError:
+			except requests.exceptions.RequestException:
 				logboth.error(__name__, 'Failed to get artist', traceback.format_exc())
 				return None
 
@@ -537,7 +537,7 @@ class GetRecommendationsTask(Task):
 
 		try:
 			data = yt.get_home()
-		except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.ConnectionError):
+		except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.RequestException):
 			logboth.error(
 				__name__, 'Failed to get recommendations', traceback.format_exc()
 			)
@@ -617,7 +617,7 @@ class SearchTask(Task):
 				yt.search(query, filter=filter_, limit=100) if filter_
 					else yt.search(query)
 			)
-		except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.ConnectionError):
+		except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.RequestException):
 			logboth.error(__name__, 'Failed to search', traceback.format_exc())
 			return None
 
