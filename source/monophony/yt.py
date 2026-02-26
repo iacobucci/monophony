@@ -167,6 +167,46 @@ def _parse_single_result(yt: ytmusicapi.YTMusic, data: dict) -> SearchResult | N
 	return result
 
 
+def get_updated_song(song: Song) -> Song | None:
+	'''Get song with new ID from song with possibly retired ID.
+
+	This is needed because YT song IDs can change at any time for any reason.
+	This will fail if there is no connection.
+
+	:param song: Song to get updated version of.
+	:return: Song with updated ID, if YT connection succeded.
+	'''
+	logboth.info(__name__, f'Getting updated version of song {song.yt_id}...')
+	try:
+		response = requests.get(
+			f'https://music.youtube.com/watch?v={song.yt_id}', timeout=5
+		)
+	except requests.exceptions.RequestException:
+		logboth.error(
+			__name__,
+			f'Failed to get updated version of song {song.yt_id}',
+			traceback.format_exc()
+		)
+		return None
+
+	response_match = re.search('/watch\\?v=...........', response.text)
+	if response_match:
+		new_id = response_match[0].split('=')[-1]
+		if new_id != song.yt_id:
+			logboth.info(__name__, f'Got updated ID "{new_id}" for song "{song.yt_id}"')
+			song.yt_id = new_id
+		else:
+			logboth.info(__name__, f'Song "{song.yt_id}" is up to date')
+		return song
+
+	logboth.warning(
+		__name__,
+		f'No ID in song update response for song "{song.yt_id}"',
+		response.text
+	)
+	return song
+
+
 def get_song_uri(song: Song) -> str | None:
 	'''Get YT playback URI from song ID.
 
@@ -174,31 +214,6 @@ def get_song_uri(song: Song) -> str | None:
 	:return: Playback URI, if found.
 	'''
 	logboth.info(__name__, f'Getting URI for song "{song.yt_id}"...')
-	try:
-		response = requests.get(
-			f'https://music.youtube.com/watch?v={song.yt_id}', timeout=5
-		)
-	except requests.exceptions.RequestException:
-		logboth.error(__name__, 'Failed to get song URI', traceback.format_exc())
-		return None
-
-	response_match = re.search('/watch\\?v=...........', response.text)
-	if response_match:
-		new_id = response_match[0].split('=')[-1]
-		if len(new_id) != 11: # noqa: PLR2004 - YT ID length
-			logboth.warning(
-				__name__,
-				f'Got invalid id "{new_id}" for redirect from song "{song.yt_id}"'
-			)
-		elif new_id != song.yt_id:
-			logboth.info(__name__, f'Redirected song "{song.yt_id}" to "{new_id}"')
-			song.yt_id = new_id
-	else:
-		logboth.warning(
-			__name__,
-			f'No redirect information returned for song "{song.yt_id}"',
-			response.text
-		)
 
 	out, err = subprocess.Popen(
 		[
@@ -312,6 +327,35 @@ def get_album_or_playlist(yt_id: str) -> Group | None:
 
 	logboth.error(__name__, 'Failed to get album/playlist')
 	return None
+
+
+def song_exists(song: Song) -> bool | None:
+	'''Check if song is available on YT.
+
+	This is impossible to determine if there is no connection.
+
+	:param song: Song to check.
+	:return: Whether the song is available, if can be determined.
+	'''
+	logboth.info(__name__, f'Checking if song "{song.yt_id}" exists...')
+	yt = ytmusicapi.YTMusic()
+	try:
+		song_data = yt.get_song(song.yt_id)
+	except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.RequestException):
+		logboth.error(
+			__name__, 'Failed to check if song exists', traceback.format_exc()
+		)
+		return None
+
+	exists = song_data.get('playabilityStatus', {}).get('status') not in (
+		'ERROR', 'UNPLAYABLE'
+	)
+	if exists:
+		logboth.info(__name__, f'Song "{song.yt_id}" exists')
+	else:
+		logboth.warning(__name__, f'Song "{song.yt_id}" does not exist')
+
+	return exists
 
 
 class ParseResultsTask(Task):

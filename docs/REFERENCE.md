@@ -2582,6 +2582,35 @@ of this operation will vary based on mode and state.</p>
 </dd>
 </dl>
 </dd></dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="monophony.yt.get_updated_song">
+<span class="sig-prename descclassname"><span class="pre">monophony.yt.</span></span><span class="sig-name descname"><span class="pre">get_updated_song</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">song</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Song</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Song</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span></dt>
+<dd><p>Get song with new ID from song with possibly retired ID.</p>
+<p>This is needed because YT song IDs can change at any time for any reason.
+This will fail if there is no connection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>song</strong> – Song to get updated version of.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Song with updated ID, if YT connection succeded.</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="monophony.yt.song_exists">
+<span class="sig-prename descclassname"><span class="pre">monophony.yt.</span></span><span class="sig-name descname"><span class="pre">song_exists</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">song</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Song</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span></dt>
+<dd><p>Check if song is available on YT.</p>
+<p>This is impossible to determine if there is no connection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>song</strong> – Song to check.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Whether the song is available, if can be determined.</p>
+</dd>
+</dl>
+</dd></dl>
 </section>
 </section>
 </div>

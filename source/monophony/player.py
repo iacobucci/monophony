@@ -13,6 +13,9 @@ import logboth
 from gi.repository import GObject, Gst
 
 
+_NONEXISTENT_SONG_URI = '[nonexistent]'
+
+
 class ReportProgressTask(Task):
 	'''Task for continually reporting playback progress.
 
@@ -77,6 +80,19 @@ class FindURITask(Task):
 		if self.is_canceled():
 			logboth.info(__name__, 'Canceled URI lookup')
 			return None
+
+		song = yt.get_updated_song(song)
+		if not song:
+			logboth.error(__name__, 'Failed to find song URI')
+			return None
+
+		exists = yt.song_exists(song)
+		if exists is None:
+			logboth.error(__name__, 'Failed to find song URI')
+			return None
+		if not exists:
+			logboth.error(__name__, 'Failed to find song URI for nonexistent song')
+			return _NONEXISTENT_SONG_URI
 
 		if uri := yt.get_song_uri(song):
 			logboth.info(__name__, 'Found online song URI')
@@ -319,6 +335,11 @@ class Player(GObject.Object):
 		if not uri:
 			logboth.error(__name__, f'Failed to find URI for song "{song.yt_id}"')
 			self.play(song, self._queue, position)
+			return
+
+		if uri == _NONEXISTENT_SONG_URI:
+			logboth.error(__name__, f'Cannot play nonexistent song "{song.yt_id}"')
+			self.next()
 			return
 
 		self._save_uri(song.yt_id, uri)
