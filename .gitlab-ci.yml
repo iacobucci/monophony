@@ -60,7 +60,7 @@ test:
       flatpak run \
         --filesystem="$CI_PROJECT_DIR/source/tests/:ro" \
         --command=source/tests/tests.py \
-        --env=MONOPHONY_LOG_LEVELS=ERRO \
+        --env=MONOPHONY_LOG_LEVELS=Error \
         "$APP_ID" \
         --verbose
 

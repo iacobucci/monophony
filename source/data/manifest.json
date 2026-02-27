@@ -83,8 +83,8 @@
 				{
 					"type": "git",
 					"url": "https://gitlab.com/zehkira/mprisify.git",
-					"tag": "v1.0.0",
-					"commit": "f1ea109c499055e2a4563ec6680fb31ee766e59a"
+					"tag": "v1.0.1",
+					"commit": "decc0280f7ace0bf6c064a539d074c8aec583a5a"
 				}
 			]
 		},
@@ -98,8 +98,8 @@
 				{
 					"type": "git",
 					"url": "https://gitlab.com/zehkira/logboth.git",
-					"tag": "v0.1.0",
-					"commit": "1c637f0ed7134ce54adab1d9bf1b5ed6987cf254"
+					"tag": "v0.2.0",
+					"commit": "6457ae38c5162ae00033981f1c5a7e41c11913d0"
 				}
 			]
 		},

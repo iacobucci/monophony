@@ -170,6 +170,6 @@ docs:
 	echo "$$DOCS_GENERATION_SCRIPT" | flatpak run \
 		--command="sh" \
 		--filesystem="$$(dirname $$(pwd))" \
-		--env=MONOPHONY_LOG_LEVELS=ERRO \
+		--env=MONOPHONY_LOG_LEVELS=Error \
 		$(ID)
 .PHONY: docs

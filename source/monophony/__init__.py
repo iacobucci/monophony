@@ -25,7 +25,7 @@ MIN_WIDTH = 360
 '''Minimum window width, same as in metainfo.'''
 
 wanted_levels_names = os.getenv(
-	'MONOPHONY_LOG_LEVELS', 'INFO,WARN,ERRO,SUCC'
+	'MONOPHONY_LOG_LEVELS', 'Info,Warning,Error,Success'
 ).split(',')
 levels = [level for level in logboth.config.levels if level.name in wanted_levels_names]
 logboth.config.levels = levels
