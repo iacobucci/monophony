@@ -6,7 +6,7 @@ import pathlib
 import logboth
 
 
-__version__ = '4.4.1'
+__version__ = '4.4.2'
 '''App version, same as in metainfo.'''
 
 ID = 'io.gitlab.zehkira.Monophony'
