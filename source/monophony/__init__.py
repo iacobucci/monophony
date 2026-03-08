@@ -2,6 +2,7 @@
 
 import os
 import pathlib
+import tempfile
 
 import logboth
 
@@ -29,6 +30,8 @@ wanted_levels_names = os.getenv(
 ).split(',')
 levels = [level for level in logboth.config.levels if level.name in wanted_levels_names]
 logboth.config.levels = levels
-logboth.config.directory /= pathlib.Path(NAME)
+logboth.config.directory = pathlib.Path(
+	os.getenv('XDG_RUNTIME_DIR', '') or tempfile.gettempdir()
+) / pathlib.Path(NAME)
 logboth.config.file = 'log.txt'
 logboth.basic_info()
