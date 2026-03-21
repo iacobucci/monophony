@@ -98,8 +98,8 @@
 				{
 					"type": "git",
 					"url": "https://gitlab.com/zehkira/logboth.git",
-					"tag": "v0.2.0",
-					"commit": "6457ae38c5162ae00033981f1c5a7e41c11913d0"
+					"tag": "v0.3.0",
+					"commit": "81275d77d80df5815259f212709842abfe87a49c"
 				}
 			]
 		},
@@ -124,14 +124,14 @@
 				{
 					"only-arches": ["x86_64"],
 					"type": "archive",
-					"url": "https://github.com/denoland/deno/releases/download/v2.6.10/deno-x86_64-unknown-linux-gnu.zip",
-					"sha256": "a7c9d5c1f93bfaabe03c3c0583a8c88caf695db3cec4dea2938440038609f225"
+					"url": "https://github.com/denoland/deno/releases/download/v2.7.7/deno-x86_64-unknown-linux-gnu.zip",
+					"sha256": "0cd918870657ccc3d96ac682290e894dda374e2a742424aae9118b258a6cf7a3"
 				},
 				{
 					"only-arches": ["aarch64"],
 					"type": "archive",
-					"url": "https://github.com/denoland/deno/releases/download/v2.6.10/deno-aarch64-unknown-linux-gnu.zip",
-					"sha256": "ad4031b16b193997cd40d2bf68c9af8b5148e0f39c1e975cfbb6d60ecec19496"
+					"url": "https://github.com/denoland/deno/releases/download/v2.7.7/deno-aarch64-unknown-linux-gnu.zip",
+					"sha256": "e654ef4b41d8f1369dfe7d69374c8f226660153d077e0ac25353d454e03ef798"
 				}
 			]
 		},
@@ -144,8 +144,8 @@
 			],
 			"sources": [{
 				"type": "file",
-				"url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.03.03/yt-dlp",
-				"sha256": "bc7b7b6a8a438571117efef98a0f9a12e634f6bbcd834896cddb6a1deedc9c4d"
+				"url": "https://github.com/yt-dlp/yt-dlp/releases/download/2026.03.17/yt-dlp",
+				"sha256": "3bda0968a01cde70d26720653003b28553c71be14dcb2e5f4c24e9921fdad745"
 			}]
 		},
 		{
