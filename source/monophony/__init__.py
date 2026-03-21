@@ -7,7 +7,7 @@ import tempfile
 import logboth
 
 
-__version__ = '4.4.3'
+__version__ = '4.4.4'
 '''App version, same as in metainfo.'''
 
 ID = 'io.gitlab.zehkira.Monophony'
