@@ -36,7 +36,7 @@ test:
     - ruff check source
     - deactivate
 
-    - appstreamcli validate --explain --strict source/data/metainfo.xml
+    - appstreamcli validate --no-net --explain --strict source/data/metainfo.xml
     - desktop-file-validate source/data/*.desktop
     - make --directory=source/ translation
     - >
