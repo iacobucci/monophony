@@ -23,13 +23,13 @@
 			"sources": [
 				{
 					"type": "file",
-					"url": "https://files.pythonhosted.org/packages/e5/48/1549795ba7742c948d2ad169c1c8cdbae65bc450d6cd753d124b17c8cd32/certifi-2025.8.3-py3-none-any.whl",
-					"sha256": "f6c12493cfb1b06ba2ff328595af9350c65d6644968e5d3a2ffd78699af217a5"
+					"url": "https://files.pythonhosted.org/packages/22/30/7cd8fdcdfbc5b869528b079bfb76dcdf6056b1a2097a662e5e8c04f42965/certifi-2026.4.22-py3-none-any.whl",
+					"sha256": "3cb2210c8f88ba2318d29b0388d1023c8492ff72ecdde4ebdaddbb13a31b1c4a"
 				},
 				{
 					"type": "file",
-					"url": "https://files.pythonhosted.org/packages/83/2d/5fd176ceb9b2fc619e63405525573493ca23441330fcdaee6bef9460e924/charset_normalizer-3.4.3.tar.gz",
-					"sha256": "6fce4b8500244f6fcb71465d4a4930d132ba9ab8e71a7859e6a5d59851068d14"
+					"url": "https://files.pythonhosted.org/packages/db/8f/61959034484a4a7c527811f4721e75d02d653a35afb0b6054474d8185d4c/charset_normalizer-3.4.7-py3-none-any.whl",
+					"sha256": "3dce51d0f5e7951f8bb4900c257dad282f49190fdbebecd4ba99bcc41fef404d"
 				},
 				{
 					"type": "file",
@@ -48,8 +48,8 @@
 				},
 				{
 					"type": "file",
-					"url": "https://files.pythonhosted.org/packages/aa/a8/8feb17eaa8b2bf36b0617ba37f949a7036b6ece652672bd4517a54326f0e/ytmusicapi-1.11.5-py3-none-any.whl",
-					"sha256": "f6b1e031408cce45bef207bfda449e3ecf548f7c4ff0c091c575d4a27eb21da6"
+					"url": "https://files.pythonhosted.org/packages/3d/20/9f1b0ff4c9ed441b2181259ff9c0250a9999ec811b08fe45627842453092/ytmusicapi-1.12.0-py3-none-any.whl",
+					"sha256": "4130a3a7a0ab56eeeff33b343c8cf4a2f4ea14c206d96c221a7646ab0e61ebc8"
 				}
 			]
 		},
@@ -77,8 +77,8 @@
 				},
 				{
 					"type": "file",
-					"url": "https://files.pythonhosted.org/packages/4a/36/fec530a313d3d48f12e112ac0a65ee3ccc87f385123a0493715609e8e99c/pygobject-3.52.3.tar.gz",
-					"sha256": "00e427d291e957462a8fad659a9f9c8be776ff82a8b76bdf402f1eaeec086d82"
+					"url": "https://files.pythonhosted.org/packages/da/61/978c5fbca34f10a90df362502fbb5a005637909e7b5a0e9212349ea9d010/pygobject-3.56.3.tar.gz",
+					"sha256": "12760e4a0e3d04b6eb95e06f7a27e362c826d567ea613373a92c003b6c70d2d6"
 				},
 				{
 					"type": "git",
@@ -98,8 +98,8 @@
 				{
 					"type": "git",
 					"url": "https://gitlab.com/zehkira/logboth.git",
-					"tag": "v0.3.0",
-					"commit": "81275d77d80df5815259f212709842abfe87a49c"
+					"tag": "v0.4.0",
+					"commit": "08af2ea3cbfaa37c3e2ae421e4115422c7268078"
 				}
 			]
 		},
@@ -124,14 +124,14 @@
 				{
 					"only-arches": ["x86_64"],
 					"type": "archive",
-					"url": "https://github.com/denoland/deno/releases/download/v2.7.7/deno-x86_64-unknown-linux-gnu.zip",
-					"sha256": "0cd918870657ccc3d96ac682290e894dda374e2a742424aae9118b258a6cf7a3"
+					"url": "https://github.com/denoland/deno/releases/download/v2.7.14/deno-x86_64-unknown-linux-gnu.zip",
+					"sha256": "3287efef53606966469cb6a02781327be22b908959397f976e2996dc1b64ae0f"
 				},
 				{
 					"only-arches": ["aarch64"],
 					"type": "archive",
-					"url": "https://github.com/denoland/deno/releases/download/v2.7.7/deno-aarch64-unknown-linux-gnu.zip",
-					"sha256": "e654ef4b41d8f1369dfe7d69374c8f226660153d077e0ac25353d454e03ef798"
+					"url": "https://github.com/denoland/deno/releases/download/v2.7.14/deno-aarch64-unknown-linux-gnu.zip",
+					"sha256": "b815c919452b5993a7c22df018a88c2f706eea6b5e0aa7802b2b0709edde01e8"
 				}
 			]
 		},
