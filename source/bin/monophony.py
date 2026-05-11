@@ -55,6 +55,17 @@ if container != 'flatpak':
 		__name__,
 		f'App was installed from unofficial source. Container type: {container}'
 	)
+elif 'LD_PRELOAD' in os.environ:
+	# Older versions of Flatpak inherit environment variables from the system.
+	# LD_PRELOAD is used for loading extra libraries, which won't work from inside
+	# the Flatpak sandbox and will cause errors. gtk3-nocsd is a real life example
+	# of this
+	try:
+		os.environ.pop('LD_PRELOAD')
+	except KeyError:
+		logboth.error(__name__, 'Failed to unset LD_PRELOAD')
+	else:
+		logboth.warning(__name__, 'Unset LD_PRELOAD to prevent issues')
 
 logboth.info(
 	__name__,
