@@ -146,6 +146,9 @@ class QueueSidebar(Adw.Bin):
 		buttons_box.append(self._shuffle_button)
 
 		controls_bar = Adw.HeaderBar()
+		controls_bar.props.show_back_button = False
+		controls_bar.props.show_end_title_buttons = False
+		controls_bar.props.show_start_title_buttons = False
 		controls_bar.props.title_widget = buttons_box
 
 		self._toolbar_view = Adw.ToolbarView()
