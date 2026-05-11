@@ -57,6 +57,14 @@
 	<launchable type="desktop-id">io.gitlab.zehkira.Monophony.desktop</launchable>
 	<content_rating type="oars-1.1"></content_rating>
 	<releases>
+		<release version="4.4.6" date="2026-05-11">
+			<description>
+				<ul>
+					<li>Fixed online playback not working on older distros including Ubuntu 22.04 LTS</li>
+					<li>Fixed extra set of window controls appearing in queue in some cases</li>
+				</ul>
+			</description>
+		</release>
 		<release version="4.4.5" date="2026-05-09">
 			<description>
 				<ul>
