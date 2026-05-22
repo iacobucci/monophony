@@ -57,6 +57,13 @@
 	<launchable type="desktop-id">io.gitlab.zehkira.Monophony.desktop</launchable>
 	<content_rating type="oars-1.1"></content_rating>
 	<releases>
+		<release version="4.4.7" date="2026-05-22">
+			<description>
+				<ul>
+					<li>Fixed only one search result appearing in some cases</li>
+				</ul>
+			</description>
+		</release>
 		<release version="4.4.6" date="2026-05-11">
 			<description>
 				<ul>
