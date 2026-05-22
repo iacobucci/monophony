@@ -657,10 +657,22 @@ class SearchTask(Task):
 				return None
 
 			self._update_progress(0.2)
-			data = (
-				yt.search(query, filter=filter_, limit=100) if filter_
-					else yt.search(query)
-			)
+			max_retries = 3
+			one_result_retries = 0
+			while True:
+				data = (
+					yt.search(query, filter=filter_, limit=100) if filter_
+						else yt.search(query)
+				)
+				# Work around weird single-result response that happens sometimes
+				if len(data) > 1 or one_result_retries == max_retries:
+					break
+				logboth.warning(
+					__name__,
+					f'Got fewer than 2 results - retrying... ({one_result_retries + 1})'
+				)
+				yt = ytmusicapi.YTMusic() # New session usually fixes the issue
+				one_result_retries += 1
 		except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.RequestException):
 			logboth.error(__name__, 'Failed to search', traceback.format_exc())
 			return None
