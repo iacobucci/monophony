@@ -5,6 +5,7 @@ import weakref
 from monophony.data import Artist, YTItem
 from monophony.debug import MemoryDebugger
 
+import logboth
 from gi.repository import Adw, GObject, Gtk
 
 
@@ -44,7 +45,11 @@ class RowGroup(MemoryDebugger, Adw.PreferencesGroup):
 	def clear(self):
 		'''Remove all rows and hide self.'''
 		for reference in self._rows:
-			super().remove(reference())
+			row = reference()
+			if row is not None:
+				super().remove(row)
+			else:
+				logboth.warning(__name__, 'Reference is None')
 
 		self._rows.clear()
 		self.props.visible = False

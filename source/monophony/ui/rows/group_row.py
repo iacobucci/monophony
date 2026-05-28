@@ -7,6 +7,7 @@ from monophony.debug import MemoryDebugger
 from monophony.ui.popovers.group_row_popover import GroupRowPopover
 from monophony.ui.rows.song_row import SongRow
 
+import logboth
 from gi.repository import Adw, GLib, GObject, Gtk
 
 
@@ -158,12 +159,21 @@ class GroupRow(MemoryDebugger, Adw.ExpanderRow):
 	def update_download_status(self):
 		'''Make child rows update their download status.'''
 		for row_ref in self._rows:
-			row_ref().update_download_status()
+			row = row_ref()
+			if row is not None:
+				row.update_download_status()
+			else:
+				logboth.warning(__name__, 'Reference is None')
 
 	def update_contents(self):
 		'''Replace rows with new rows generated from own group.'''
 		for row_ref in self._rows:
-			self.remove(row_ref())
+			row = row_ref()
+			if row is not None:
+				self.remove(row)
+			else:
+				logboth.warning(__name__, 'Reference is None')
+
 
 		self._rows.clear()
 

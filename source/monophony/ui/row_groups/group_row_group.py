@@ -6,6 +6,7 @@ from monophony.data import Group
 from monophony.ui.row_groups.queueable_row_group import QueueableRowGroup
 from monophony.ui.rows.group_row import GroupRow
 
+import logboth
 from gi.repository import GObject
 
 
@@ -54,7 +55,11 @@ class GroupRowGroup(QueueableRowGroup):
 		'''Emit play signal with all songs.'''
 		group = Group()
 		for row_ref in self._rows:
-			group.songs += row_ref().group.songs
+			row = row_ref()
+			if row is not None:
+				group.songs += row.group.songs
+			else:
+				logboth.warning(__name__, 'Reference is None')
 
 		self.emit('play', group.songs[0], group)
 

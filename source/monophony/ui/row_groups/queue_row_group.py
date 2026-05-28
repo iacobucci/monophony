@@ -6,6 +6,7 @@ from monophony.data import Song
 from monophony.ui.row_groups.playable_row_group import PlayableRowGroup
 from monophony.ui.rows.queue_song_row import QueueSongRow
 
+import logboth
 from gi.repository import GObject
 
 
@@ -51,4 +52,8 @@ class QueueRowGroup(PlayableRowGroup):
 
 		for i, row_ref in enumerate(self._rows):
 			if i == song_index:
-				row_ref().add_css_class('accent')
+				row = row_ref()
+				if row is not None:
+					row.add_css_class('accent')
+				else:
+					logboth.warning(__name__, 'Reference is None')
