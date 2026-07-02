@@ -1,7 +1,5 @@
 '''Queue sidebar widget.'''
 
-import weakref
-
 from monophony.data import Artist, Group, Song, TimeString
 from monophony.ui.row_groups.queue_row_group import QueueRowGroup
 from monophony.ui.rows.queue_song_row import QueueSongRow
@@ -25,38 +23,38 @@ class QueueSidebar(Adw.Bin):
 		self._queue_group.connect(
 			'play',
 			lambda _group, song, group, ref: ref().emit('play', song, group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._queue_group.connect(
 			'add-song-to',
 			lambda _group, song, ref: ref().emit('add-song-to', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._queue_group.connect(
 			'view-artist',
 			lambda _group, artist, ref: ref().emit('view-artist', artist),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._queue_group.connect(
 			'undownload-song',
 			lambda _group, song, ref: ref().emit('undownload-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._queue_group.connect(
 			'download-song',
 			lambda _group, song, ref: ref().emit('download-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._queue_group.connect(
 			'move-song',
 			lambda _group, from_s, to_s, ref:
 				ref().emit('move-song', from_s, to_s),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._queue_group.connect(
 			'unqueue-song',
 			lambda _group, song, ref: ref().emit('unqueue-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		queue_page = Adw.PreferencesPage()
@@ -106,7 +104,7 @@ class QueueSidebar(Adw.Bin):
 		clear_button.connect(
 			'clicked',
 			lambda _button, ref: ref().emit('clear-queue'),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		self._shuffle_button = Gtk.Button.new_from_icon_name(
@@ -120,7 +118,7 @@ class QueueSidebar(Adw.Bin):
 		self._shuffle_button.connect(
 			'clicked',
 			lambda _button, ref: ref().emit('shuffle-queue'),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		button_content = Adw.ButtonContent()
@@ -132,7 +130,7 @@ class QueueSidebar(Adw.Bin):
 		add_button.connect(
 			'clicked',
 			lambda _button, ref: ref().emit('add-group-to', Group()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		buttons_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)

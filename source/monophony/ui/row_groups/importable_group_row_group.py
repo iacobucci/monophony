@@ -1,7 +1,5 @@
 '''Row group widget for importable group rows.'''
 
-import weakref
-
 from monophony.data import Group
 from monophony.ui.row_groups.group_row_group import GroupRowGroup
 from monophony.ui.rows.importable_group_row import ImportableGroupRow
@@ -29,5 +27,5 @@ class ImportableGroupRowGroup(GroupRowGroup):
 		row.connect(
 			'import-group',
 			lambda _row, group, ref: ref().emit('import-group', group),
-			weakref.ref(self)
+			self.weak_ref()
 		)

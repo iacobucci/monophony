@@ -1,7 +1,5 @@
 '''Song row widget.'''
 
-import weakref
-
 from monophony import downloads
 from monophony.data import Artist, Group, Song, TimeString
 from monophony.debug import MemoryDebugger
@@ -46,7 +44,7 @@ class SongRow(MemoryDebugger, Adw.ActionRow):
 		self._more_button.props.valign = Gtk.Align.CENTER
 		self._more_button.set_create_popup_func(
 			lambda button, ref: SongRow._on_show_more(ref(), button),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		self.props.title = title
@@ -92,27 +90,27 @@ class SongRow(MemoryDebugger, Adw.ActionRow):
 		popover.connect(
 			'queue-song',
 			lambda _popover, row: row().emit('queue-song', row().song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		popover.connect(
 			'add-song-to',
 			lambda _popover, row: row().emit('add-song-to', row().song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		popover.connect(
 			'view-artist',
 			lambda _popover, row: row().emit('view-artist', row().song.author),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		popover.connect(
 			'undownload-song',
 			lambda _popover, row: row().emit('undownload-song', row().song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		popover.connect(
 			'download-song',
 			lambda _popover, row: row().emit('download-song', row().song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		button.props.popover = popover
 

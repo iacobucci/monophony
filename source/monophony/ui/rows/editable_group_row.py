@@ -1,7 +1,5 @@
 '''Group row widget for editable song rows.'''
 
-import weakref
-
 from monophony import playlists
 from monophony.data import Group, Song
 from monophony.ui.popovers.editable_group_row_popover import EditableGroupRowPopover
@@ -25,7 +23,7 @@ class EditableGroupRow(GroupRow):
 
 		self._more_button.set_create_popup_func(
 			lambda button, ref: EditableGroupRow._on_show_more(ref(), button),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 	@GObject.Signal(name='delete-playlist', arg_types=(object,))
@@ -37,27 +35,27 @@ class EditableGroupRow(GroupRow):
 		self._popover.connect(
 			'queue-group',
 			lambda _popover, row: row().emit('queue-group', row().group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._popover.connect(
 			'add-group-to',
 			lambda _popover, row: row().emit('add-group-to', row().group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._popover.connect(
 			'download-group',
 			lambda _popover, row: row().emit('download-group', row().group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._popover.connect(
 			'delete-playlist',
 			lambda _popover, row: row().emit('delete-playlist', row().group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._popover.connect(
 			'rename-playlist',
 			lambda _popover, row: EditableGroupRow._on_rename_playlist(row()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		button.set_popover(self._popover)
 
@@ -71,12 +69,12 @@ class EditableGroupRow(GroupRow):
 			'move-song',
 			lambda _row, from_s, to_s, ref:
 				EditableGroupRow._on_move_song(ref(), from_s, to_s),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		row.connect(
 			'remove-song',
 			lambda _row, song, ref: EditableGroupRow._on_remove_song(ref(), song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 	def update_contents(self):
@@ -127,6 +125,6 @@ class EditableGroupRow(GroupRow):
 			'rename',
 			lambda _window, name, ref:
 				EditableGroupRow._on_rename_confirmed(ref(), name),
-			weakref.ref(self),
+			self.weak_ref()
 		)
 		rename_window.present(self)

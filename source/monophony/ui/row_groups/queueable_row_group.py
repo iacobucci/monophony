@@ -1,7 +1,5 @@
 '''Row group widget for queueable rows.'''
 
-import weakref
-
 from monophony.data import Group, Song
 from monophony.ui.row_groups.playable_row_group import PlayableRowGroup
 from monophony.ui.rows.song_row import SongRow
@@ -30,7 +28,7 @@ class QueueableRowGroup(PlayableRowGroup):
 		play_button.connect(
 			'clicked',
 			lambda _button, ref: ref().on_play_all(),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
@@ -53,7 +51,7 @@ class QueueableRowGroup(PlayableRowGroup):
 		row.connect(
 			'queue-song',
 			lambda _row, song, ref: ref().emit('queue-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 	def on_play_all(self):

@@ -1,7 +1,5 @@
 '''Results page widget.'''
 
-import weakref
-
 from monophony.data import Artist, Group, Song
 from monophony.ui.pages.page import Page
 from monophony.ui.row_groups.importable_group_row_group import ImportableGroupRowGroup
@@ -38,13 +36,13 @@ class ResultsPage(Page):
 			songs_button.connect(
 				'activated',
 				lambda _button, ref: ref().emit('filter-results', ''),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 		else:
 			songs_button.connect(
 				'activated',
 				lambda _button, ref: ref().emit('filter-results', 'songs'),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 
 		self._songs_button_group = Adw.PreferencesGroup()
@@ -58,13 +56,13 @@ class ResultsPage(Page):
 			videos_button.connect(
 				'activated',
 				lambda _button, ref: ref().emit('filter-results', ''),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 		else:
 			videos_button.connect(
 				'activated',
 				lambda _button, ref: ref().emit('filter-results', 'videos'),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 
 		self._videos_button_group = Adw.PreferencesGroup()
@@ -78,13 +76,13 @@ class ResultsPage(Page):
 			albums_button.connect(
 				'activated',
 				lambda _button, ref: ref().emit('filter-results', ''),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 		else:
 			albums_button.connect(
 				'activated',
 				lambda _button, ref: ref().emit('filter-results', 'albums'),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 
 		self._albums_button_group = Adw.PreferencesGroup()
@@ -98,13 +96,13 @@ class ResultsPage(Page):
 			playlists_button.connect(
 				'activated',
 				lambda _button, ref: ref().emit('filter-results', ''),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 		else:
 			playlists_button.connect(
 				'activated',
 				lambda _button, ref: ref().emit('filter-results', 'playlists'),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 
 		self._playlists_button_group = Adw.PreferencesGroup()
@@ -118,13 +116,13 @@ class ResultsPage(Page):
 			artists_button.connect(
 				'activated',
 				lambda _button, ref: ref().emit('filter-results', ''),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 		else:
 			artists_button.connect(
 				'activated',
 				lambda _button, ref: ref().emit('filter-results', 'artists'),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 
 		self._artists_button_group = Adw.PreferencesGroup()
@@ -170,55 +168,55 @@ class ResultsPage(Page):
 			group.connect(
 				'view-artist',
 				lambda _group, artist, ref: ref().emit('view-artist', artist),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			if isinstance(group, QueueableRowGroup):
 				group.connect(
 					'queue-song',
 					lambda _group, song, ref: ref().emit('queue-song', song),
-					weakref.ref(self)
+					self.weak_ref()
 				)
 			if isinstance(group, PlayableRowGroup):
 				group.connect(
 					'play',
 					lambda _group, song, group, ref: ref().emit('play', song, group),
-					weakref.ref(self)
+					self.weak_ref()
 				)
 				group.connect(
 					'add-song-to',
 					lambda _group, song, ref: ref().emit('add-song-to', song),
-					weakref.ref(self)
+					self.weak_ref()
 				)
 				group.connect(
 					'undownload-song',
 					lambda _group, song, ref: ref().emit('undownload-song', song),
-					weakref.ref(self)
+					self.weak_ref()
 				)
 				group.connect(
 					'download-song',
 					lambda _group, song, ref: ref().emit('download-song', song),
-					weakref.ref(self)
+					self.weak_ref()
 				)
 			if isinstance(group, ImportableGroupRowGroup):
 				group.connect(
 					'import-group',
 					lambda _group, group, ref: ref().emit('import-group', group),
-					weakref.ref(self)
+					self.weak_ref()
 				)
 				group.connect(
 					'queue-group',
 					lambda _group, group, ref: ref().emit('queue-group', group),
-					weakref.ref(self)
+					self.weak_ref()
 				)
 				group.connect(
 					'add-group-to',
 					lambda _group, group, ref: ref().emit('add-group-to', group),
-					weakref.ref(self)
+					self.weak_ref()
 				)
 				group.connect(
 					'download-group',
 					lambda _group, group, ref: ref().emit('download-group', group),
-					weakref.ref(self)
+					self.weak_ref()
 				)
 
 			self._page.add(group)

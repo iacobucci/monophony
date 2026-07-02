@@ -1,7 +1,5 @@
 '''Home page widget.'''
 
-import weakref
-
 from monophony import downloads, playlists, recents, recommendations
 from monophony.data import Artist, Group, Song
 from monophony.ui.bars.search_bar import SearchBar
@@ -37,47 +35,47 @@ class HomePage(Page):
 		self._recommended_group.connect(
 			'play',
 			lambda _group, song, group, ref: ref().emit('play', song, group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._recommended_group.connect(
 			'queue-song',
 			lambda _group, song, ref: ref().emit('queue-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._recommended_group.connect(
 			'add-song-to',
 			lambda _group, song, ref: ref().emit('add-song-to', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._recommended_group.connect(
 			'view-artist',
 			lambda _group, artist, ref: ref().emit('view-artist', artist),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._recommended_group.connect(
 			'undownload-song',
 			lambda _group, song, ref: ref().emit('undownload-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._recommended_group.connect(
 			'download-song',
 			lambda _group, song, ref: ref().emit('download-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._recommended_group.connect(
 			'queue-group',
 			lambda _group, group, ref: ref().emit('queue-group', group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._recommended_group.connect(
 			'add-group-to',
 			lambda _group, group, ref: ref().emit('add-group-to', group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._recommended_group.connect(
 			'download-group',
 			lambda _group, group, ref: ref().emit('download-group', group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		open_dir_button = Gtk.Button.new_from_icon_name('folder-symbolic')
@@ -97,52 +95,52 @@ class HomePage(Page):
 		self._playlists_group.connect(
 			'play',
 			lambda _group, song, group, ref: ref().emit('play', song, group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._playlists_group.connect(
 			'queue-song',
 			lambda _group, song, ref: ref().emit('queue-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._playlists_group.connect(
 			'add-song-to',
 			lambda _group, song, ref: ref().emit('add-song-to', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._playlists_group.connect(
 			'view-artist',
 			lambda _group, artist, ref: ref().emit('view-artist', artist),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._playlists_group.connect(
 			'undownload-song',
 			lambda _group, song, ref: ref().emit('undownload-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._playlists_group.connect(
 			'download-song',
 			lambda _group, song, ref: ref().emit('download-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._playlists_group.connect(
 			'queue-group',
 			lambda _group, group, ref: ref().emit('queue-group', group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._playlists_group.connect(
 			'add-group-to',
 			lambda _group, group, ref: ref().emit('add-group-to', group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._playlists_group.connect(
 			'download-group',
 			lambda _group, group, ref: ref().emit('download-group', group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._playlists_group.connect(
 			'delete-playlist',
 			lambda _group, playlist, ref: HomePage._on_delete_playlist(ref(), playlist),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._playlists_group.props.header_suffix.prepend(open_dir_button)
 
@@ -168,7 +166,7 @@ class HomePage(Page):
 		import_button.connect(
 			'activated',
 			lambda _button, ref: ref().emit('import-group', Group()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		import_group = Adw.PreferencesGroup()
@@ -183,53 +181,53 @@ class HomePage(Page):
 		self._external_playlists_group.connect(
 			'play',
 			lambda _group, song, group, ref: ref().emit('play', song, group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._external_playlists_group.connect(
 			'queue-song',
 			lambda _group, song, ref: ref().emit('queue-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._external_playlists_group.connect(
 			'add-song-to',
 			lambda _group, song, ref: ref().emit('add-song-to', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._external_playlists_group.connect(
 			'view-artist',
 			lambda _group, artist, ref: ref().emit('view-artist', artist),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._external_playlists_group.connect(
 			'undownload-song',
 			lambda _group, song, ref: ref().emit('undownload-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._external_playlists_group.connect(
 			'download-song',
 			lambda _group, song, ref: ref().emit('download-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._external_playlists_group.connect(
 			'queue-group',
 			lambda _group, group, ref: ref().emit('queue-group', group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._external_playlists_group.connect(
 			'add-group-to',
 			lambda _group, group, ref: ref().emit('add-group-to', group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._external_playlists_group.connect(
 			'download-group',
 			lambda _group, group, ref: ref().emit('download-group', group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._external_playlists_group.connect(
 			'delete-playlist',
 			lambda _group, playlist, ref:
 				HomePage._on_delete_external_playlist(ref(), playlist),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		open_dir_button = Gtk.Button.new_from_icon_name('folder-symbolic')
@@ -250,27 +248,27 @@ class HomePage(Page):
 		self._downloads_group.connect(
 			'play',
 			lambda _group, song, group, ref: ref().emit('play', song, group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._downloads_group.connect(
 			'queue-song',
 			lambda _group, song, ref: ref().emit('queue-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._downloads_group.connect(
 			'add-song-to',
 			lambda _group, song, ref: ref().emit('add-song-to', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._downloads_group.connect(
 			'view-artist',
 			lambda _group, artist, ref: ref().emit('view-artist', artist),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._downloads_group.connect(
 			'undownload-song',
 			lambda _group, song, ref: ref().emit('undownload-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		clear_button = Gtk.Button.new_from_icon_name('edit-clear-all-symbolic')
@@ -279,7 +277,7 @@ class HomePage(Page):
 		clear_button.connect(
 			'clicked',
 			lambda _button, ref: HomePage._on_clear_history(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		self._history_group = QueueableRowGroup()
@@ -290,32 +288,32 @@ class HomePage(Page):
 		self._history_group.connect(
 			'play',
 			lambda _group, song, group, ref: ref().emit('play', song, group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._history_group.connect(
 			'queue-song',
 			lambda _group, song, ref: ref().emit('queue-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._history_group.connect(
 			'add-song-to',
 			lambda _group, song, ref: ref().emit('add-song-to', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._history_group.connect(
 			'view-artist',
 			lambda _group, artist, ref: ref().emit('view-artist', artist),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._history_group.connect(
 			'undownload-song',
 			lambda _group, song, ref: ref().emit('undownload-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._history_group.connect(
 			'download-song',
 			lambda _group, song, ref: ref().emit('download-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		donate_button = Adw.ButtonRow()
@@ -325,7 +323,7 @@ class HomePage(Page):
 		donate_button.connect(
 			'activated',
 			lambda _button, ref: HomePage._on_donate(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		css = Gtk.CssProvider()
@@ -359,7 +357,7 @@ class HomePage(Page):
 		self._search_bar.connect(
 			'search',
 			lambda _bar, query, filter_, ref: ref().emit('search', query, filter_),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		self._toolbar_view.add_top_bar(self._search_bar)
@@ -431,12 +429,12 @@ class HomePage(Page):
 		toast.connect(
 			'button-clicked',
 			lambda _toast, ref: HomePage._on_delete_toast_undo(ref(), True),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		toast.connect(
 			'dismissed',
 			lambda _toast, ref: HomePage._on_delete_toast_dismissed(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._toast_overlay.add_toast(toast)
 		self.update_external_playlists()
@@ -460,12 +458,12 @@ class HomePage(Page):
 		toast.connect(
 			'button-clicked',
 			lambda _toast, ref: HomePage._on_delete_toast_undo(ref(), False),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		toast.connect(
 			'dismissed',
 			lambda _toast, ref: HomePage._on_delete_toast_dismissed(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._toast_overlay.add_toast(toast)
 		self.update_playlists()

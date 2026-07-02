@@ -1,7 +1,5 @@
 '''Row group widget for playable rows.'''
 
-import weakref
-
 from monophony.data import Group, Song
 from monophony.ui.row_groups.row_group import RowGroup
 
@@ -43,22 +41,22 @@ class PlayableRowGroup(RowGroup):
 		row.connect(
 			'play',
 			lambda _row, song, group, ref: ref().emit('play', song, group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		row.connect(
 			'add-song-to',
 			lambda _row, song, ref: ref().emit('add-song-to', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		row.connect(
 			'undownload-song',
 			lambda _row, song, ref: ref().emit('undownload-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		row.connect(
 			'download-song',
 			lambda _row, song, ref: ref().emit('download-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 	def update_download_status(self):

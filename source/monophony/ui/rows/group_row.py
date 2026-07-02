@@ -1,7 +1,5 @@
 '''Group row widget.'''
 
-import weakref
-
 from monophony.data import Artist, Group, Song, TimeString
 from monophony.debug import MemoryDebugger
 from monophony.ui.popovers.group_row_popover import GroupRowPopover
@@ -38,7 +36,7 @@ class GroupRow(MemoryDebugger, Adw.ExpanderRow):
 		self._more_button.props.valign = Gtk.Align.CENTER
 		self._more_button.set_create_popup_func(
 			lambda button, ref: GroupRow._on_show_more(ref(), button),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		self.props.title = GLib.markup_escape_text(group.title, -1)
@@ -92,22 +90,22 @@ class GroupRow(MemoryDebugger, Adw.ExpanderRow):
 		self._popover.connect(
 			'queue-group',
 			lambda _popover, row: row().emit('queue-group', row().group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._popover.connect(
 			'add-group-to',
 			lambda _popover, row: row().emit('add-group-to', row().group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._popover.connect(
 			'view-artist',
 			lambda _popover, row: row().emit('view-artist', row().group.author),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._popover.connect(
 			'download-group',
 			lambda _popover, row: row().emit('download-group', row().group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		button.set_popover(self._popover)
 
@@ -119,34 +117,34 @@ class GroupRow(MemoryDebugger, Adw.ExpanderRow):
 		row.connect(
 			'play',
 			lambda _row, song, _group, g_row: g_row().emit('play', song, g_row().group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		row.connect(
 			'queue-song',
 			lambda _row, song, g_row: g_row().emit('queue-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		row.connect(
 			'add-song-to',
 			lambda _row, song, g_row: g_row().emit('add-song-to', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		row.connect(
 			'view-artist',
 			lambda _row, artist, g_row: g_row().emit('view-artist', artist),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		row.connect(
 			'download-song',
 			lambda _row, song, g_row: g_row().emit('download-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		row.connect(
 			'undownload-song',
 			lambda _row, song, g_row: g_row().emit('undownload-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
-		self._rows.append(weakref.ref(row))
+		self._rows.append(row.weak_ref())
 		super().add_row(row)
 
 	def add_song(self, song: Song):

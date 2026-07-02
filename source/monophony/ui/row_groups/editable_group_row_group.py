@@ -1,7 +1,5 @@
 '''Row group widget for editable group rows.'''
 
-import weakref
-
 from monophony.data import Group
 from monophony.ui.row_groups.group_row_group import GroupRowGroup
 from monophony.ui.rows.editable_group_row import EditableGroupRow
@@ -29,5 +27,5 @@ class EditableGroupRowGroup(GroupRowGroup):
 		row.connect(
 			'delete-playlist',
 			lambda _row, playlist, ref: ref().emit('delete-playlist', playlist),
-			weakref.ref(self)
+			self.weak_ref()
 		)

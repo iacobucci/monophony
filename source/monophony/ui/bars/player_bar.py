@@ -1,7 +1,5 @@
 '''Player bar widget.'''
 
-import weakref
-
 from monophony import ID
 from monophony.data import PlaybackMode, PlaybackState, Song
 
@@ -30,7 +28,7 @@ class PlayerBar(Gtk.Box):
 		self._progress_bar.connect(
 			'change-value',
 			lambda _bar, _scroll, value, ref: ref().emit('seek', value),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		css = Gtk.CssProvider()
@@ -134,7 +132,7 @@ class PlayerBar(Gtk.Box):
 		previous_button.connect(
 			'clicked',
 			lambda _button, ref: ref().emit('previous-song'),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		self._spinner = Adw.Spinner()
@@ -150,14 +148,14 @@ class PlayerBar(Gtk.Box):
 		self._pause_button.connect(
 			'clicked',
 			lambda _button, ref: ref().emit('pause'),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		next_button = Gtk.Button.new_from_icon_name('media-skip-forward-symbolic')
 		next_button.props.tooltip_text = _('Next')
 		next_button.props.valign = Gtk.Align.CENTER
 		next_button.connect(
-			'clicked', lambda _button, ref: ref().emit('next-song'), weakref.ref(self)
+			'clicked', lambda _button, ref: ref().emit('next-song'), self.weak_ref()
 		)
 
 		self._volume_button = Gtk.ScaleButton.new(0, 1, 0.02, [
@@ -180,7 +178,7 @@ class PlayerBar(Gtk.Box):
 					value
 				)
 			),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		controls_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)

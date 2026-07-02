@@ -1,7 +1,5 @@
 '''Draggable song row widget.'''
 
-import weakref
-
 from monophony.data import Song
 from monophony.ui.rows.song_row import SongRow
 
@@ -26,17 +24,17 @@ class DraggableSongRow(SongRow):
 		self.drag_source.connect(
 			'prepare',
 			lambda _source, _x, _y, row: DraggableSongRow._on_drag_prepare(row()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self.drag_source.connect(
 			'drag-end',
 			lambda _source, _drag, _data, row: DraggableSongRow._on_drag_end(row()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self.drag_source.connect(
 			'drag-cancel',
 			lambda _source, _drag, _data, row: DraggableSongRow._on_drag_end(row()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		handle_image = Gtk.Image.new_from_icon_name('list-drag-handle-symbolic')
@@ -46,12 +44,12 @@ class DraggableSongRow(SongRow):
 		drop_target.connect(
 			'drop',
 			lambda _target, drop, _x, _y, row: DraggableSongRow._on_drop(row(), drop),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		drop_target.connect(
 			'enter',
 			lambda target, _x, _y, row: DraggableSongRow._on_drag_enter(row(), target),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		self.add_controller(self.drag_source)

@@ -1,7 +1,5 @@
 '''Row group widget for group rows.'''
 
-import weakref
-
 from monophony.data import Group
 from monophony.ui.row_groups.queueable_row_group import QueueableRowGroup
 from monophony.ui.rows.group_row import GroupRow
@@ -38,17 +36,17 @@ class GroupRowGroup(QueueableRowGroup):
 		row.connect(
 			'queue-group',
 			lambda _row, group, ref: ref().emit('queue-group', group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		row.connect(
 			'add-group-to',
 			lambda _row, group, ref: ref().emit('add-group-to', group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		row.connect(
 			'download-group',
 			lambda _row, group, ref: ref().emit('download-group', group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 	def on_play_all(self):

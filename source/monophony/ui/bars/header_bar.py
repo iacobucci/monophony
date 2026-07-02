@@ -1,7 +1,5 @@
 '''Header bar widget.'''
 
-import weakref
-
 from monophony.debug import MemoryDebugger
 
 from gi.repository import Adw, GObject, Gtk
@@ -21,7 +19,7 @@ class HeaderBar(MemoryDebugger, Adw.Bin):
 		about_button.connect(
 			'clicked',
 			lambda _button, ref: ref().emit('show-about'),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		header_bar = Adw.HeaderBar()

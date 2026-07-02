@@ -1,7 +1,5 @@
 '''Window for importing playlists.'''
 
-import weakref
-
 from monophony import MIN_WIDTH
 from monophony.data import Group
 from monophony.debug import MemoryDebugger
@@ -30,7 +28,7 @@ class ImportWindow(MemoryDebugger, Adw.Dialog):
 		self._url_entry.connect(
 			'changed',
 			lambda _entry, ref: ImportWindow._on_url_changed(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		self._name_entry = Adw.EntryRow()
@@ -45,7 +43,7 @@ class ImportWindow(MemoryDebugger, Adw.Dialog):
 		self._sync_switch.connect(
 			'notify::active',
 			lambda _switch, _param, ref: ImportWindow._on_sync_switched(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		row_group = Adw.PreferencesGroup()
@@ -63,7 +61,7 @@ class ImportWindow(MemoryDebugger, Adw.Dialog):
 		self._import_button.connect(
 			'clicked',
 			lambda _button, ref: ImportWindow._on_import(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		action_bar = Gtk.ActionBar()

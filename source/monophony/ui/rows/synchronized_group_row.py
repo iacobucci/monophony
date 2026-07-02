@@ -1,7 +1,5 @@
 '''Synchronized group row widget.'''
 
-import weakref
-
 from monophony import playlists
 from monophony.data import Group
 from monophony.ui.popovers.synchronized_group_row_popover import (
@@ -29,7 +27,7 @@ class SynchronizedGroupRow(GroupRow):
 
 		self._more_button.set_create_popup_func(
 			lambda button, ref: SynchronizedGroupRow._on_show_more(ref(), button),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 	@GObject.Signal(name='delete-playlist', arg_types=(object,))
@@ -41,22 +39,22 @@ class SynchronizedGroupRow(GroupRow):
 		self._popover.connect(
 			'queue-group',
 			lambda _popover, row: row().emit('queue-group', row().group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._popover.connect(
 			'add-group-to',
 			lambda _popover, row: row().emit('add-group-to', row().group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._popover.connect(
 			'download-group',
 			lambda _popover, row: row().emit('download-group', row().group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._popover.connect(
 			'delete-playlist',
 			lambda _popover, row: row().emit('delete-playlist', row().group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		button.set_popover(self._popover)
 

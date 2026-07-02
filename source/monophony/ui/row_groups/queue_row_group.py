@@ -1,7 +1,5 @@
 '''Row group widget for queue song rows.'''
 
-import weakref
-
 from monophony.data import Song
 from monophony.ui.row_groups.playable_row_group import PlayableRowGroup
 from monophony.ui.rows.queue_song_row import QueueSongRow
@@ -34,12 +32,12 @@ class QueueRowGroup(PlayableRowGroup):
 		row.connect(
 			'move-song',
 			lambda _row, from_s, to_s, ref: ref().emit('move-song', from_s, to_s),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		row.connect(
 			'unqueue-song',
 			lambda _row, song, ref: ref().emit('unqueue-song', song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 	def update_contents(self, new_songs: list[Song], song_index: int):

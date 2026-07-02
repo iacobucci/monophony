@@ -4,7 +4,6 @@ import json
 import os
 import time
 import traceback
-import weakref
 
 from monophony import (
 	DISPLAY_NAME,
@@ -100,52 +99,52 @@ class MainWindow(Adw.ApplicationWindow):
 			'recents-changed',
 			lambda _player, ref:
 				MainWindow._on_recents_changed(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._player.connect(
 			'queue-changed',
 			lambda _player, queue, i, ref:
 				MainWindow._on_queue_changed(ref(), queue, i),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._player.connect(
 			'progress-changed',
 			lambda _player, progress, ref:
 				MainWindow._on_progress_changed(ref(), progress),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._player.connect(
 			'buffering-changed',
 			lambda _player, progress, ref:
 				MainWindow._on_buffering_changed(ref(), progress),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._player.connect(
 			'state-changed',
 			lambda _player, state, ref:
 				MainWindow._on_state_changed(ref(), state),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._player.connect(
 			'volume-changed',
 			lambda _player, volume, ref:
 				MainWindow._on_volume_changed_in_backend(ref(), volume),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._player.connect(
 			'mode-changed',
 			lambda _player, mode, ref:
 				MainWindow._on_mode_changed_in_backend(ref(), mode),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._player.connect(
 			'pause-changed',
 			lambda _player, pause, ref:
 				MainWindow._on_pause_changed_in_backend(ref(), pause),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._player.connect(
-			'raise', lambda _player, ref: ref().present(), weakref.ref(self)
+			'raise', lambda _player, ref: ref().present(), self.weak_ref()
 		)
 
 		self._queue_sidebar = QueueSidebar()
@@ -153,128 +152,128 @@ class MainWindow(Adw.ApplicationWindow):
 			'play',
 			lambda _sidebar, song, _group, ref, player_ref:
 				MainWindow._on_play(ref(), song, player_ref().get_queue()),
-			weakref.ref(self),
-			weakref.ref(self._player)
+			self.weak_ref(),
+			self._player.weak_ref()
 		)
 		self._queue_sidebar.connect(
 			'add-group-to',
 			lambda _sidebar, _group, ref: MainWindow._on_add_queue_to(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._queue_sidebar.connect(
 			'add-song-to',
 			lambda _sidebar, song, ref: MainWindow._on_add_song_to(ref(), song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._queue_sidebar.connect(
 			'undownload-song',
 			lambda _sidebar, song, ref:
 				MainWindow._on_remove_song_from_downloads(ref(), song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._queue_sidebar.connect(
 			'download-song',
 			lambda _sidebar, song, ref:
 				MainWindow._on_download_songs(ref(), Group(songs=[song])),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._queue_sidebar.connect(
 			'move-song',
 			lambda _sidebar, from_s, to_s, ref:
 				MainWindow._on_queue_move_song(ref(), from_s, to_s),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._queue_sidebar.connect(
 			'unqueue-song',
 			lambda _sidebar, song, ref: MainWindow._on_remove_from_queue(ref(), song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._queue_sidebar.connect(
 			'view-artist',
 			lambda _sidebar, artist, ref:
 				MainWindow._on_view_artist(ref(), artist, True),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._queue_sidebar.connect(
 			'clear-queue',
 			lambda _sidebar, ref: MainWindow._on_clear_queue(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._queue_sidebar.connect(
 			'shuffle-queue',
 			lambda _sidebar, ref: MainWindow._on_shuffle_queue(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._queue_sidebar.hide_button.connect(
 			'clicked',
 			lambda _b, ref: MainWindow._on_hide_sidebar(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		self._home_page = HomePage()
 		self._home_page.connect(
 			'play',
 			lambda _page, song, group, ref: MainWindow._on_play(ref(), song, group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._home_page.connect(
 			'queue-group',
 			lambda _page, group, ref: MainWindow._on_add_to_queue(ref(), group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._home_page.connect(
 			'queue-song',
 			lambda _page, song, ref:
 				MainWindow._on_add_to_queue(ref(), Group(songs=[song])),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._home_page.connect(
 			'add-song-to',
 			lambda _page, song, ref: MainWindow._on_add_song_to(ref(), song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._home_page.connect(
 			'view-artist',
 			lambda _page, artist, ref: MainWindow._on_view_artist(ref(), artist, True),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._home_page.connect(
 			'undownload-song',
 			lambda _page, song, ref:
 				MainWindow._on_remove_song_from_downloads(ref(), song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._home_page.connect(
 			'download-song',
 			lambda _page, song, ref:
 				MainWindow._on_download_songs(ref(), Group(songs=[song])),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._home_page.connect(
 			'add-group-to',
 			lambda _page, group, ref: MainWindow._on_add_group_to(ref(), group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._home_page.connect(
 			'download-group',
 			lambda _page, group, ref: MainWindow._on_download_songs(ref(), group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._home_page.connect(
 			'import-group',
 			lambda _page, group, ref: MainWindow._on_import_group(ref(), group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._home_page.connect(
 			'search',
 			lambda _page, query, filter_, ref:
 				MainWindow._on_search(ref(), query, filter_),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._home_page.connect(
 			'show-about',
 			lambda _page, ref: MainWindow._on_show_about(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._home_page.update_downloads(self._downloader.get_downloads())
 
@@ -282,14 +281,14 @@ class MainWindow(Adw.ApplicationWindow):
 		loading_page.connect(
 			'show-about',
 			lambda _page, ref: MainWindow._on_show_about(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		self._navigation_view = Adw.NavigationView()
 		self._navigation_view.connect(
 			'popped',
 			lambda _view, page, ref: MainWindow._on_page_popped(ref(), page),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._navigation_view.add(loading_page)
 
@@ -298,34 +297,34 @@ class MainWindow(Adw.ApplicationWindow):
 			'mode-changed',
 			lambda _bar, mode, ref:
 				MainWindow._on_mode_changed_in_frontend(ref(), mode),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._player_bar.connect(
 			'next-song',
 			lambda _bar, ref: MainWindow._on_next_song(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._player_bar.connect(
 			'previous-song',
 			lambda _bar, ref: MainWindow._on_previous_song(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._player_bar.connect(
 			'seek',
 			lambda _bar, value, ref:
 				MainWindow._on_seek(ref(), value),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._player_bar.connect(
 			'volume-changed',
 			lambda _bar, volume, ref:
 				MainWindow._on_volume_changed_in_frontend(ref(), volume),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._player_bar.connect(
 			'pause',
 			lambda _bar, ref: MainWindow._on_pause_changed_in_frontend(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		self._toolbar_view = Adw.ToolbarView()
@@ -421,7 +420,7 @@ class MainWindow(Adw.ApplicationWindow):
 		add_window.connect(
 			'closed',
 			lambda window, ref: MainWindow._on_add_window_closed(ref(), window),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		add_window.present(self)
 
@@ -430,7 +429,7 @@ class MainWindow(Adw.ApplicationWindow):
 		add_window.connect(
 			'closed',
 			lambda _window, ref: MainWindow._update_playlists(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		add_window.present(self)
 
@@ -520,7 +519,7 @@ class MainWindow(Adw.ApplicationWindow):
 		import_window.connect(
 			'import',
 			lambda _window, ref: MainWindow._on_import_success(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		import_window.connect(
 			'import-failed',
@@ -529,7 +528,7 @@ class MainWindow(Adw.ApplicationWindow):
 					_('Failed to Import'),
 					_('Check your internet connection and try again')
 				).present(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		import_window.present(self)
 
@@ -610,7 +609,7 @@ class MainWindow(Adw.ApplicationWindow):
 		loading_page.connect(
 			'show-about',
 			lambda _page, ref: MainWindow._on_show_about(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._navigation_view.push(loading_page)
 
@@ -658,68 +657,68 @@ class MainWindow(Adw.ApplicationWindow):
 			page.connect(
 				'play',
 				lambda _page, song, group, ref: MainWindow._on_play(ref(), song, group),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			page.connect(
 				'filter-results',
 				lambda _page, filter_, ref:
 					MainWindow._on_filter_results(ref(), filter_),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			page.connect(
 				'queue-song',
 				lambda _page, song, ref:
 					MainWindow._on_add_to_queue(ref(), Group(songs=[song])),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			page.connect(
 				'add-song-to',
 				lambda _page, song, ref: MainWindow._on_add_song_to(ref(), song),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			page.connect(
 				'undownload-song',
 				lambda _page, song, ref:
 					MainWindow._on_remove_song_from_downloads(ref(), song),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			page.connect(
 				'download-song',
 				lambda _page, song, ref:
 					MainWindow._on_download_songs(ref(), Group(songs=[song])),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			page.connect(
 				'queue-group',
 				lambda _page, group, ref: MainWindow._on_add_to_queue(ref(), group),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			page.connect(
 				'add-group-to',
 				lambda _page, group, ref: MainWindow._on_add_group_to(ref(), group),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			page.connect(
 				'download-group',
 				lambda _page, group, ref: MainWindow._on_download_songs(ref(), group),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			page.connect(
 				'import-group',
 				lambda _page, group, ref: MainWindow._on_import_group(ref(), group),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			page.connect(
 				'view-artist',
 				lambda _page, artist, ref:
 					MainWindow._on_view_artist(ref(), artist, True),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 
 		page.connect(
 			'show-about',
 			lambda _page, ref: MainWindow._on_show_about(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._navigation_view.push(page)
 
@@ -829,7 +828,7 @@ class MainWindow(Adw.ApplicationWindow):
 		loading_page.connect(
 			'show-about',
 			lambda _page, ref: MainWindow._on_show_about(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._navigation_view.push(loading_page)
 
@@ -876,68 +875,68 @@ class MainWindow(Adw.ApplicationWindow):
 			page.connect(
 				'play',
 				lambda _page, song, group, ref: MainWindow._on_play(ref(), song, group),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			page.connect(
 				'filter-results',
 				lambda _page, filter_, ref:
 					MainWindow._on_filter_artist(ref(), filter_),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			page.connect(
 				'queue-song',
 				lambda _page, song, ref:
 					MainWindow._on_add_to_queue(ref(), Group(songs=[song])),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			page.connect(
 				'add-song-to',
 				lambda _page, song, ref: MainWindow._on_add_song_to(ref(), song),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			page.connect(
 				'undownload-song',
 				lambda _page, song, ref:
 					MainWindow._on_remove_song_from_downloads(ref(), song),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			page.connect(
 				'download-song',
 				lambda _page, song, ref:
 					MainWindow._on_download_songs(ref(), Group(songs=[song])),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			page.connect(
 				'queue-group',
 				lambda _page, group, ref: MainWindow._on_add_to_queue(ref(), group),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			page.connect(
 				'add-group-to',
 				lambda _page, group, ref: MainWindow._on_add_group_to(ref(), group),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			page.connect(
 				'download-group',
 				lambda _page, group, ref: MainWindow._on_download_songs(ref(), group),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			page.connect(
 				'import-group',
 				lambda _page, group, ref: MainWindow._on_import_group(ref(), group),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 			page.connect(
 				'view-artist',
 				lambda _page, artist, ref:
 					MainWindow._on_view_artist(ref(), artist, True),
-				weakref.ref(self)
+				self.weak_ref()
 			)
 
 		page.connect(
 			'show-about',
 			lambda _page, ref: MainWindow._on_show_about(ref()),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._navigation_view.push(page)
 

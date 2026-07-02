@@ -1,7 +1,5 @@
 '''Window for renaming local playlists.'''
 
-import weakref
-
 from monophony.debug import MemoryDebugger
 
 from gi.repository import Adw, GObject
@@ -27,7 +25,7 @@ class RenameWindow(MemoryDebugger, Adw.Dialog):
 			'apply',
 			lambda entry, ref:
 				RenameWindow._on_apply(ref(), entry.props.text),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		group = Adw.PreferencesGroup()

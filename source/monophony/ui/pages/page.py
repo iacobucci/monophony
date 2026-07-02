@@ -1,7 +1,5 @@
 '''Page widget.'''
 
-import weakref
-
 from monophony.debug import MemoryDebugger
 from monophony.ui.bars.header_bar import HeaderBar
 
@@ -25,7 +23,7 @@ class Page(MemoryDebugger, Adw.NavigationPage):
 		self._header_bar.connect(
 			'show-about',
 			lambda _bar, ref: ref().emit('show-about'),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		self._page = Adw.PreferencesPage()

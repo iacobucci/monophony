@@ -1,7 +1,5 @@
 '''Row group widget.'''
 
-import weakref
-
 from monophony.data import Artist, YTItem
 from monophony.debug import MemoryDebugger
 
@@ -33,12 +31,12 @@ class RowGroup(MemoryDebugger, Adw.PreferencesGroup):
 		'''
 		super().add(row)
 
-		self._rows.append(weakref.ref(row))
+		self._rows.append(row.weak_ref())
 
 		row.connect(
 			'view-artist',
 			lambda _row, artist, ref: ref().emit('view-artist', artist),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self.props.visible = True
 

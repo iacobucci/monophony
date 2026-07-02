@@ -1,7 +1,5 @@
 '''Window for adding a group to playlists and creating new playlists.'''
 
-import weakref
-
 from monophony import MIN_WIDTH, playlists
 from monophony.data import Group
 from monophony.debug import MemoryDebugger
@@ -35,7 +33,7 @@ class AddWindow(MemoryDebugger, Adw.Dialog):
 		new_playlist_row.connect(
 			'apply',
 			lambda row, ref: AddWindow._on_create_playlist(ref(), row),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 		new_playlist_group = Adw.PreferencesGroup()
@@ -50,7 +48,7 @@ class AddWindow(MemoryDebugger, Adw.Dialog):
 		self.add_button.props.sensitive = False
 		self.add_button.add_css_class('suggested-action')
 		self.add_button.connect(
-			'clicked', lambda _button, ref: AddWindow._on_add(ref()), weakref.ref(self)
+			'clicked', lambda _button, ref: AddWindow._on_add(ref()), self.weak_ref()
 		)
 
 		add_bar = Gtk.ActionBar()
@@ -72,7 +70,7 @@ class AddWindow(MemoryDebugger, Adw.Dialog):
 			'toggled',
 			lambda button, ref, playlist:
 				AddWindow._on_check_playlist(ref(), button.props.active, playlist),
-			weakref.ref(self),
+			self.weak_ref(),
 			playlist
 		)
 		check_button.props.active = checked

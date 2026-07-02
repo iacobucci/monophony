@@ -1,7 +1,5 @@
 '''Importable group row widget.'''
 
-import weakref
-
 from monophony.data import Group
 from monophony.ui.popovers.importable_group_row_popover import ImportableGroupRowPopover
 from monophony.ui.rows.group_row import GroupRow
@@ -25,7 +23,7 @@ class ImportableGroupRow(GroupRow):
 
 		self._more_button.set_create_popup_func(
 			lambda button, ref: ImportableGroupRow._on_show_more(ref(), button),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 	@GObject.Signal(name='import-group', arg_types=(object,))
@@ -37,26 +35,26 @@ class ImportableGroupRow(GroupRow):
 		self._popover.connect(
 			'queue-group',
 			lambda _popover, row: row().emit('queue-group', row().group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._popover.connect(
 			'add-group-to',
 			lambda _popover, row: row().emit('add-group-to', row().group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._popover.connect(
 			'view-artist',
 			lambda _popover, row: row().emit('view-artist', row().group.author),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._popover.connect(
 			'download-group',
 			lambda _popover, row: row().emit('download-group', row().group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		self._popover.connect(
 			'import-group',
 			lambda _popover, row: row().emit('import-group', row().group),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		button.set_popover(self._popover)

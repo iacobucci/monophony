@@ -1,7 +1,5 @@
 '''Queue song row widget.'''
 
-import weakref
-
 from monophony import downloads
 from monophony.data import Song
 from monophony.ui.popovers.queue_song_row_popover import QueueSongRowPopover
@@ -24,7 +22,7 @@ class QueueSongRow(DraggableSongRow):
 
 		self._more_button.set_create_popup_func(
 			lambda button, ref: QueueSongRow._on_show_more(ref(), button),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 
 	@GObject.Signal(name='unqueue-song', arg_types=(object,))
@@ -37,26 +35,26 @@ class QueueSongRow(DraggableSongRow):
 		)
 		popover.connect(
 			'add-song-to', lambda _popover, row: row().emit('add-song-to', row().song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		popover.connect(
 			'view-artist',
 			lambda _popover, row: row().emit('view-artist', row().song.author),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		popover.connect(
 			'undownload-song',
 			lambda _popover, row: row().emit('undownload-song', row().song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		popover.connect(
 			'download-song',
 			lambda _popover, row: row().emit('download-song', row().song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		popover.connect(
 			'unqueue-song',
 			lambda _popover, row: row().emit('unqueue-song', row().song),
-			weakref.ref(self)
+			self.weak_ref()
 		)
 		button.set_popover(popover)
