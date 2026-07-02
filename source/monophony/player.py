@@ -67,15 +67,15 @@ class FindURITask(Task):
 		logboth.info(
 			__name__, f'Looking for "{song.yt_id}" song URI locally and online...'
 		)
-		if uri := known_uris.get(song.yt_id):
-			logboth.info(__name__, 'Found already known song URI')
-			return uri
-
 		if downloads.is_downloaded(song):
 			song_path = downloads.get_file(song)
 			if song_path:
 				logboth.info(__name__, 'Found local song URI')
 				return 'file://' + song_path
+
+		if uri := known_uris.get(song.yt_id):
+			logboth.info(__name__, 'Found already known song URI')
+			return uri
 
 		if self.is_canceled():
 			logboth.info(__name__, 'Canceled URI lookup')
