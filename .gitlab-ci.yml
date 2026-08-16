@@ -91,9 +91,7 @@ build:
           /component/releases/*[1]/@version \
           source/data/metainfo.xml \
       )"
-    - git fetch --tags --force
-    - echo "$(git tag)"
-    - git_tag="$(git tag | tail -1)"
+    - git_tag="$(git describe --tags --abbrev=0)"
     - >
       if ! [ "$metainfo_release" = "$git_tag" ]; then
         echo "[ERROR] Latest tag does not match latest release in metainfo"
