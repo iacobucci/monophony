@@ -91,6 +91,7 @@ build:
           /component/releases/*[1]/@version \
           source/data/metainfo.xml \
       )"
+    - git fetch --tags --force
     - git_tag="$(git tag | tail -1)"
     - >
       if ! [ "$metainfo_release" = "$git_tag" ]; then
