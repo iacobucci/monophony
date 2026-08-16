@@ -92,6 +92,7 @@ build:
           source/data/metainfo.xml \
       )"
     - git fetch --tags --force
+    - echo "$(git tag)"
     - git_tag="$(git tag | tail -1)"
     - >
       if ! [ "$metainfo_release" = "$git_tag" ]; then
