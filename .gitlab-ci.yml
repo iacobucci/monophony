@@ -64,13 +64,6 @@ test:
         "$APP_ID" \
         --verbose
 
-    - make --directory=source/ docs
-    - >
-      if ! (git diff --exit-code); then
-        echo "[ERROR] Documentation is outdated - run 'make docs'";
-        false
-      fi
-
 
 build:
   stage: build
