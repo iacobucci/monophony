@@ -1,6 +1,6 @@
-'''Player bar widget.'''
+import threading
 
-from monophony import ID
+from monophony import ID, cache
 from monophony.data import PlaybackMode, PlaybackState, Song
 
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, GstAudio, Gtk, Pango
@@ -14,6 +14,8 @@ class PlayerBar(Gtk.Box):
 	def __init__(self):
 		'''Initialize the widget.'''
 		super().__init__(orientation=Gtk.Orientation.VERTICAL)
+
+		self._current_song_yt_id = None
 
 		self._buffer_bar = Gtk.ProgressBar()
 		self._buffer_bar.add_css_class('buffbar')
@@ -40,6 +42,13 @@ class PlayerBar(Gtk.Box):
 				padding-right: 0px;
 				margin-bottom: -8px;
 				margin-top: -8px;
+			}
+
+			.player-thumbnail {
+				border-radius: 6px;
+				margin-right: 4px;
+				margin-top: 2px;
+				margin-bottom: 2px;
 			}
 
 			.buffbar {
@@ -95,6 +104,14 @@ class PlayerBar(Gtk.Box):
 		self.queue_button.props.valign = Gtk.Align.CENTER
 		self.queue_button.props.tooltip_text = _('Queue')
 
+		self._thumbnail_picture = Gtk.Picture()
+		self._thumbnail_picture.props.content_fit = Gtk.ContentFit.COVER
+		self._thumbnail_picture.set_size_request(40, 40)
+		self._thumbnail_picture.props.valign = Gtk.Align.CENTER
+		self._thumbnail_picture.props.halign = Gtk.Align.CENTER
+		self._thumbnail_picture.props.visible = False
+		self._thumbnail_picture.add_css_class('player-thumbnail')
+
 		self._title_link = Gtk.LinkButton.new_with_label('', '')
 		self._title_link.props.margin_bottom = 2
 		self._title_link.props.margin_top = 6
@@ -110,13 +127,21 @@ class PlayerBar(Gtk.Box):
 
 		info_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 		info_box.props.spacing = 4
-		info_box.props.margin_start = 6
+		info_box.props.margin_start = 2
 		info_box.props.margin_end = 6
 		info_box.props.halign = Gtk.Align.START
 		info_box.props.valign = Gtk.Align.CENTER
 		info_box.props.hexpand = True
 		info_box.append(self._title_link)
 		info_box.append(self._artist_label)
+
+		song_details_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+		song_details_box.props.spacing = 6
+		song_details_box.props.valign = Gtk.Align.CENTER
+		song_details_box.props.halign = Gtk.Align.START
+		song_details_box.props.hexpand = True
+		song_details_box.append(self._thumbnail_picture)
+		song_details_box.append(info_box)
 
 		self._mode_button = Gtk.MenuButton()
 		self._mode_button.props.icon_name = 'media-playlist-repeat-song-symbolic'
@@ -190,7 +215,7 @@ class PlayerBar(Gtk.Box):
 		controls_box.props.halign = Gtk.Align.FILL
 		controls_box.props.hexpand = True
 		controls_box.append(self.queue_button)
-		controls_box.append(info_box)
+		controls_box.append(song_details_box)
 		controls_box.append(self._mode_button)
 		controls_box.append(previous_button)
 		controls_box.append(self._spinner)
@@ -268,13 +293,40 @@ class PlayerBar(Gtk.Box):
 
 		:param song: Song to display.
 		'''
-		# Simply using .props.label would create a new child label and discard
-		# previously set properties
+		self._current_song_yt_id = song.yt_id
 		self._title_link.props.child.props.label = song.title
 		self._title_link.props.uri = (
 			'https://music.youtube.com/watch?v=' + song.yt_id
 		)
 		self._artist_label.props.label = song.author.name
+
+		self._update_thumbnail(song)
+
+	def _update_thumbnail(self, song: Song):
+		if not song or not song.yt_id:
+			self._thumbnail_picture.props.visible = False
+			return
+
+		cached_path = cache.get_cached_thumbnail(song.yt_id)
+		if cached_path:
+			self._thumbnail_picture.set_file(Gio.File.new_for_path(cached_path))
+			self._thumbnail_picture.props.visible = True
+		elif song.thumbnail:
+			def _fetch_and_show():
+				path = cache.cache_thumbnail(song.yt_id, song.thumbnail)
+				if path:
+					GLib.idle_add(self._show_thumbnail_file, path, song.yt_id)
+
+			self._thumbnail_picture.props.visible = False
+			threading.Thread(target=_fetch_and_show, daemon=True).start()
+		else:
+			self._thumbnail_picture.props.visible = False
+
+	def _show_thumbnail_file(self, path: str, yt_id: str):
+		if getattr(self, '_current_song_yt_id', None) == yt_id:
+			self._thumbnail_picture.set_file(Gio.File.new_for_path(path))
+			self._thumbnail_picture.props.visible = True
+
 
 	def update_pause(self, pause: bool):
 		'''Update the displayed pause state.
