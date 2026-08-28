@@ -436,14 +436,20 @@ class SyncPlaylistsTask(Task):
 
 		try:
 			remote_playlists_meta = yt.get_user_playlists()
+			logboth.info(__name__, f'Retrieved {len(remote_playlists_meta)} remote playlists metadata from YouTube')
 			local_playlists = read()
 
-			remote_yt_ids = {p['playlistId']: p for p in remote_playlists_meta if 'playlistId' in p}
+			remote_yt_ids = {}
+			for p in remote_playlists_meta:
+				r_id = p.get('playlistId') or p.get('browseId', '').removeprefix('VL')
+				if r_id:
+					remote_yt_ids[r_id] = p
+
 			local_by_yt_id = {p.yt_id: p for p in local_playlists if p.yt_id}
 			local_by_title = {p.title: p for p in local_playlists}
 
 			updated_local = list(local_playlists)
-			total = len(remote_playlists_meta) + len(local_playlists)
+			total = len(remote_yt_ids) + len(local_playlists)
 			count = 0
 
 			# 1. Process Remote Playlists -> Local
@@ -455,7 +461,11 @@ class SyncPlaylistsTask(Task):
 
 				remote_group = yt.get_album_or_playlist(r_id)
 				if not remote_group:
+					logboth.warning(__name__, f'Could not fetch remote playlist "{r_id}"')
 					continue
+
+				if r_meta.get('title') and not remote_group.title:
+					remote_group.title = r_meta['title']
 
 				if r_id in local_by_yt_id:
 					local_group = local_by_yt_id[r_id]
@@ -485,7 +495,7 @@ class SyncPlaylistsTask(Task):
 						yt.add_songs_to_user_playlist(r_id, songs_to_push)
 				else:
 					remote_group.yt_id = r_id
-					remote_group.title = make_unique_name(remote_group.title)
+					remote_group.title = make_unique_name(remote_group.title or r_meta.get('title', _('Playlist')))
 					updated_local.append(remote_group)
 
 			# 2. Push Local Playlists without yt_id to Remote YouTube Account
@@ -502,12 +512,13 @@ class SyncPlaylistsTask(Task):
 						local_group.yt_id = new_yt_id
 
 			_write(playlists=updated_local)
-			logboth.info(__name__, '2-way playlist sync finished')
+			logboth.info(__name__, f'2-way playlist sync finished. Total playlists: {len(updated_local)}')
 			return True
 
 		except Exception as e:
 			logboth.error(__name__, f'Failed to sync playlists: {e}')
 			return False
+
 
 
 # Singleton

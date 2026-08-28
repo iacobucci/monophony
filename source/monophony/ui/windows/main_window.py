@@ -507,7 +507,9 @@ class MainWindow(Adw.ApplicationWindow):
 	def _on_home_page_prepared(self, _task: PrepareHomePageTask):
 		self._navigation_view.replace([self._home_page])
 		self._update_external_playlists()
+		self._update_playlists()
 		self._home_page.update_recommendations()
+
 
 	def _on_filter_artist(self, filter_: str):
 		if isinstance(
