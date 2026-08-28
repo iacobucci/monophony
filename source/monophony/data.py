@@ -164,14 +164,16 @@ class Song(YTItem):
 
 		:return: Serialized song.
 		'''
+		length_str = self.length.as_string() if hasattr(self.length, 'as_string') else str(self.length or '')
 		return {
 			'title': self.title,
 			'author': self.author.name,
 			'author_id': self.author.yt_id,
-			'length': self.length,
+			'length': length_str,
 			'thumbnail': self.thumbnail,
 			'id': self.yt_id
 		}
+
 
 
 class Group(YTItem):

@@ -710,10 +710,11 @@ def _get_playlist_tv(yt_id: str) -> Group | None:
 				song_obj = Song(
 					title=s['title'] or s['yt_id'],
 					author=Artist(name=s['artist']),
-					length=TimeString(s['length']) if s['length'] else TimeString(),
+					length=s['length'] or '',
 					thumbnail=s['thumbnail'],
 					yt_id=s['yt_id']
 				)
+
 				unique.append(song_obj)
 
 		if unique:
