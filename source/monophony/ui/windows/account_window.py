@@ -91,24 +91,33 @@ class AccountWindow(MemoryDebugger, Adw.Dialog):
 				'Enter your Google Cloud OAuth Client ID and Secret (both from the same project) or import an oauth.json file.'
 			)
 
+			cid = settings.load('oauth_client_id', '')
+			sec = settings.load('oauth_client_secret', '')
+
 			self._client_id_entry = Adw.EntryRow()
 			self._client_id_entry.props.title = _('OAuth Client ID')
-			self._client_id_entry.props.text = settings.load('oauth_client_id', '')
-			self._client_id_entry.connect(
-				'changed',
-				lambda entry: settings.save({'oauth_client_id': entry.props.text.strip()})
-			)
+			self._client_id_entry.props.text = cid
 
 			self._client_secret_entry = Adw.EntryRow()
 			self._client_secret_entry.props.title = _('OAuth Client Secret')
-			self._client_secret_entry.props.text = settings.load('oauth_client_secret', '')
-			self._client_secret_entry.connect(
-				'changed',
-				lambda entry: settings.save({'oauth_client_secret': entry.props.text.strip()})
-			)
+			self._client_secret_entry.props.text = sec
+
+			def _on_id_changed(entry):
+				val = entry.props.text.strip()
+				if val:
+					settings.save({'oauth_client_id': val})
+
+			def _on_secret_changed(entry):
+				val = entry.props.text.strip()
+				if val:
+					settings.save({'oauth_client_secret': val})
+
+			self._client_id_entry.connect('changed', _on_id_changed)
+			self._client_secret_entry.connect('changed', _on_secret_changed)
 
 			creds_group.add(self._client_id_entry)
 			creds_group.add(self._client_secret_entry)
+
 
 
 			import_file_btn = Gtk.Button()
