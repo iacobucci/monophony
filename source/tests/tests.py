@@ -182,6 +182,37 @@ class YouTubeAccountTestCase(BaseTestCase):
 		assert(task.result is False)
 
 
+class CacheAndPrefetchTestCase(BaseTestCase):
+	def test_cache_management(self):
+		from monophony import cache
+		song = Song(title='TestSong', yt_id='test_song_123')
+		assert(not cache.is_cached(song))
+
+		cache_dir = cache.get_cache_dir()
+		os.makedirs(cache_dir, exist_ok=True)
+		test_file = os.path.join(cache_dir, 'test_song_123.m4a')
+		with open(test_file, 'w') as f:
+			f.write('dummy audio data')
+
+		assert(cache.is_cached(song))
+		assert(cache.get_cached_file(song) == test_file)
+		assert(cache.get_cache_size() > 0)
+
+		cache.clear_cache()
+		assert(not cache.is_cached(song))
+		assert(cache.get_cache_size() == 0)
+
+	def test_prefetch_manager(self):
+		from monophony.prefetch import prefetch_manager
+		queue = Group(songs=[
+			Song(title='S1', yt_id='s1'),
+			Song(title='S2', yt_id='s2'),
+			Song(title='S3', yt_id='s3')
+		])
+		prefetch_manager.prefetch_upcoming(queue, 0)
+
+
 if __name__ == '__main__':
 	unittest.main()
+
 

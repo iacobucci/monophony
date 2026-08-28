@@ -33,6 +33,8 @@ from monophony.ui.windows.account_window import AccountWindow
 from monophony.ui.windows.add_window import AddWindow
 from monophony.ui.windows.import_window import ImportWindow
 from monophony.ui.windows.message_window import MessageWindow
+from monophony.ui.windows.settings_window import SettingsWindow
+
 from monophony.yt import GetArtistTask, GetRecommendationsTask, SearchTask
 
 
@@ -290,6 +292,11 @@ class MainWindow(Adw.ApplicationWindow):
 			lambda _page, ref: MainWindow._on_show_account(ref()),
 			self.weak_ref()
 		)
+		self._home_page.connect(
+			'show-settings',
+			lambda _page, ref: MainWindow._on_show_settings(ref()),
+			self.weak_ref()
+		)
 		self._home_page.update_downloads(self._downloader.get_downloads())
 
 		loading_page = LoadingPage()
@@ -303,6 +310,12 @@ class MainWindow(Adw.ApplicationWindow):
 			lambda _page, ref: MainWindow._on_show_account(ref()),
 			self.weak_ref()
 		)
+		loading_page.connect(
+			'show-settings',
+			lambda _page, ref: MainWindow._on_show_settings(ref()),
+			self.weak_ref()
+		)
+
 
 
 		self._navigation_view = Adw.NavigationView()
@@ -748,6 +761,11 @@ class MainWindow(Adw.ApplicationWindow):
 			lambda _page, ref: MainWindow._on_show_account(ref()),
 			self.weak_ref()
 		)
+		page.connect(
+			'show-settings',
+			lambda _page, ref: MainWindow._on_show_settings(ref()),
+			self.weak_ref()
+		)
 		self._navigation_view.push(page)
 
 	def _on_seek(self, value: float):
@@ -761,6 +779,11 @@ class MainWindow(Adw.ApplicationWindow):
 			self.weak_ref()
 		)
 		account_dialog.present(self)
+
+	def _on_show_settings(self):
+		settings_dialog = SettingsWindow()
+		settings_dialog.present(self)
+
 
 	def _on_show_about(self):
 

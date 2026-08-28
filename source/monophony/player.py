@@ -4,10 +4,12 @@ import copy
 import random
 import time
 
-from monophony import DISPLAY_NAME, ID, downloads, recents, settings, yt
+from monophony import DISPLAY_NAME, ID, cache, downloads, recents, settings, yt
 from monophony.asynchronous import Task
 from monophony.data import Group, PlaybackMode, PlaybackState, Song
 from monophony.mpris import EventHandler, EventSender, Server
+from monophony.prefetch import prefetch_manager
+
 
 import logboth
 from gi.repository import GObject, Gst
@@ -70,12 +72,17 @@ class FindURITask(Task):
 		if downloads.is_downloaded(song):
 			song_path = downloads.get_file(song)
 			if song_path:
-				logboth.info(__name__, 'Found local song URI')
+				logboth.info(__name__, 'Found local downloaded song URI')
 				return 'file://' + song_path
+
+		if cached_path := cache.get_cached_file(song):
+			logboth.info(__name__, f'Found cached audio file for "{song.yt_id}"')
+			return 'file://' + cached_path
 
 		if uri := known_uris.get(song.yt_id):
 			logboth.info(__name__, 'Found already known song URI')
 			return uri
+
 
 		if self.is_canceled():
 			logboth.info(__name__, 'Canceled URI lookup')
@@ -359,6 +366,8 @@ class Player(GObject.Object):
 		self._playbin.props.uri = uri
 		self._playbin.set_state(Gst.State.PAUSED)
 		logboth.info(__name__, 'Started playback')
+		prefetch_manager.prefetch_upcoming(self._queue, self._queue_index)
+
 
 	def add_to_queue(self, group: Group):
 		'''Add group of songs to the end of the queue.

@@ -30,6 +30,11 @@ class Page(MemoryDebugger, Adw.NavigationPage):
 			lambda _bar, ref: ref().emit('show-account'),
 			self.weak_ref()
 		)
+		self._header_bar.connect(
+			'show-settings',
+			lambda _bar, ref: ref().emit('show-settings'),
+			self.weak_ref()
+		)
 
 		self._page = Adw.PreferencesPage()
 
@@ -51,4 +56,9 @@ class Page(MemoryDebugger, Adw.NavigationPage):
 	@GObject.Signal(name='show-account')
 	def _show_account(self):
 		return
+
+	@GObject.Signal(name='show-settings')
+	def _show_settings(self):
+		return
+
 
