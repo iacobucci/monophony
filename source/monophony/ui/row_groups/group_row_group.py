@@ -26,6 +26,10 @@ class GroupRowGroup(QueueableRowGroup):
 	def _download_group(self, _group: Group):
 		return
 
+	@GObject.Signal(name='toggle-favorite', arg_types=(object,))
+	def _toggle_favorite(self, _group: Group):
+		return
+
 	def add(self, row: _row_type):
 		'''Add a group row.
 
@@ -48,6 +52,12 @@ class GroupRowGroup(QueueableRowGroup):
 			lambda _row, group, ref: ref().emit('download-group', group),
 			self.weak_ref()
 		)
+		row.connect(
+			'toggle-favorite',
+			lambda _row, group, ref: ref().emit('toggle-favorite', group),
+			self.weak_ref()
+		)
+
 
 	def on_play_all(self):
 		'''Emit play signal with all songs.'''

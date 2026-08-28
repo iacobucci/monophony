@@ -271,6 +271,8 @@ def _write(playlists: list[Group] | None=None, ext_playlists: list[Group] | None
 			data = {'contents': playlist.serialize()['contents']}
 			if playlist.yt_id:
 				data['id'] = playlist.yt_id
+			if getattr(playlist, 'is_favorite', False):
+				data['is_favorite'] = True
 			serialized_playlists[playlist.title] = data
 		with open(lists_path, 'w') as lists_file:
 			json.dump(serialized_playlists, lists_file, indent='\t')
@@ -299,9 +301,11 @@ def read() -> list[Group]:
 			result = []
 			for name, val in raw_data.items():
 				yt_id = ''
+				is_fav = False
 				if isinstance(val, dict):
 					songs_raw = val.get('contents', [])
 					yt_id = val.get('id', '')
+					is_fav = val.get('is_favorite', False)
 				else:
 					songs_raw = val
 				songs = [
@@ -316,12 +320,42 @@ def read() -> list[Group]:
 						yt_id=song.get('id', '')
 					) for song in songs_raw
 				]
-				result.append(Group(title=name, yt_id=yt_id, songs=songs))
+				grp = Group(title=name, yt_id=yt_id, songs=songs)
+				grp.is_favorite = is_fav
+				result.append(grp)
 			_lock.unlock()
 			return result
 	except (OSError, json.decoder.JSONDecodeError):
 		_lock.unlock()
 		return []
+
+
+def toggle_favorite(playlist_title: str) -> bool:
+	'''Toggle favorite status of a playlist by title.
+
+	:param playlist_title: Title of playlist.
+	:return: New favorite state (True/False).
+	'''
+	current = read()
+	new_state = False
+	for p in current:
+		if p.title == playlist_title:
+			p.is_favorite = not getattr(p, 'is_favorite', False)
+			new_state = p.is_favorite
+			break
+	_write(playlists=current)
+	return new_state
+
+
+def get_sorted_playlists() -> list[Group]:
+	'''Get all local playlists sorted with favorites first.
+
+	:return: List of sorted Group objects.
+	'''
+	return sorted(
+		read(),
+		key=lambda p: (not getattr(p, 'is_favorite', False), p.title.lower())
+	)
 
 
 def read_external() -> list[Group]:
@@ -463,11 +497,14 @@ class SyncPlaylistsTask(Task):
 					logboth.warning(__name__, f'Could not fetch remote playlist "{r_id}"')
 					continue
 
-				if r_meta.get('title') and not remote_group.title:
-					remote_group.title = r_meta['title']
+				best_title = r_meta.get('title') or remote_group.title
+				if not best_title or best_title == r_id:
+					best_title = r_meta.get('title') or _('Playlist')
 
 				if r_id in local_by_yt_id:
 					local_group = local_by_yt_id[r_id]
+					if local_group.title == r_id or not local_group.title or (r_meta.get('title') and local_group.title != r_meta['title']):
+						local_group.title = best_title
 					local_song_ids = {s.yt_id for s in local_group.songs}
 					remote_song_ids = {s.yt_id for s in remote_group.songs}
 
@@ -479,9 +516,11 @@ class SyncPlaylistsTask(Task):
 					if songs_to_push:
 						yt.add_songs_to_user_playlist(r_id, songs_to_push)
 
-				elif r_meta.get('title') in local_by_title:
-					local_group = local_by_title[r_meta['title']]
+				elif best_title in local_by_title or r_meta.get('title') in local_by_title:
+					t_key = best_title if best_title in local_by_title else r_meta.get('title')
+					local_group = local_by_title[t_key]
 					local_group.yt_id = r_id
+					local_group.title = best_title
 					local_song_ids = {s.yt_id for s in local_group.songs}
 					remote_song_ids = {s.yt_id for s in remote_group.songs}
 
@@ -494,7 +533,7 @@ class SyncPlaylistsTask(Task):
 						yt.add_songs_to_user_playlist(r_id, songs_to_push)
 				else:
 					remote_group.yt_id = r_id
-					remote_group.title = make_unique_name(remote_group.title or r_meta.get('title', _('Playlist')))
+					remote_group.title = make_unique_name(best_title)
 					updated_local.append(remote_group)
 
 			# 2. Push Local Playlists without yt_id to Remote YouTube Account

@@ -142,7 +142,13 @@ class HomePage(Page):
 			lambda _group, playlist, ref: HomePage._on_delete_playlist(ref(), playlist),
 			self.weak_ref()
 		)
+		self._playlists_group.connect(
+			'toggle-favorite',
+			lambda _group, _playlist, ref: ref().update_playlists(),
+			self.weak_ref()
+		)
 		self._playlists_group.props.header_suffix.prepend(open_dir_button)
+
 
 		no_playlists_group = Adw.PreferencesGroup()
 		no_playlists_group.props.title = _('Your Playlists')
@@ -513,7 +519,8 @@ class HomePage(Page):
 
 	def update_playlists(self):
 		'''Update playlists widget content.'''
-		self._playlists_group.update_contents(playlists.read())
+		self._playlists_group.update_contents(playlists.get_sorted_playlists())
+
 
 	def update_recommendations(self):
 		'''Update recommendations widget content with local data.'''

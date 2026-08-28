@@ -1,5 +1,6 @@
 '''Group row widget.'''
 
+from monophony import playlists
 from monophony.data import Artist, Group, Song, TimeString
 from monophony.debug import MemoryDebugger
 from monophony.ui.popovers.group_row_popover import GroupRowPopover
@@ -28,6 +29,21 @@ class GroupRow(MemoryDebugger, Adw.ExpanderRow):
 		self.group = group
 		self._rows = []
 
+		is_fav = getattr(group, 'is_favorite', False)
+		self._favorite_button = Gtk.Button()
+		self._favorite_button.props.tooltip_text = _('Favorite')
+		self._favorite_button.props.icon_name = 'starred-symbolic' if is_fav else 'non-starred-symbolic'
+		self._favorite_button.props.has_frame = False
+		self._favorite_button.props.vexpand = False
+		self._favorite_button.props.valign = Gtk.Align.CENTER
+		if is_fav:
+			self._favorite_button.add_css_class('accent')
+		self._favorite_button.connect(
+			'clicked',
+			lambda _btn, ref: GroupRow._on_toggle_favorite(ref()),
+			self.weak_ref()
+		)
+
 		self._more_button = Gtk.MenuButton()
 		self._more_button.props.tooltip_text = _('More')
 		self._more_button.props.icon_name = 'view-more-symbolic'
@@ -41,9 +57,15 @@ class GroupRow(MemoryDebugger, Adw.ExpanderRow):
 
 		self.props.title = GLib.markup_escape_text(group.title, -1)
 		self.props.expanded = False
+		self.add_suffix(self._favorite_button)
 		self.add_suffix(self._more_button)
 		self.connect('notify::expanded', GroupRow._on_expanded)
 		self.update_subtitle()
+
+	@GObject.Signal(name='toggle-favorite', arg_types=(object,))
+	def _toggle_favorite_signal(self, _group: Group):
+		return
+
 
 	@GObject.Signal(name='play', arg_types=(object, object))
 	def _play(self, _song: Song, _group: Group):
@@ -85,7 +107,18 @@ class GroupRow(MemoryDebugger, Adw.ExpanderRow):
 		if self.props.expanded:
 			self.update_contents()
 
+	def _on_toggle_favorite(self):
+		new_state = playlists.toggle_favorite(self.group.title)
+		self.group.is_favorite = new_state
+		self._favorite_button.props.icon_name = 'starred-symbolic' if new_state else 'non-starred-symbolic'
+		if new_state:
+			self._favorite_button.add_css_class('accent')
+		else:
+			self._favorite_button.remove_css_class('accent')
+		self.emit('toggle-favorite', self.group)
+
 	def _on_show_more(self, button: Gtk.MenuButton):
+
 		self._popover = GroupRowPopover(bool(self.group.author.yt_id))
 		self._popover.connect(
 			'queue-group',
