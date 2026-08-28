@@ -800,7 +800,7 @@ def get_album_or_playlist(yt_id: str) -> Group | None:
 			logboth.info(__name__, f'Got album/playlist "{yt_id}" via WEB_REMIX ({len(parsed_group.songs)} songs)')
 			return parsed_group
 	except Exception as e:
-		logboth.debug(__name__, f'Unauthenticated get_playlist failed for "{yt_id}": {e}')
+		logboth.warning(__name__, f'Unauthenticated get_playlist failed for "{yt_id}": {e}')
 
 	# 3. Try authenticated YTMusic client
 	if is_authenticated():
@@ -812,7 +812,8 @@ def get_album_or_playlist(yt_id: str) -> Group | None:
 				logboth.info(__name__, f'Got album/playlist "{yt_id}" via authenticated WEB_REMIX ({len(parsed_group.songs)} songs)')
 				return parsed_group
 		except Exception as e:
-			logboth.debug(__name__, f'Authenticated get_playlist failed for "{yt_id}": {e}')
+			logboth.warning(__name__, f'Authenticated get_playlist failed for "{yt_id}": {e}')
+
 
 		if tv_group := _get_playlist_tv(yt_id):
 			logboth.info(__name__, f'Got album/playlist "{yt_id}" via TVHTML5 ({len(tv_group.songs)} songs)')
