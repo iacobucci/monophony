@@ -1,10 +1,13 @@
 '''Window for YouTube account integration and playlist synchronization.'''
 
+import subprocess
+
 from monophony import MIN_WIDTH, playlists, settings, yt
 from monophony.debug import MemoryDebugger
 from monophony.playlists import SyncPlaylistsTask
 
-from gi.repository import Adw, Gio, GLib, GObject, Gtk
+from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
+
 
 
 # Default Google TV OAuth credentials commonly used for YouTube TV device flow
@@ -105,21 +108,41 @@ class AccountWindow(MemoryDebugger, Adw.Dialog):
 				flow_group = Adw.PreferencesGroup()
 				flow_group.props.title = _('Authorization Steps')
 
+				verification_url = self._oauth_code_info.get('verification_url', 'https://www.google.com/device')
+				user_code = self._oauth_code_info.get('user_code', '')
+				full_url = f"{verification_url}?user_code={user_code}" if user_code and 'user_code' not in verification_url else verification_url
+
+				url_row = Adw.ActionRow()
+				url_row.props.title = _('1. Authorization Web Address')
+				url_row.props.subtitle = verification_url
+
+				copy_url_btn = Gtk.Button()
+				copy_url_btn.props.label = _('Copy Link')
+				copy_url_btn.connect('clicked', lambda _btn, link=full_url: Gdk.Display.get_default().get_clipboard().set(link))
+				url_row.add_suffix(copy_url_btn)
+				flow_group.add(url_row)
+
 				code_row = Adw.ActionRow()
-				code_row.props.title = _('User Authorization Code')
-				code_label = Gtk.Label(label=f"<b>{self._oauth_code_info.get('user_code', '')}</b>")
+				code_row.props.title = _('2. Your Code')
+				code_label = Gtk.Label(label=f"<b>{user_code}</b>")
 				code_label.props.use_markup = True
 				code_label.add_css_class('title-1')
+
+				copy_code_btn = Gtk.Button()
+				copy_code_btn.props.label = _('Copy Code')
+				copy_code_btn.connect('clicked', lambda _btn, code=user_code: Gdk.Display.get_default().get_clipboard().set(code))
+
 				code_row.add_suffix(code_label)
+				code_row.add_suffix(copy_code_btn)
 				flow_group.add(code_row)
 
 				open_browser_btn = Gtk.Button()
 				open_browser_btn.props.label = _('Open Authorization Page')
-				open_browser_btn.add_css_class('pill')
+				open_browser_btn.add_css_class('suggested-action')
 				open_browser_btn.connect('clicked', lambda _btn: self._on_open_browser())
 
 				browser_row = Adw.ActionRow()
-				browser_row.props.title = _('Step 1: Grant permissions in browser')
+				browser_row.props.title = _('3. Open Browser Automatically')
 				browser_row.add_suffix(open_browser_btn)
 				flow_group.add(browser_row)
 
@@ -169,7 +192,15 @@ class AccountWindow(MemoryDebugger, Adw.Dialog):
 		user_code = self._oauth_code_info.get('user_code', '')
 		if user_code and 'user_code' not in url:
 			url = f"{url}?user_code={user_code}"
-		Gio.AppInfo.launch_default_for_uri(url)
+		try:
+			Gio.AppInfo.launch_default_for_uri(url, None)
+		except Exception:
+			pass
+		try:
+			subprocess.Popen(['xdg-open', url])
+		except Exception:
+			pass
+
 
 	def _on_finish_auth(self):
 		if not self._oauth_code_info:
