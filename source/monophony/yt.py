@@ -8,7 +8,8 @@ import subprocess
 import time
 import traceback
 
-from monophony import NAME, get_user_config_dir, settings
+from monophony import NAME, cache, get_user_config_dir, settings
+
 from monophony.asynchronous import Task
 from monophony.data import Artist, Group, Song, TimeString, YTItem
 
@@ -783,16 +784,28 @@ def get_album_or_playlist(yt_id: str) -> Group | None:
 	'''
 	logboth.info(__name__, f'Getting album/playlist "{yt_id}"...')
 
+	# 1. Try unauthenticated WEB_REMIX client (vivi-music style: gets all tracks without OAuth HTTP 400 or 15-song TV limits)
+	try:
+		unauth = ytmusicapi.YTMusic()
+		pl_data = unauth.get_playlist(yt_id, limit=None)
+		parsed_group = _parse_playlist_dict(yt_id, pl_data)
+		if parsed_group and parsed_group.songs:
+			logboth.info(__name__, f'Got album/playlist "{yt_id}" via WEB_REMIX ({len(parsed_group.songs)} songs)')
+			return parsed_group
+	except Exception as e:
+		logboth.warning(__name__, f'Unauthenticated get_playlist failed for "{yt_id}": {e}')
+
+	# 2. Try authenticated YTMusic client
 	if is_authenticated():
 		try:
 			yt = get_yt_client()
 			pl_data = yt.get_playlist(yt_id, limit=None)
 			parsed_group = _parse_playlist_dict(yt_id, pl_data)
 			if parsed_group and parsed_group.songs:
-				logboth.info(__name__, f'Got album/playlist "{yt_id}" ({len(parsed_group.songs)} songs)')
+				logboth.info(__name__, f'Got album/playlist "{yt_id}" via authenticated WEB_REMIX ({len(parsed_group.songs)} songs)')
 				return parsed_group
 		except Exception as e:
-			logboth.warning(__name__, f'get_playlist standard call failed for "{yt_id}" ({e}), trying TVHTML5 fallback')
+			logboth.warning(__name__, f'Authenticated get_playlist failed for "{yt_id}": {e}')
 
 		if tv_group := _get_playlist_tv(yt_id):
 			logboth.info(__name__, f'Got album/playlist "{yt_id}" via TVHTML5 ({len(tv_group.songs)} songs)')
@@ -810,6 +823,7 @@ def get_album_or_playlist(yt_id: str) -> Group | None:
 
 	logboth.error(__name__, 'Failed to get album/playlist')
 	return None
+
 
 
 
