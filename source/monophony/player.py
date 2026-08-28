@@ -47,6 +47,9 @@ class FindRadioSongsTask(Task):
 
 	'''
 
+	is_user_priority = True
+
+
 	def _function(self, from_song: Song, ignore_songs: Group) -> Group | None:
 		return yt.get_similar_songs(from_song, ignore_songs)
 
@@ -64,6 +67,9 @@ class FindURITask(Task):
 		)
 
 	'''
+
+	is_user_priority = True
+
 
 	def _function(self, song: Song, known_uris: dict) -> str | None:
 		logboth.info(

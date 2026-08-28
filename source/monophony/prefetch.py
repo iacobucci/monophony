@@ -1,7 +1,7 @@
 '''Song prefetching management module.'''
 
 from monophony import cache, downloads, settings
-from monophony.asynchronous import Task
+from monophony.asynchronous import Task, wait_if_user_priority
 from monophony.data import Group, Song
 
 import logboth
@@ -17,6 +17,8 @@ class PrefetchTask(Task):
 				logboth.info(__name__, 'Prefetching canceled')
 				return
 
+			wait_if_user_priority()
+
 			if cache.is_cached(song) or downloads.is_downloaded(song):
 				logboth.info(__name__, f'Song "{song.yt_id}" already cached/downloaded')
 				continue
@@ -24,6 +26,7 @@ class PrefetchTask(Task):
 			logboth.info(__name__, f'Prefetching upcoming song #{i + 1} "{song.yt_id}" ({song.title})...')
 			cache.cache_song(song)
 			self._update_progress((i + 1) / len(songs_to_prefetch))
+
 
 		logboth.info(__name__, 'Prefetching completed')
 

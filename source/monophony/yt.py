@@ -885,6 +885,9 @@ class ParseResultsTask(Task):
 
 	'''
 
+	is_user_priority = True
+
+
 	def _function(
 		self, yt: ytmusicapi.YTMusic, data: list[dict], limit: int | None=None,
 	) -> list[SearchResult] | None:
@@ -1143,6 +1146,8 @@ class SearchTask(Task):
 		)
 
 	'''
+
+	is_user_priority = True
 
 	def _on_parse_progress_update(self, task: ParseResultsTask, progress: float):
 		if not task.is_canceled():

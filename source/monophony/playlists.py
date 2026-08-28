@@ -10,8 +10,9 @@ import os
 import time
 
 from monophony import NAME, get_user_config_dir, yt
-from monophony.asynchronous import Task
+from monophony.asynchronous import Task, wait_if_user_priority
 from monophony.data import Artist, Group, Song
+
 
 import logboth
 from gi.repository import GLib
@@ -489,10 +490,12 @@ class SyncPlaylistsTask(Task):
 			for r_id, r_meta in remote_yt_ids.items():
 				if self.is_canceled():
 					return False
+				wait_if_user_priority()
 				count += 1
 				self._update_progress(count / (total or 1))
 
 				remote_group = yt.get_album_or_playlist(r_id)
+
 				if not remote_group:
 					logboth.warning(__name__, f'Could not fetch remote playlist "{r_id}"')
 					continue
