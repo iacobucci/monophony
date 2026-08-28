@@ -27,7 +27,11 @@ class BaseTestCase(unittest.TestCase):
 
 	def tearDown(self):
 		if hasattr(self, 'temp_config'):
-			self.temp_config.cleanup()
+			try:
+				self.temp_config.cleanup()
+			except Exception:
+				shutil.rmtree(self.temp_config.name, ignore_errors=True)
+
 
 
 

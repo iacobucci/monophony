@@ -1088,10 +1088,19 @@ class SearchTask(Task):
 			max_retries = 3
 			one_result_retries = 0
 			while True:
-				data = (
-					yt.search(query, filter=filter_, limit=100) if filter_
-						else yt.search(query)
-				)
+				try:
+					data = (
+						yt.search(query, filter=filter_, limit=100) if filter_
+							else yt.search(query)
+					)
+				except Exception as e:
+					logboth.warning(__name__, f'Search call failed ({e}), using unauthenticated fallback')
+					unauth_yt = ytmusicapi.YTMusic()
+					data = (
+						unauth_yt.search(query, filter=filter_, limit=100) if filter_
+							else unauth_yt.search(query)
+					)
+
 				# Work around weird single-result response that happens sometimes
 				if len(data) > 1 or one_result_retries == max_retries:
 					break
@@ -1101,9 +1110,10 @@ class SearchTask(Task):
 				)
 				yt = get_yt_client() # New session usually fixes the issue
 				one_result_retries += 1
-		except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.RequestException):
-			logboth.error(__name__, 'Failed to search', traceback.format_exc())
+		except Exception as e:
+			logboth.error(__name__, f'Failed to search: {e}', traceback.format_exc())
 			return None
+
 
 		if self.is_canceled():
 			logboth.info(__name__, 'Canceled search')
