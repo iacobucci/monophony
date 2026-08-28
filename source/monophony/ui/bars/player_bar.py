@@ -46,7 +46,11 @@ class PlayerBar(Gtk.Box):
 
 			.player-thumbnail {
 				border-radius: 6px;
-				margin-right: 4px;
+				min-width: 36px;
+				min-height: 36px;
+				max-width: 36px;
+				max-height: 36px;
+				margin-right: 6px;
 				margin-top: 2px;
 				margin-bottom: 2px;
 			}
@@ -106,11 +110,15 @@ class PlayerBar(Gtk.Box):
 
 		self._thumbnail_picture = Gtk.Picture()
 		self._thumbnail_picture.props.content_fit = Gtk.ContentFit.COVER
-		self._thumbnail_picture.set_size_request(40, 40)
+		self._thumbnail_picture.set_size_request(36, 36)
+		self._thumbnail_picture.props.can_shrink = True
+		self._thumbnail_picture.props.hexpand = False
+		self._thumbnail_picture.props.vexpand = False
 		self._thumbnail_picture.props.valign = Gtk.Align.CENTER
 		self._thumbnail_picture.props.halign = Gtk.Align.CENTER
 		self._thumbnail_picture.props.visible = False
 		self._thumbnail_picture.add_css_class('player-thumbnail')
+
 
 		self._title_link = Gtk.LinkButton.new_with_label('', '')
 		self._title_link.props.margin_bottom = 2
