@@ -145,6 +145,70 @@ def logout_account():
 	logboth.info(__name__, 'Logged out YouTube account')
 
 
+def _get_user_playlists_tv(yt: ytmusicapi.YTMusic) -> list[dict]:
+	try:
+		body = {'browseId': 'FEmusic_liked_playlists'}
+		ctx = {
+			'context': {
+				'client': {
+					'clientName': 'TVHTML5',
+					'clientVersion': '7.20260828.00.00',
+					'hl': 'en'
+				},
+				'user': {}
+			}
+		}
+		body.update(ctx)
+		res = yt._session.post('https://music.youtube.com/youtubei/v1/browse', json=body, headers=yt.headers).json()
+
+		def extract_text(obj):
+			if not obj:
+				return ''
+			if isinstance(obj, str):
+				return obj
+			if isinstance(obj, dict):
+				if 'simpleText' in obj:
+					return obj['simpleText']
+				if 'runs' in obj and isinstance(obj['runs'], list):
+					return ''.join(r.get('text', '') for r in obj['runs'] if isinstance(r, dict))
+			return ''
+
+		def find_tiles(obj):
+			tiles = []
+			if isinstance(obj, dict):
+				if 'tileRenderer' in obj:
+					tr = obj['tileRenderer']
+					meta = tr.get('metadata', {}).get('tileMetadataRenderer', {})
+					title = extract_text(meta.get('title'))
+					pid = ''
+					cmd = tr.get('onSelectCommand', {})
+					if 'watchEndpoint' in cmd:
+						pid = cmd['watchEndpoint'].get('playlistId', '')
+					elif 'browseEndpoint' in cmd:
+						pid = cmd['browseEndpoint'].get('browseId', '').removeprefix('VL')
+
+					if pid:
+						tiles.append({'playlistId': pid, 'title': title})
+				for v in obj.values():
+					tiles.extend(find_tiles(v))
+			elif isinstance(obj, list):
+				for item in obj:
+					tiles.extend(find_tiles(item))
+			return tiles
+
+		parsed = find_tiles(res)
+		seen = set()
+		unique = []
+		for p in parsed:
+			if p['playlistId'] not in seen:
+				seen.add(p['playlistId'])
+				unique.append(p)
+		return unique
+	except Exception as e:
+		logboth.error(__name__, f'Failed to get TV library playlists: {e}')
+		return []
+
+
 def get_user_playlists() -> list[dict]:
 	'''Get list of playlists from the authenticated user's library.
 
@@ -154,10 +218,15 @@ def get_user_playlists() -> list[dict]:
 		return []
 	try:
 		yt = get_yt_client()
-		return yt.get_library_playlists(limit=None)
+		try:
+			return yt.get_library_playlists(limit=None)
+		except Exception as e:
+			logboth.warning(__name__, f'get_library_playlists standard call failed ({e}), using TVHTML5 fallback')
+			return _get_user_playlists_tv(yt)
 	except Exception as e:
 		logboth.error(__name__, f'Failed to get library playlists: {e}')
 		return []
+
 
 
 def create_user_playlist(title: str, description: str='', video_ids: list[str] | None=None) -> str | None:
