@@ -42,6 +42,17 @@ def get_yt_client() -> ytmusicapi.YTMusic:
 
 	if os.path.exists(oauth_path):
 		try:
+			with contextlib.suppress(Exception):
+				with open(oauth_path, encoding='utf-8') as f:
+					token_data = json.load(f)
+				if isinstance(token_data, dict):
+					if not client_id and token_data.get('client_id'):
+						client_id = token_data['client_id']
+						settings.save({'oauth_client_id': client_id})
+					if not client_secret and token_data.get('client_secret'):
+						client_secret = token_data['client_secret']
+						settings.save({'oauth_client_secret': client_secret})
+
 			if client_id and client_secret:
 				creds = ytmusicapi.OAuthCredentials(client_id, client_secret)
 				return ytmusicapi.YTMusic(oauth_path, oauth_credentials=creds)
@@ -50,6 +61,7 @@ def get_yt_client() -> ytmusicapi.YTMusic:
 			logboth.error(__name__, f'Failed to load OAuth client: {e}')
 
 	return ytmusicapi.YTMusic()
+
 
 
 def is_authenticated() -> bool:
@@ -116,10 +128,19 @@ def finish_oauth_flow(client_id: str, client_secret: str, device_code: str) -> t
 	try:
 		creds = ytmusicapi.OAuthCredentials(client_id, client_secret)
 		token_dict = creds.token_from_code(device_code)
+		if isinstance(token_dict, dict):
+			token_dict['client_id'] = client_id
+			token_dict['client_secret'] = client_secret
+		elif hasattr(token_dict, 'as_dict'):
+			token_dict = token_dict.as_dict()
+			token_dict['client_id'] = client_id
+			token_dict['client_secret'] = client_secret
+
 		oauth_path = get_oauth_path()
 		os.makedirs(os.path.dirname(oauth_path), exist_ok=True)
 		with open(oauth_path, 'w', encoding='utf-8') as f:
 			json.dump(token_dict, f, indent=True)
+
 		settings.save({'oauth_client_id': client_id, 'oauth_client_secret': client_secret})
 		logboth.info(__name__, 'Successfully authenticated YouTube account')
 		return True, ''
@@ -133,16 +154,14 @@ def finish_oauth_flow(client_id: str, client_secret: str, device_code: str) -> t
 		return False, msg
 
 
-
-
 def logout_account():
-	'''Remove YouTube account authentication.'''
+	'''Remove YouTube account authentication token while preserving client credentials.'''
 	oauth_path = get_oauth_path()
 	if os.path.exists(oauth_path):
 		with contextlib.suppress(OSError):
 			os.remove(oauth_path)
-	settings.save({'oauth_client_id': '', 'oauth_client_secret': ''})
-	logboth.info(__name__, 'Logged out YouTube account')
+	logboth.info(__name__, 'Logged out YouTube account token')
+
 
 
 def _get_user_playlists_tv(yt: ytmusicapi.YTMusic) -> list[dict]:
