@@ -727,6 +727,54 @@ def _get_playlist_tv(yt_id: str) -> Group | None:
 
 
 
+def _parse_playlist_dict(yt_id: str, data: dict) -> Group | None:
+	if not data or not isinstance(data, dict):
+		return None
+	title = data.get('title', '')
+	author_name = ''
+	artists = data.get('artists', [])
+	if artists and isinstance(artists, list):
+		author_name = artists[0].get('name', '')
+	elif isinstance(data.get('author'), str):
+		author_name = data['author']
+	elif isinstance(data.get('author'), dict):
+		author_name = data['author'].get('name', '')
+
+	songs = []
+	for t in data.get('tracks', []):
+		if not t or not isinstance(t, dict):
+			continue
+		vid = t.get('videoId') or t.get('id', '')
+		if not vid:
+			continue
+		t_title = t.get('title', '') or vid
+		artist_name = ''
+		t_artists = t.get('artists', [])
+		if t_artists and isinstance(t_artists, list):
+			artist_name = t_artists[0].get('name', '')
+		elif isinstance(t.get('byline'), str):
+			artist_name = t['byline']
+
+		length = t.get('duration', '') or t.get('length', '')
+		thumb = ''
+		thumbnails = t.get('thumbnails', [])
+		if thumbnails and isinstance(thumbnails, list):
+			thumb = thumbnails[-1].get('url', '')
+		thumb = cache.get_high_res_thumbnail_url(thumb)
+
+		songs.append(Song(
+			title=t_title,
+			author=Artist(name=artist_name),
+			length=length,
+			thumbnail=thumb,
+			yt_id=vid
+		))
+
+	if songs:
+		return Group(title=title, author=Artist(name=author_name), songs=songs, yt_id=yt_id)
+	return None
+
+
 def get_album_or_playlist(yt_id: str) -> Group | None:
 	'''Get group from YT ID.
 
@@ -736,6 +784,16 @@ def get_album_or_playlist(yt_id: str) -> Group | None:
 	logboth.info(__name__, f'Getting album/playlist "{yt_id}"...')
 
 	if is_authenticated():
+		try:
+			yt = get_yt_client()
+			pl_data = yt.get_playlist(yt_id, limit=None)
+			parsed_group = _parse_playlist_dict(yt_id, pl_data)
+			if parsed_group and parsed_group.songs:
+				logboth.info(__name__, f'Got album/playlist "{yt_id}" ({len(parsed_group.songs)} songs)')
+				return parsed_group
+		except Exception as e:
+			logboth.warning(__name__, f'get_playlist standard call failed for "{yt_id}" ({e}), trying TVHTML5 fallback')
+
 		if tv_group := _get_playlist_tv(yt_id):
 			logboth.info(__name__, f'Got album/playlist "{yt_id}" via TVHTML5 ({len(tv_group.songs)} songs)')
 			return tv_group
@@ -752,6 +810,7 @@ def get_album_or_playlist(yt_id: str) -> Group | None:
 
 	logboth.error(__name__, 'Failed to get album/playlist')
 	return None
+
 
 
 
