@@ -15,12 +15,13 @@ from monophony import (
 	downloads,
 	recommendations,
 	settings,
+	yt,
 )
 from monophony.asynchronous import Task
 from monophony.data import Artist, Group, Song
 from monophony.downloads import DownloadTask
 from monophony.player import Player
-from monophony.playlists import UpdateExternalTask
+from monophony.playlists import SyncPlaylistsTask, UpdateExternalTask
 from monophony.ui.bars.player_bar import PlayerBar
 from monophony.ui.pages.artist_page import ArtistPage
 from monophony.ui.pages.home_page import HomePage
@@ -28,10 +29,12 @@ from monophony.ui.pages.loading_page import LoadingPage
 from monophony.ui.pages.results_page import ResultsPage
 from monophony.ui.pages.status_page import StatusPage
 from monophony.ui.queue_sidebar import QueueSidebar
+from monophony.ui.windows.account_window import AccountWindow
 from monophony.ui.windows.add_window import AddWindow
 from monophony.ui.windows.import_window import ImportWindow
 from monophony.ui.windows.message_window import MessageWindow
 from monophony.yt import GetArtistTask, GetRecommendationsTask, SearchTask
+
 
 import logboth
 from gi.repository import Adw, Gio, GLib, GObject, Gtk
@@ -62,12 +65,19 @@ class PrepareHomePageTask(Task):
 		recommendations_task.start()
 		update_task.start()
 
+		if yt.is_authenticated() and settings.load('auto_sync_playlists', True):
+			sync_task = SyncPlaylistsTask()
+			sync_task.start()
+			while sync_task.is_running():
+				time.sleep(0.5)
+
 		while recommendations_task.is_running() or update_task.is_running():
 			time.sleep(0.5)
 
 		result = recommendations_task.result
 		if result:
 			recommendations.write(result)
+
 
 
 class MainWindow(Adw.ApplicationWindow):
@@ -275,6 +285,11 @@ class MainWindow(Adw.ApplicationWindow):
 			lambda _page, ref: MainWindow._on_show_about(ref()),
 			self.weak_ref()
 		)
+		self._home_page.connect(
+			'show-account',
+			lambda _page, ref: MainWindow._on_show_account(ref()),
+			self.weak_ref()
+		)
 		self._home_page.update_downloads(self._downloader.get_downloads())
 
 		loading_page = LoadingPage()
@@ -283,6 +298,12 @@ class MainWindow(Adw.ApplicationWindow):
 			lambda _page, ref: MainWindow._on_show_about(ref()),
 			self.weak_ref()
 		)
+		loading_page.connect(
+			'show-account',
+			lambda _page, ref: MainWindow._on_show_account(ref()),
+			self.weak_ref()
+		)
+
 
 		self._navigation_view = Adw.NavigationView()
 		self._navigation_view.connect(
@@ -720,12 +741,27 @@ class MainWindow(Adw.ApplicationWindow):
 			lambda _page, ref: MainWindow._on_show_about(ref()),
 			self.weak_ref()
 		)
+		page.connect(
+			'show-account',
+			lambda _page, ref: MainWindow._on_show_account(ref()),
+			self.weak_ref()
+		)
 		self._navigation_view.push(page)
 
 	def _on_seek(self, value: float):
 		self._player.seek(value)
 
+	def _on_show_account(self):
+		account_dialog = AccountWindow()
+		account_dialog.connect(
+			'sync-finished',
+			lambda _dlg, ref: ref()._home_page.update_playlists(),
+			self.weak_ref()
+		)
+		account_dialog.present(self)
+
 	def _on_show_about(self):
+
 		about_dialog = Adw.AboutDialog.new_from_appdata(
 			GRESOURCES_PATH + '/metainfo.xml', __version__
 		)

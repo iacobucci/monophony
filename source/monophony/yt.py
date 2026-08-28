@@ -1,11 +1,14 @@
 '''Wrappers for YT.'''
 
 import contextlib
+import json
+import os
 import re
 import subprocess
 import time
 import traceback
 
+from monophony import NAME, settings
 from monophony.asynchronous import Task
 from monophony.data import Artist, Group, Song, TimeString, YTItem
 
@@ -19,6 +22,192 @@ import ytmusicapi
 # the case of an internet connection error, requests.exceptions.RequestException is
 # raised instead
 _YTMUSICAPI_PARSING_EXCEPTIONS = (AttributeError, KeyError, TypeError)
+
+
+def get_oauth_path() -> str:
+	'''Get path to oauth.json file.'''
+	return os.getenv(
+		'XDG_CONFIG_HOME', os.path.expanduser('~/.config')
+	) + '/' + NAME + '/oauth.json'
+
+
+def get_yt_client() -> ytmusicapi.YTMusic:
+	'''Get a YTMusic client instance, using OAuth credentials if available.
+
+	:return: YTMusic instance.
+	'''
+	oauth_path = get_oauth_path()
+	client_id = settings.load('oauth_client_id', '')
+	client_secret = settings.load('oauth_client_secret', '')
+
+	if os.path.exists(oauth_path) and client_id and client_secret:
+		try:
+			creds = ytmusicapi.OAuthCredentials(client_id, client_secret)
+			return ytmusicapi.YTMusic(oauth_path, oauth_credentials=creds)
+		except Exception as e:
+			logboth.error(__name__, f'Failed to load OAuth client: {e}')
+
+	return ytmusicapi.YTMusic()
+
+
+def is_authenticated() -> bool:
+	'''Check if YouTube account is authenticated via OAuth.
+
+	:return: True if authenticated.
+	'''
+	oauth_path = get_oauth_path()
+	return os.path.exists(oauth_path) and bool(settings.load('oauth_client_id'))
+
+
+def start_oauth_flow(client_id: str, client_secret: str) -> dict | None:
+	'''Start OAuth device code flow.
+
+	:param client_id: OAuth client ID.
+	:param client_secret: OAuth client secret.
+	:return: Dict with user_code, device_code, verification_url, expires_in, or None if error.
+	'''
+	try:
+		creds = ytmusicapi.OAuthCredentials(client_id, client_secret)
+		return creds.get_code()
+	except Exception as e:
+		logboth.error(__name__, f'Failed to start OAuth flow: {e}')
+		return None
+
+
+def finish_oauth_flow(client_id: str, client_secret: str, device_code: str) -> bool:
+	'''Finish OAuth flow with device code and save credentials.
+
+	:param client_id: OAuth client ID.
+	:param client_secret: OAuth client secret.
+	:param device_code: Device code obtained from start_oauth_flow.
+	:return: True if successfully authenticated and saved.
+	'''
+	try:
+		creds = ytmusicapi.OAuthCredentials(client_id, client_secret)
+		token_dict = creds.token_from_code(device_code)
+		oauth_path = get_oauth_path()
+		os.makedirs(os.path.dirname(oauth_path), exist_ok=True)
+		with open(oauth_path, 'w', encoding='utf-8') as f:
+			json.dump(token_dict, f, indent=True)
+		settings.save({'oauth_client_id': client_id, 'oauth_client_secret': client_secret})
+		logboth.info(__name__, 'Successfully authenticated YouTube account')
+		return True
+	except Exception as e:
+		logboth.error(__name__, f'Failed to complete OAuth flow: {e}')
+		return False
+
+
+def logout_account():
+	'''Remove YouTube account authentication.'''
+	oauth_path = get_oauth_path()
+	if os.path.exists(oauth_path):
+		with contextlib.suppress(OSError):
+			os.remove(oauth_path)
+	settings.save({'oauth_client_id': '', 'oauth_client_secret': ''})
+	logboth.info(__name__, 'Logged out YouTube account')
+
+
+def get_user_playlists() -> list[dict]:
+	'''Get list of playlists from the authenticated user's library.
+
+	:return: List of playlist dicts.
+	'''
+	if not is_authenticated():
+		return []
+	try:
+		yt = get_yt_client()
+		return yt.get_library_playlists(limit=None)
+	except Exception as e:
+		logboth.error(__name__, f'Failed to get library playlists: {e}')
+		return []
+
+
+def create_user_playlist(title: str, description: str='', video_ids: list[str] | None=None) -> str | None:
+	'''Create a playlist in the user's YouTube account library.
+
+	:param title: Playlist title.
+	:param description: Optional description.
+	:param video_ids: List of song YT IDs to add.
+	:return: Created YouTube playlist ID or None.
+	'''
+	if not is_authenticated():
+		return None
+	try:
+		yt = get_yt_client()
+		playlist_id = yt.create_playlist(title, description, video_ids=video_ids or [])
+		logboth.info(__name__, f'Created remote playlist "{title}" ({playlist_id})')
+		return playlist_id
+	except Exception as e:
+		logboth.error(__name__, f'Failed to create user playlist "{title}": {e}')
+		return None
+
+
+def add_songs_to_user_playlist(playlist_id: str, song_ids: list[str]) -> bool:
+	'''Add songs to a user's YouTube playlist.
+
+	:param playlist_id: YT playlist ID.
+	:param song_ids: List of song YT IDs to add.
+	:return: True if successful.
+	'''
+	if not is_authenticated() or not playlist_id or not song_ids:
+		return False
+	try:
+		yt = get_yt_client()
+		yt.add_playlist_items(playlist_id, song_ids)
+		logboth.info(__name__, f'Added {len(song_ids)} songs to remote playlist "{playlist_id}"')
+		return True
+	except Exception as e:
+		logboth.error(__name__, f'Failed to add songs to remote playlist "{playlist_id}": {e}')
+		return False
+
+
+def remove_songs_from_user_playlist(playlist_id: str, song_ids: list[str]) -> bool:
+	'''Remove songs from a user's YouTube playlist.
+
+	:param playlist_id: YT playlist ID.
+	:param song_ids: List of song YT IDs to remove.
+	:return: True if successful.
+	'''
+	if not is_authenticated() or not playlist_id or not song_ids:
+		return False
+	try:
+		yt = get_yt_client()
+		playlist_data = yt.get_playlist(playlist_id, limit=None)
+		tracks = playlist_data.get('tracks', [])
+		items_to_remove = []
+		for track in tracks:
+			if track.get('videoId') in song_ids and 'setVideoId' in track:
+				items_to_remove.append({
+					'videoId': track['videoId'],
+					'setVideoId': track['setVideoId']
+				})
+		if items_to_remove:
+			yt.remove_playlist_items(playlist_id, items_to_remove)
+			logboth.info(__name__, f'Removed {len(items_to_remove)} songs from remote playlist "{playlist_id}"')
+			return True
+		return False
+	except Exception as e:
+		logboth.error(__name__, f'Failed to remove songs from remote playlist "{playlist_id}": {e}')
+		return False
+
+
+def delete_user_playlist(playlist_id: str) -> bool:
+	'''Delete a user's YouTube playlist.
+
+	:param playlist_id: YT playlist ID to delete.
+	:return: True if successful.
+	'''
+	if not is_authenticated() or not playlist_id:
+		return False
+	try:
+		yt = get_yt_client()
+		yt.delete_playlist(playlist_id)
+		logboth.info(__name__, f'Deleted remote playlist "{playlist_id}"')
+		return True
+	except Exception as e:
+		logboth.error(__name__, f'Failed to delete remote playlist "{playlist_id}": {e}')
+		return False
+
 
 
 class SearchResult:
@@ -248,7 +437,7 @@ def get_similar_songs(song: Song, ignore: Group | None=None) -> Group | None:
 		f'Getting similar song to "{song.yt_id}" ignoring '
 		f'{len(ignore.songs) if ignore else 0} songs...'
 	)
-	yt = ytmusicapi.YTMusic()
+	yt = get_yt_client()
 	ignore = ignore or Group()
 
 	try:
@@ -288,7 +477,7 @@ def get_song(id_: str) -> Song | None:
 	:return: Song, if found.
 	'''
 	logboth.info(__name__, f'Getting song "{id_}"...')
-	yt = ytmusicapi.YTMusic()
+	yt = get_yt_client()
 
 	try:
 		result = yt.get_song(id_)['videoDetails']
@@ -316,7 +505,7 @@ def get_album_or_playlist(yt_id: str) -> Group | None:
 	logboth.info(__name__, f'Getting album/playlist "{yt_id}"...')
 
 	if result := _parse_single_result(
-		ytmusicapi.YTMusic(),
+		get_yt_client(),
 		{
 			'resultType': 'playlist',
 			'playlistId': yt_id
@@ -338,7 +527,7 @@ def song_exists(song: Song) -> bool | None:
 	:return: Whether the song is available, if can be determined.
 	'''
 	logboth.info(__name__, f'Checking if song "{song.yt_id}" exists...')
-	yt = ytmusicapi.YTMusic()
+	yt = get_yt_client()
 	try:
 		song_data = yt.get_song(song.yt_id)
 	except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.RequestException):
@@ -364,7 +553,7 @@ class ParseResultsTask(Task):
 	.. code-block::
 
 		ParseResultsTask(
-			args=(ytmusicapi.YTMusic(), raw_data, limit)
+			args=(get_yt_client(), raw_data, limit)
 		)
 
 	'''
@@ -431,7 +620,7 @@ class GetArtistTask(Task):
 			f'Getting artist "{browse_id}" with filter "{filter_}" and limit of '
 			f'{limit} per type...'
 		)
-		yt = ytmusicapi.YTMusic()
+		yt = get_yt_client()
 
 		logboth.info(__name__, 'Fetching artist...')
 		try:
@@ -577,7 +766,7 @@ class GetRecommendationsTask(Task):
 
 	def _function(self) -> list[Group] | None:
 		logboth.info(__name__, 'Getting recommendations...')
-		yt = ytmusicapi.YTMusic()
+		yt = get_yt_client()
 
 		try:
 			data = yt.get_home()
@@ -629,7 +818,7 @@ class SearchTask(Task):
 		self, query: str, filter_: str='', limit: int | None=None
 	) -> list[SearchResult] | None:
 		logboth.info(__name__, f'Searching for "{query}" with filter "{filter_}"...')
-		yt = ytmusicapi.YTMusic()
+		yt = get_yt_client()
 
 		self._update_progress(0.1)
 		try:
@@ -671,7 +860,7 @@ class SearchTask(Task):
 					__name__,
 					f'Got fewer than 2 results - retrying... ({one_result_retries + 1})'
 				)
-				yt = ytmusicapi.YTMusic() # New session usually fixes the issue
+				yt = get_yt_client() # New session usually fixes the issue
 				one_result_retries += 1
 		except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.RequestException):
 			logboth.error(__name__, 'Failed to search', traceback.format_exc())

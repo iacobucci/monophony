@@ -5,12 +5,16 @@
 
 import os
 import shutil
+import sys
 import time
 import unittest
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from monophony import ID, NAME, __version__, playlists, settings
 from monophony.data import Group, Song
 from monophony.playlists import ImportTask
+
 
 
 class BaseTestCase(unittest.TestCase):
@@ -156,5 +160,28 @@ class SettingsTestCase(BaseTestCase):
 		assert(settings._read() == values)
 
 
+class YouTubeAccountTestCase(BaseTestCase):
+	def test_auth_status(self):
+		from monophony import yt
+		assert(not yt.is_authenticated())
+
+	def test_playlist_yt_id_persistence(self):
+		playlist = Group(title='SyncList', yt_id='PL12345', songs=[Song(title='S1', yt_id='s1')])
+		playlists._write([playlist])
+		loaded = playlists.read()
+		assert(len(loaded) == 1)
+		assert(loaded[0].title == 'SyncList')
+		assert(loaded[0].yt_id == 'PL12345')
+
+	def test_sync_unauthenticated(self):
+		from monophony.playlists import SyncPlaylistsTask
+		task = SyncPlaylistsTask()
+		task.start()
+		while task.is_running():
+			time.sleep(0.1)
+		assert(task.result is False)
+
+
 if __name__ == '__main__':
 	unittest.main()
+

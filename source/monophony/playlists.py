@@ -112,8 +112,13 @@ def delete(playlist_name: str):
 	:playlist_name: Name of playlist to delete.
 	'''
 	logboth.info(__name__, f'Deleting playlist "{playlist_name}"...')
+	current_lists = read()
+	for playlist in current_lists:
+		if playlist.title == playlist_name and playlist.yt_id and yt.is_authenticated():
+			yt.delete_user_playlist(playlist.yt_id)
+
 	_write(
-		playlists=[playlist for playlist in read() if playlist.title != playlist_name]
+		playlists=[playlist for playlist in current_lists if playlist.title != playlist_name]
 	)
 	logboth.info(__name__, 'Deleted playlist')
 
@@ -142,16 +147,21 @@ def add_songs(songs: Group, playlist_name: str):
 		__name__, f'Adding {len(songs.songs)} songs to playlist "{playlist_name}"...'
 	)
 	new_lists = read()
-	for song in songs.songs:
-		for playlist in new_lists:
-			if playlist.title == playlist_name:
-				for existing_song in playlist.songs:
-					if song.yt_id == existing_song.yt_id:
-						return
-				playlist.songs.append(song)
-				break
+	added_song_ids = []
+	target_yt_id = ''
+	for playlist in new_lists:
+		if playlist.title == playlist_name:
+			target_yt_id = playlist.yt_id
+			for song in songs.songs:
+				if not any(existing_song.yt_id == song.yt_id for existing_song in playlist.songs):
+					playlist.songs.append(song)
+					added_song_ids.append(song.yt_id)
+			break
 
 	_write(playlists=new_lists)
+	if target_yt_id and added_song_ids and yt.is_authenticated():
+		yt.add_songs_to_user_playlist(target_yt_id, added_song_ids)
+
 	logboth.info(__name__, 'Added songs to playlist')
 
 
@@ -210,12 +220,17 @@ def remove_song(song: Song, playlist_name: str):
 		__name__, f'Removing song "{song.yt_id}" from playlist "{playlist_name}"...'
 	)
 	new_lists = read()
+	target_yt_id = ''
 	for playlist in new_lists:
 		if playlist.title == playlist_name:
+			target_yt_id = playlist.yt_id
 			playlist.songs = [s for s in playlist.songs if s.yt_id != song.yt_id]
 			break
 
 	_write(playlists=new_lists)
+	if target_yt_id and song.yt_id and yt.is_authenticated():
+		yt.remove_songs_from_user_playlist(target_yt_id, [song.yt_id])
+
 	logboth.info(__name__, 'Removed song')
 
 
@@ -254,7 +269,10 @@ def _write(playlists: list[Group] | None=None, ext_playlists: list[Group] | None
 	if playlists is not None:
 		serialized_playlists = {}
 		for playlist in playlists:
-			serialized_playlists[playlist.title] = playlist.serialize()['contents']
+			data = {'contents': playlist.serialize()['contents']}
+			if playlist.yt_id:
+				data['id'] = playlist.yt_id
+			serialized_playlists[playlist.title] = data
 		with open(lists_path, 'w') as lists_file:
 			json.dump(serialized_playlists, lists_file, indent='\t')
 
@@ -278,23 +296,28 @@ def read() -> list[Group]:
 	_lock.lock()
 	try:
 		with open(_get_file_path()) as lists_file:
-			result = [
-				Group(
-					title=name,
-					songs=[
-						Song(
-							title=song.get('title', ''),
-							author=Artist(
-								name=song.get('author', ''),
-								yt_id=song.get('author_id', '')
-							),
-							length=song.get('length', ''),
-							thumbnail=song.get('thumbnail', ''),
-							yt_id=song.get('id', '')
-						) for song in songs
-					]
-				) for name, songs in json.load(lists_file).items()
-			]
+			raw_data = json.load(lists_file)
+			result = []
+			for name, val in raw_data.items():
+				yt_id = ''
+				if isinstance(val, dict):
+					songs_raw = val.get('contents', [])
+					yt_id = val.get('id', '')
+				else:
+					songs_raw = val
+				songs = [
+					Song(
+						title=song.get('title', ''),
+						author=Artist(
+							name=song.get('author', ''),
+							yt_id=song.get('author_id', '')
+						),
+						length=song.get('length', ''),
+						thumbnail=song.get('thumbnail', ''),
+						yt_id=song.get('id', '')
+					) for song in songs_raw
+				]
+				result.append(Group(title=name, yt_id=yt_id, songs=songs))
 			_lock.unlock()
 			return result
 	except (OSError, json.decoder.JSONDecodeError):
@@ -402,5 +425,91 @@ class UpdateExternalTask(Task):
 		logboth.info(__name__, 'Updated external playlists')
 
 
-# Signleton
+class SyncPlaylistsTask(Task):
+	'''Task for 2-way synchronization of playlists with YouTube account.'''
+
+	def _function(self) -> bool:
+		logboth.info(__name__, 'Starting 2-way YouTube playlist synchronization...')
+		if not yt.is_authenticated():
+			logboth.warning(__name__, 'Cannot sync playlists: Not authenticated')
+			return False
+
+		try:
+			remote_playlists_meta = yt.get_user_playlists()
+			local_playlists = read()
+
+			remote_yt_ids = {p['playlistId']: p for p in remote_playlists_meta if 'playlistId' in p}
+			local_by_yt_id = {p.yt_id: p for p in local_playlists if p.yt_id}
+			local_by_title = {p.title: p for p in local_playlists}
+
+			updated_local = list(local_playlists)
+			total = len(remote_playlists_meta) + len(local_playlists)
+			count = 0
+
+			# 1. Process Remote Playlists -> Local
+			for r_id, r_meta in remote_yt_ids.items():
+				if self.is_canceled():
+					return False
+				count += 1
+				self._update_progress(count / (total or 1))
+
+				remote_group = yt.get_album_or_playlist(r_id)
+				if not remote_group:
+					continue
+
+				if r_id in local_by_yt_id:
+					local_group = local_by_yt_id[r_id]
+					local_song_ids = {s.yt_id for s in local_group.songs}
+					remote_song_ids = {s.yt_id for s in remote_group.songs}
+
+					for s in remote_group.songs:
+						if s.yt_id not in local_song_ids:
+							local_group.songs.append(s)
+
+					songs_to_push = [s.yt_id for s in local_group.songs if s.yt_id not in remote_song_ids]
+					if songs_to_push:
+						yt.add_songs_to_user_playlist(r_id, songs_to_push)
+
+				elif r_meta.get('title') in local_by_title:
+					local_group = local_by_title[r_meta['title']]
+					local_group.yt_id = r_id
+					local_song_ids = {s.yt_id for s in local_group.songs}
+					remote_song_ids = {s.yt_id for s in remote_group.songs}
+
+					for s in remote_group.songs:
+						if s.yt_id not in local_song_ids:
+							local_group.songs.append(s)
+
+					songs_to_push = [s.yt_id for s in local_group.songs if s.yt_id not in remote_song_ids]
+					if songs_to_push:
+						yt.add_songs_to_user_playlist(r_id, songs_to_push)
+				else:
+					remote_group.yt_id = r_id
+					remote_group.title = make_unique_name(remote_group.title)
+					updated_local.append(remote_group)
+
+			# 2. Push Local Playlists without yt_id to Remote YouTube Account
+			for local_group in updated_local:
+				if self.is_canceled():
+					return False
+				count += 1
+				self._update_progress(count / (total or 1))
+
+				if not local_group.yt_id and local_group.songs:
+					song_ids = [s.yt_id for s in local_group.songs if s.yt_id]
+					new_yt_id = yt.create_user_playlist(local_group.title, '', song_ids)
+					if new_yt_id:
+						local_group.yt_id = new_yt_id
+
+			_write(playlists=updated_local)
+			logboth.info(__name__, '2-way playlist sync finished')
+			return True
+
+		except Exception as e:
+			logboth.error(__name__, f'Failed to sync playlists: {e}')
+			return False
+
+
+# Singleton
 _lock = GLib.Mutex()
+
