@@ -642,31 +642,80 @@ def _get_playlist_tv(yt_id: str) -> Group | None:
 		body.update(ctx)
 		res = yt._session.post('https://music.youtube.com/youtubei/v1/browse', json=body, headers=yt.headers).json()
 
-		def extract_songs(obj):
-			songs = []
+		def extract_text(obj):
+			if not obj:
+				return ''
+			if isinstance(obj, str):
+				return obj
 			if isinstance(obj, dict):
-				if 'videoId' in obj:
-					vid = obj['videoId']
-					title = ''
-					if 'title' in obj:
-						t = obj['title']
-						if isinstance(t, str): title = t
-						elif isinstance(t, dict): title = t.get('simpleText', '') or ''.join(r.get('text','') for r in t.get('runs',[]) if isinstance(r, dict))
-					songs.append({'yt_id': vid, 'title': title})
+				if 'simpleText' in obj:
+					return obj['simpleText']
+				if 'runs' in obj and isinstance(obj['runs'], list):
+					return ''.join(r.get('text', '') for r in obj['runs'] if isinstance(r, dict))
+			return ''
+
+		def find_tiles(obj):
+			tiles = []
+			if isinstance(obj, dict):
+				if 'tileRenderer' in obj:
+					tr = obj['tileRenderer']
+					cmd = tr.get('onSelectCommand', {})
+					vid = ''
+					if 'watchEndpoint' in cmd:
+						vid = cmd['watchEndpoint'].get('videoId', '')
+					elif 'videoId' in tr:
+						vid = tr['videoId']
+
+					if vid:
+						meta = tr.get('metadata', {}).get('tileMetadataRenderer', {})
+						title = extract_text(meta.get('title'))
+
+						artist = ''
+						lines = meta.get('lines', [])
+						if lines and isinstance(lines, list):
+							items = lines[0].get('lineRenderer', {}).get('items', [])
+							if items and isinstance(items, list):
+								artist = extract_text(items[0].get('lineItemRenderer', {}).get('text'))
+
+						thumb = f'https://i.ytimg.com/vi/{vid}/hqdefault.jpg'
+						thumbnails = tr.get('header', {}).get('tileHeaderRenderer', {}).get('thumbnail', {}).get('thumbnails', [])
+						if thumbnails and isinstance(thumbnails, list):
+							thumb = thumbnails[-1].get('url', thumb)
+
+						length = ''
+						overlays = tr.get('header', {}).get('tileHeaderRenderer', {}).get('thumbnailOverlays', [])
+						for o in overlays:
+							if 'thumbnailOverlayTimeStatusRenderer' in o:
+								length = extract_text(o['thumbnailOverlayTimeStatusRenderer'].get('text'))
+
+						tiles.append({
+							'yt_id': vid,
+							'title': title or vid,
+							'artist': artist,
+							'thumbnail': thumb,
+							'length': length
+						})
 				for v in obj.values():
-					songs.extend(extract_songs(v))
+					tiles.extend(find_tiles(v))
 			elif isinstance(obj, list):
 				for item in obj:
-					songs.extend(extract_songs(item))
-			return songs
+					tiles.extend(find_tiles(item))
+			return tiles
 
-		raw_songs = extract_songs(res)
+		raw_songs = find_tiles(res)
 		seen = set()
 		unique = []
 		for s in raw_songs:
 			if s['yt_id'] not in seen:
 				seen.add(s['yt_id'])
-				unique.append(Song(title=s['title'] or s['yt_id'], yt_id=s['yt_id']))
+				song_obj = Song(
+					title=s['title'] or s['yt_id'],
+					author=Artist(name=s['artist']),
+					length=TimeString(s['length']) if s['length'] else TimeString(),
+					thumbnail=s['thumbnail'],
+					yt_id=s['yt_id']
+				)
+				unique.append(song_obj)
 
 		if unique:
 			title = 'Liked Music' if yt_id == 'LM' else yt_id
@@ -675,6 +724,7 @@ def _get_playlist_tv(yt_id: str) -> Group | None:
 	except Exception as e:
 		logboth.warning(__name__, f'TVHTML5 playlist fetch failed for "{yt_id}": {e}')
 		return None
+
 
 
 def get_album_or_playlist(yt_id: str) -> Group | None:

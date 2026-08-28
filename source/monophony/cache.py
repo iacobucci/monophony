@@ -19,6 +19,60 @@ def get_cache_dir() -> str:
 	return os.path.join(base_cache, NAME, 'audio_cache')
 
 
+def get_thumbnails_dir() -> str:
+	'''Get path to thumbnail cache directory.
+
+	:return: Thumbnail cache directory path.
+	'''
+	base_cache = os.getenv('XDG_CACHE_HOME', os.path.expanduser('~/.cache'))
+	return os.path.join(base_cache, NAME, 'thumbnails_cache')
+
+
+def get_cached_thumbnail(yt_id: str) -> str | None:
+	'''Get cached thumbnail file path if available.
+
+	:param yt_id: YouTube item ID.
+	:return: Local thumbnail file path if cached, else None.
+	'''
+	if not yt_id:
+		return None
+	dest_dir = get_thumbnails_dir()
+	for ext in ('.jpg', '.png', '.webp'):
+		path = os.path.join(dest_dir, f'{yt_id}{ext}')
+		if os.path.exists(path) and os.path.getsize(path) > 0:
+			return path
+	return None
+
+
+def cache_thumbnail(yt_id: str, url: str) -> str | None:
+	'''Download and cache a thumbnail image locally.
+
+	:param yt_id: YouTube item ID.
+	:param url: Thumbnail URL.
+	:return: Local file path if cached, else None.
+	'''
+	if not yt_id or not url:
+		return None
+	existing = get_cached_thumbnail(yt_id)
+	if existing:
+		return existing
+	dest_dir = get_thumbnails_dir()
+	os.makedirs(dest_dir, exist_ok=True)
+	target_path = os.path.join(dest_dir, f'{yt_id}.jpg')
+	try:
+		import requests
+		res = requests.get(url, timeout=5)
+		if res.status_code == 200 and len(res.content) > 0:
+			with open(target_path, 'wb') as f:
+				f.write(res.content)
+			logboth.info(__name__, f'Cached thumbnail for "{yt_id}"')
+			return target_path
+	except Exception as e:
+		logboth.warning(__name__, f'Failed to cache thumbnail for "{yt_id}": {e}')
+	return None
+
+
+
 def _get_uri_cache_file() -> str:
 	base_cache = os.getenv('XDG_CACHE_HOME', os.path.expanduser('~/.cache'))
 	return os.path.join(base_cache, NAME, 'uri_cache.json')
@@ -190,6 +244,9 @@ def cache_song(song: Song) -> str | None:
 	if not settings.load('cache_enabled', True) or not song or not song.yt_id:
 		return None
 
+	if song.thumbnail:
+		cache_thumbnail(song.yt_id, song.thumbnail)
+
 	existing = get_cached_file(song)
 	if existing:
 		try:
@@ -197,6 +254,7 @@ def cache_song(song: Song) -> str | None:
 		except OSError:
 			pass
 		return existing
+
 
 	dest_dir = get_cache_dir()
 	os.makedirs(dest_dir, exist_ok=True)
