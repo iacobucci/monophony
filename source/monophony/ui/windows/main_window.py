@@ -1,9 +1,11 @@
 '''Main window.'''
 
+from collections.abc import Callable
 import json
 import os
 import time
 import traceback
+
 
 from monophony import (
 	DISPLAY_NAME,
