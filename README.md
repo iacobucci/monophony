@@ -7,4 +7,4 @@ Monophony allows you to stream and download music from YouTube Music without ads
 
 **Copyright** © Zehkira and contributors, [0BSD](LICENSE) license. Information about dependency licenses is available in the app.
 
-<img src='assets/screenshot1.png' alt='Screenshot'>
+<img src='assets/screenshot3.png' alt='Screenshot'>
