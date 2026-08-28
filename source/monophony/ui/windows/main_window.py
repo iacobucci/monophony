@@ -45,6 +45,10 @@ from gi.repository import Adw, Gio, GLib, GObject, Gtk
 class PrepareHomePageTask(Task):
 	'''Task for initializing the home page's contents.'''
 
+	def __init__(self, sync_callback: Callable | None=None, **kwargs):
+		super().__init__(**kwargs)
+		self._sync_callback = sync_callback
+
 	def _on_progress_update(self, task: Task, progress: float):
 		if isinstance(task, GetRecommendationsTask):
 			self._recommendations_progress = progress
@@ -68,17 +72,16 @@ class PrepareHomePageTask(Task):
 		update_task.start()
 
 		if yt.is_authenticated() and settings.load('auto_sync_playlists', True):
-			sync_task = SyncPlaylistsTask()
+			sync_task = SyncPlaylistsTask(callback=self._sync_callback)
 			sync_task.start()
-			while sync_task.is_running():
-				time.sleep(0.5)
 
 		while recommendations_task.is_running() or update_task.is_running():
-			time.sleep(0.5)
+			time.sleep(0.1)
 
 		result = recommendations_task.result
 		if result:
 			recommendations.write(result)
+
 
 
 
@@ -415,9 +418,11 @@ class MainWindow(Adw.ApplicationWindow):
 		self.add_breakpoint(view_breakpoint)
 
 		self._current_browsing_task = PrepareHomePageTask(
+			sync_callback=lambda _task: self._update_playlists(),
 			progress_callback=self._on_loading_progress,
 			callback=self._on_home_page_prepared
 		)
+
 		self._current_browsing_task.start()
 		self._on_volume_changed_in_backend(self._player.get_volume())
 		self._on_mode_changed_in_backend(self._player.mode)
