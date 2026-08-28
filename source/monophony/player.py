@@ -83,29 +83,20 @@ class FindURITask(Task):
 			logboth.info(__name__, 'Found already known song URI')
 			return uri
 
+		if uri := cache.get_cached_uri(song.yt_id):
+			logboth.info(__name__, f'Found cached streaming URI for "{song.yt_id}"')
+			return uri
 
 		if self.is_canceled():
 			logboth.info(__name__, 'Canceled URI lookup')
 			return None
 
-		song = yt.get_updated_song(song)
-		if not song:
-			logboth.error(__name__, 'Failed to find song URI')
-			return None
-
-		exists = yt.song_exists(song)
-		if exists is None:
-			logboth.error(__name__, 'Failed to find song URI')
-			return None
-		if not exists:
-			logboth.error(__name__, 'Failed to find song URI for nonexistent song')
-			return _NONEXISTENT_SONG_URI
-
 		if uri := yt.get_song_uri(song):
-			logboth.info(__name__, 'Found online song URI')
+			logboth.info(__name__, f'Found online song URI for "{song.yt_id}"')
+			cache.save_cached_uri(song.yt_id, uri)
 			return uri
 
-		logboth.error(__name__, 'Failed to find song URI')
+		logboth.error(__name__, f'Failed to find song URI for "{song.yt_id}"')
 		return None
 
 
@@ -221,7 +212,8 @@ class Player(GObject.Object):
 		if self._find_uri_task.is_running():
 			return
 
-		for song in self._queue.songs:
+		upcoming = self._queue.songs[self._queue_index:] + self._queue.songs[:self._queue_index]
+		for song in upcoming:
 			if song.yt_id not in self._song_uris:
 				self._find_uri_task = FindURITask(
 					callback=self._on_background_uri_search_done,
@@ -232,6 +224,7 @@ class Player(GObject.Object):
 				return
 
 		logboth.info(__name__, 'Found all song URIs for current queue')
+
 
 	def _on_buffering(self, _bus: Gst.Bus, message: Gst.Message):
 		percentage = message.parse_buffering()

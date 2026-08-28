@@ -19,6 +19,61 @@ def get_cache_dir() -> str:
 	return os.path.join(base_cache, NAME, 'audio_cache')
 
 
+def _get_uri_cache_file() -> str:
+	base_cache = os.getenv('XDG_CACHE_HOME', os.path.expanduser('~/.cache'))
+	return os.path.join(base_cache, NAME, 'uri_cache.json')
+
+
+def get_cached_uri(yt_id: str) -> str | None:
+	'''Get cached streaming URI if valid and not expired.
+
+	:param yt_id: YouTube song ID.
+	:return: Streaming URI if valid, else None.
+	'''
+	cache_file = _get_uri_cache_file()
+	if not os.path.exists(cache_file):
+		return None
+	try:
+		import json, time
+		with open(cache_file, encoding='utf-8') as f:
+			data = json.load(f)
+		entry = data.get(yt_id)
+		if entry and isinstance(entry, dict):
+			# YouTube URIs expire after ~6 hours (21600s), use 4 hour safety margin
+			if time.time() - entry.get('timestamp', 0) < 14400:
+				return entry.get('uri')
+	except Exception:
+		pass
+	return None
+
+
+def save_cached_uri(yt_id: str, uri: str):
+	'''Save streaming URI to cache.
+
+	:param yt_id: YouTube song ID.
+	:param uri: Streaming URI.
+	'''
+	if not yt_id or not uri or uri == '[nonexistent]':
+		return
+	cache_file = _get_uri_cache_file()
+	try:
+		import json, time
+		os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+		data = {}
+		if os.path.exists(cache_file):
+			try:
+				with open(cache_file, encoding='utf-8') as f:
+					data = json.load(f)
+			except Exception:
+				data = {}
+		data[yt_id] = {'uri': uri, 'timestamp': time.time()}
+		with open(cache_file, 'w', encoding='utf-8') as f:
+			json.dump(data, f, indent=True)
+	except Exception as e:
+		logboth.error(__name__, f'Failed to save URI cache: {e}')
+
+
+
 def get_cached_file(song: Song) -> str | None:
 	'''Get cached audio file path if song is cached.
 
@@ -145,16 +200,15 @@ def cache_song(song: Song) -> str | None:
 
 	dest_dir = get_cache_dir()
 	os.makedirs(dest_dir, exist_ok=True)
-	target_path = os.path.join(dest_dir, f'{song.yt_id}.m4a')
+	target_pattern = os.path.join(dest_dir, f'{song.yt_id}.%(ext)s')
 
 	logboth.info(__name__, f'Caching song "{song.yt_id}" ({song.title})...')
 	try:
 		_out, err = subprocess.Popen(
 			[
 				'yt-dlp',
-				'--extract-audio',
-				'--audio-format', 'm4a',
-				'--output', target_path,
+				'-f', 'bestaudio/best',
+				'--output', target_pattern,
 				'--quiet',
 				'--no-warnings',
 				f'https://music.youtube.com/watch?v={song.yt_id}'
@@ -167,13 +221,14 @@ def cache_song(song: Song) -> str | None:
 		if err:
 			logboth.warning(__name__, f'yt-dlp cache warning/error for "{song.yt_id}": {err}')
 
-		if os.path.exists(target_path) and os.path.getsize(target_path) > 0:
-			logboth.info(__name__, f'Successfully cached song "{song.yt_id}" ({os.path.getsize(target_path)} bytes)')
+		if cached_path := get_cached_file(song):
+			logboth.info(__name__, f'Successfully cached song "{song.yt_id}" ({os.path.getsize(cached_path)} bytes)')
 			enforce_cache_limits()
-			return target_path
+			return cached_path
 
 		logboth.error(__name__, f'Failed to cache song "{song.yt_id}": output file missing or empty')
 		return None
 	except Exception as e:
 		logboth.error(__name__, f'Exception caching song "{song.yt_id}": {e}')
 		return None
+
