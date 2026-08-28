@@ -44,15 +44,22 @@ class PlayerBar(Gtk.Box):
 				margin-top: -8px;
 			}
 
-			.player-thumbnail {
-				border-radius: 6px;
-				min-width: 36px;
-				min-height: 36px;
-				max-width: 36px;
-				max-height: 36px;
+			.player-thumbnail-box {
+				min-width: 32px;
+				min-height: 32px;
+				max-width: 32px;
+				max-height: 32px;
 				margin-right: 6px;
 				margin-top: 2px;
 				margin-bottom: 2px;
+			}
+
+			.player-thumbnail-image {
+				border-radius: 6px;
+				min-width: 32px;
+				min-height: 32px;
+				max-width: 32px;
+				max-height: 32px;
 			}
 
 			.buffbar {
@@ -108,17 +115,23 @@ class PlayerBar(Gtk.Box):
 		self.queue_button.props.valign = Gtk.Align.CENTER
 		self.queue_button.props.tooltip_text = _('Queue')
 
-		self._thumbnail_picture = Gtk.Picture()
-		self._thumbnail_picture.props.content_fit = Gtk.ContentFit.COVER
-		self._thumbnail_picture.set_size_request(36, 36)
-		self._thumbnail_picture.props.can_shrink = True
-		self._thumbnail_picture.props.hexpand = False
-		self._thumbnail_picture.props.vexpand = False
-		self._thumbnail_picture.props.valign = Gtk.Align.CENTER
-		self._thumbnail_picture.props.halign = Gtk.Align.CENTER
-		self._thumbnail_picture.props.visible = False
-		self._thumbnail_picture.add_css_class('player-thumbnail')
+		self._thumbnail_box = Gtk.Box()
+		self._thumbnail_box.set_size_request(32, 32)
+		self._thumbnail_box.props.valign = Gtk.Align.CENTER
+		self._thumbnail_box.props.halign = Gtk.Align.CENTER
+		self._thumbnail_box.props.hexpand = False
+		self._thumbnail_box.props.vexpand = False
+		self._thumbnail_box.props.visible = False
+		self._thumbnail_box.add_css_class('player-thumbnail-box')
 
+		self._thumbnail_image = Gtk.Image()
+		self._thumbnail_image.set_pixel_size(32)
+		self._thumbnail_image.props.valign = Gtk.Align.CENTER
+		self._thumbnail_image.props.halign = Gtk.Align.CENTER
+		self._thumbnail_image.props.hexpand = False
+		self._thumbnail_image.props.vexpand = False
+		self._thumbnail_image.add_css_class('player-thumbnail-image')
+		self._thumbnail_box.append(self._thumbnail_image)
 
 		self._title_link = Gtk.LinkButton.new_with_label('', '')
 		self._title_link.props.margin_bottom = 2
@@ -148,8 +161,9 @@ class PlayerBar(Gtk.Box):
 		song_details_box.props.valign = Gtk.Align.CENTER
 		song_details_box.props.halign = Gtk.Align.START
 		song_details_box.props.hexpand = True
-		song_details_box.append(self._thumbnail_picture)
+		song_details_box.append(self._thumbnail_box)
 		song_details_box.append(info_box)
+
 
 		self._mode_button = Gtk.MenuButton()
 		self._mode_button.props.icon_name = 'media-playlist-repeat-song-symbolic'
@@ -312,28 +326,31 @@ class PlayerBar(Gtk.Box):
 
 	def _update_thumbnail(self, song: Song):
 		if not song or not song.yt_id:
-			self._thumbnail_picture.props.visible = False
+			self._thumbnail_box.props.visible = False
 			return
 
 		cached_path = cache.get_cached_thumbnail(song.yt_id)
 		if cached_path:
-			self._thumbnail_picture.set_file(Gio.File.new_for_path(cached_path))
-			self._thumbnail_picture.props.visible = True
+			self._thumbnail_image.set_from_file(cached_path)
+			self._thumbnail_image.set_pixel_size(32)
+			self._thumbnail_box.props.visible = True
 		elif song.thumbnail:
 			def _fetch_and_show():
 				path = cache.cache_thumbnail(song.yt_id, song.thumbnail)
 				if path:
 					GLib.idle_add(self._show_thumbnail_file, path, song.yt_id)
 
-			self._thumbnail_picture.props.visible = False
+			self._thumbnail_box.props.visible = False
 			threading.Thread(target=_fetch_and_show, daemon=True).start()
 		else:
-			self._thumbnail_picture.props.visible = False
+			self._thumbnail_box.props.visible = False
 
 	def _show_thumbnail_file(self, path: str, yt_id: str):
 		if getattr(self, '_current_song_yt_id', None) == yt_id:
-			self._thumbnail_picture.set_file(Gio.File.new_for_path(path))
-			self._thumbnail_picture.props.visible = True
+			self._thumbnail_image.set_from_file(path)
+			self._thumbnail_image.set_pixel_size(32)
+			self._thumbnail_box.props.visible = True
+
 
 
 	def update_pause(self, pause: bool):
