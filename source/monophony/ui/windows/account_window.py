@@ -10,9 +10,9 @@ from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
 
 
 
-# Default Google TV OAuth credentials commonly used for YouTube TV device flow
-DEFAULT_CLIENT_ID = '861556737565-ca052hvdukmsmt572e0eed2919b05ke6.apps.googleusercontent.com'
-DEFAULT_CLIENT_SECRET = 'gwsache-WfkpB2l_Z2w_v_1'
+# Default empty credentials requiring user's own matching OAuth client ID and Secret from Google Cloud Console
+DEFAULT_CLIENT_ID = ''
+DEFAULT_CLIENT_SECRET = ''
 
 
 class AccountWindow(MemoryDebugger, Adw.Dialog):
@@ -49,7 +49,6 @@ class AccountWindow(MemoryDebugger, Adw.Dialog):
 			self._page.add(err_group)
 
 		if yt.is_authenticated():
-
 			status_row = Adw.ActionRow()
 			status_row.props.title = _('Status')
 			status_row.props.subtitle = _('Connected to YouTube Account')
@@ -89,7 +88,7 @@ class AccountWindow(MemoryDebugger, Adw.Dialog):
 			creds_group = Adw.PreferencesGroup()
 			creds_group.props.title = _('YouTube OAuth Authentication')
 			creds_group.props.description = _(
-				'Monophony uses Google OAuth 2.0 device flow to connect to your YouTube account.'
+				'Enter your Google Cloud OAuth Client ID and Secret (both from the same project) or import an oauth.json file.'
 			)
 
 			self._client_id_entry = Adw.EntryRow()
@@ -102,7 +101,18 @@ class AccountWindow(MemoryDebugger, Adw.Dialog):
 
 			creds_group.add(self._client_id_entry)
 			creds_group.add(self._client_secret_entry)
+
+			import_file_btn = Gtk.Button()
+			import_file_btn.props.label = _('Import oauth.json File...')
+			import_file_btn.connect('clicked', lambda _btn: self._on_import_file())
+
+			import_row = Adw.ActionRow()
+			import_row.props.title = _('Already have an oauth.json file?')
+			import_row.add_suffix(import_file_btn)
+			creds_group.add(import_row)
+
 			self._page.add(creds_group)
+
 
 			if self._oauth_code_info:
 				flow_group = Adw.PreferencesGroup()
@@ -228,6 +238,26 @@ class AccountWindow(MemoryDebugger, Adw.Dialog):
 		self._oauth_code_info = None
 		self._build_ui()
 
+	def _on_import_file(self):
+		dialog = Gtk.FileDialog()
+		dialog.set_title(_('Select oauth.json File'))
+		dialog.open(self, None, self._on_file_selected)
+
+	def _on_file_selected(self, dialog: Gtk.FileDialog, result):
+		try:
+			file = dialog.open_finish(result)
+			if file:
+				filepath = file.get_path()
+				if yt.import_oauth_file(filepath):
+					self._oauth_code_info = None
+					self._error_msg = ''
+					self._build_ui()
+				else:
+					self._error_msg = _('Invalid oauth.json file.')
+					self._build_ui()
+		except Exception:
+			pass
+
 	def _on_sync_now(self):
 		self.props.sensitive = False
 		self._sync_button.props.child = Adw.Spinner()
@@ -239,3 +269,4 @@ class AccountWindow(MemoryDebugger, Adw.Dialog):
 		self._sync_button.props.child = None
 		self._sync_button.props.label = _('Sync Playlists Now')
 		self.emit('sync-finished')
+

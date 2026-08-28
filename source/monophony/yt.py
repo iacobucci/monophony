@@ -40,10 +40,12 @@ def get_yt_client() -> ytmusicapi.YTMusic:
 	client_id = settings.load('oauth_client_id', '')
 	client_secret = settings.load('oauth_client_secret', '')
 
-	if os.path.exists(oauth_path) and client_id and client_secret:
+	if os.path.exists(oauth_path):
 		try:
-			creds = ytmusicapi.OAuthCredentials(client_id, client_secret)
-			return ytmusicapi.YTMusic(oauth_path, oauth_credentials=creds)
+			if client_id and client_secret:
+				creds = ytmusicapi.OAuthCredentials(client_id, client_secret)
+				return ytmusicapi.YTMusic(oauth_path, oauth_credentials=creds)
+			return ytmusicapi.YTMusic(oauth_path)
 		except Exception as e:
 			logboth.error(__name__, f'Failed to load OAuth client: {e}')
 
@@ -56,7 +58,36 @@ def is_authenticated() -> bool:
 	:return: True if authenticated.
 	'''
 	oauth_path = get_oauth_path()
-	return os.path.exists(oauth_path) and bool(settings.load('oauth_client_id'))
+	return os.path.exists(oauth_path)
+
+
+def import_oauth_file(filepath: str) -> bool:
+	'''Import an existing oauth.json file into Monophony configuration.
+
+	:param filepath: Path to oauth.json file.
+	:return: True if successfully imported.
+	'''
+	try:
+		with open(filepath, encoding='utf-8') as f:
+			data = json.load(f)
+		if not isinstance(data, dict) or ('access_token' not in data and 'refresh_token' not in data):
+			logboth.error(__name__, 'Invalid oauth.json file structure')
+			return False
+
+		dest_path = get_oauth_path()
+		os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+		with open(dest_path, 'w', encoding='utf-8') as f:
+			json.dump(data, f, indent=True)
+
+		if 'client_id' in data and 'client_secret' in data:
+			settings.save({'oauth_client_id': data['client_id'], 'oauth_client_secret': data['client_secret']})
+
+		logboth.info(__name__, f'Successfully imported OAuth file from {filepath}')
+		return True
+	except Exception as e:
+		logboth.error(__name__, f'Failed to import OAuth file: {e}')
+		return False
+
 
 
 def start_oauth_flow(client_id: str, client_secret: str) -> dict | None:
@@ -92,13 +123,15 @@ def finish_oauth_flow(client_id: str, client_secret: str, device_code: str) -> t
 		settings.save({'oauth_client_id': client_id, 'oauth_client_secret': client_secret})
 		logboth.info(__name__, 'Successfully authenticated YouTube account')
 		return True, ''
-	except ytmusicapi.auth.oauth.exceptions.BadOAuthClient:
-		msg = _('OAuth client failure. Check client ID/secret, ensure "YouTube Data API v3" is enabled in Google Cloud Console, and app type is "TVs and Limited Input devices".')
-		logboth.error(__name__, f'Failed to complete OAuth flow: {msg}')
+	except ytmusicapi.auth.oauth.exceptions.BadOAuthClient as e:
+		msg = f'BadOAuthClient: {e}. Check if "YouTube Data API v3" is enabled in Google Cloud Console.'
+		logboth.error(__name__, f'Failed to complete OAuth flow: {msg}\n{traceback.format_exc()}')
 		return False, msg
 	except Exception as e:
-		logboth.error(__name__, f'Failed to complete OAuth flow: {e}')
-		return False, str(e)
+		msg = f'{type(e).__name__}: {e}'
+		logboth.error(__name__, f'Failed to complete OAuth flow: {msg}\n{traceback.format_exc()}')
+		return False, msg
+
 
 
 
