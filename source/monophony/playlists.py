@@ -9,7 +9,7 @@ import json
 import os
 import time
 
-from monophony import NAME, yt
+from monophony import NAME, get_user_config_dir, yt
 from monophony.asynchronous import Task
 from monophony.data import Artist, Group, Song
 
@@ -22,9 +22,8 @@ def get_directory() -> str:
 
 	:return: Directory path.
 	'''
-	return os.getenv(
-		'XDG_CONFIG_HOME', os.path.expanduser('~/.config')
-	) + '/' + NAME
+	return get_user_config_dir()
+
 
 
 def _get_file_path() -> str:

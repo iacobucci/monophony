@@ -35,3 +35,21 @@ logboth.config.directory = pathlib.Path(
 ) / pathlib.Path(NAME)
 logboth.config.file = 'log.txt'
 logboth.basic_info()
+
+
+def get_user_config_dir() -> str:
+	'''Get config directory for monophony.
+
+	Supports XDG_CONFIG_HOME (including unit test overrides).
+	'''
+	xdg = os.getenv('XDG_CONFIG_HOME')
+	if xdg:
+		config_dir = os.path.join(xdg, NAME)
+	else:
+		config_dir = os.path.join(os.path.expanduser('~'), '.config', NAME)
+
+	os.makedirs(config_dir, exist_ok=True)
+	return config_dir
+
+
+

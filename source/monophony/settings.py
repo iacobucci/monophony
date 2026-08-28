@@ -7,7 +7,7 @@ import json
 import os
 from typing import Any
 
-from monophony import NAME
+from monophony import NAME, get_user_config_dir
 
 import logboth
 
@@ -40,10 +40,8 @@ def load(key: str, default: Any=None) -> Any:
 
 def _write(settings: dict):
 	logboth.info(__name__, 'Writing settings...')
-	directory = os.getenv(
-		'XDG_CONFIG_HOME', os.path.expanduser('~/.config')
-	) + '/' + NAME
-	settings_path = directory + '/settings.json'
+	directory = get_user_config_dir()
+	settings_path = os.path.join(directory, 'settings.json')
 
 	os.makedirs(directory, exist_ok=True)
 	with open(settings_path, 'w') as settings_file:
@@ -53,12 +51,11 @@ def _write(settings: dict):
 
 
 def _read() -> dict:
-	settings_path = os.getenv(
-		'XDG_CONFIG_HOME', os.path.expanduser('~/.config')
-	) + f'/{NAME}/settings.json'
+	settings_path = os.path.join(get_user_config_dir(), 'settings.json')
 
 	try:
 		with open(settings_path) as settings_file:
 			return json.load(settings_file)
 	except (OSError, json.decoder.JSONDecodeError):
 		return {}
+

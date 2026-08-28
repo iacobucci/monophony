@@ -7,8 +7,9 @@ import os
 import subprocess
 import traceback
 
-from monophony import NAME
+from monophony import NAME, get_user_config_dir
 from monophony.asynchronous import Task
+
 from monophony.data import Artist, Group, Song
 
 import logboth
@@ -241,9 +242,7 @@ class _Downloader:
 			logboth.warning(__name__, 'Reading downloads while self.lock is unlocked')
 			self.lock.unlock()
 
-		songs_path = os.getenv(
-			'XDG_CONFIG_HOME', os.path.expanduser('~/.config')
-		) + f'/{NAME}/downloads.json'
+		songs_path = os.path.join(get_user_config_dir(), 'downloads.json')
 
 		try:
 			with open(songs_path) as songs_file:
@@ -272,16 +271,15 @@ class _Downloader:
 			logboth.warning(__name__, 'Writing downloads while self.lock is unlocked')
 			self.lock.unlock()
 
-		dir_path = os.getenv(
-			'XDG_CONFIG_HOME', os.path.expanduser('~/.config')
-		) + '/' + NAME
-		downloads_path = dir_path + '/downloads.json'
+		dir_path = get_user_config_dir()
+		downloads_path = os.path.join(dir_path, 'downloads.json')
 
 		os.makedirs(dir_path, exist_ok=True)
 		with open(downloads_path, 'w') as downloads_file:
 			json.dump(group.serialize()['contents'], downloads_file, indent='\t')
 
 		logboth.info(__name__, 'Done writing to downloads')
+
 
 	def get_downloads(self) -> Group:
 		self.lock.lock()

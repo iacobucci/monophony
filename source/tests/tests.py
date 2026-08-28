@@ -20,11 +20,10 @@ from monophony.playlists import ImportTask
 class BaseTestCase(unittest.TestCase):
 	def tearDown(self):
 		shutil.rmtree(
-			os.getenv(
-				'XDG_CONFIG_HOME', os.path.expanduser('~/.config')
-			) + '/' + NAME,
+			playlists.get_directory(),
 			ignore_errors=True
 		)
+
 		shutil.rmtree(
 			os.getenv(
 				'XDG_DATA_HOME', os.path.expanduser('~/.local/share')

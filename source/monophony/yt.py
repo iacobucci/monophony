@@ -8,7 +8,7 @@ import subprocess
 import time
 import traceback
 
-from monophony import NAME, settings
+from monophony import NAME, get_user_config_dir, settings
 from monophony.asynchronous import Task
 from monophony.data import Artist, Group, Song, TimeString, YTItem
 
@@ -26,9 +26,8 @@ _YTMUSICAPI_PARSING_EXCEPTIONS = (AttributeError, KeyError, TypeError)
 
 def get_oauth_path() -> str:
 	'''Get path to oauth.json file.'''
-	return os.getenv(
-		'XDG_CONFIG_HOME', os.path.expanduser('~/.config')
-	) + '/' + NAME + '/oauth.json'
+	return os.path.join(get_user_config_dir(), 'oauth.json')
+
 
 
 def get_yt_client() -> ytmusicapi.YTMusic:

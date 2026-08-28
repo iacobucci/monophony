@@ -7,7 +7,7 @@ import json
 import os
 import traceback
 
-from monophony import NAME
+from monophony import NAME, get_user_config_dir
 from monophony.data import Artist, Group, Song
 
 import logboth
@@ -17,9 +17,8 @@ _MAX_SONGS = 15
 
 
 def _get_directory() -> str:
-	return os.getenv(
-		'XDG_CONFIG_HOME', os.path.expanduser('~/.config')
-	) + f'/{NAME}'
+	return get_user_config_dir()
+
 
 
 def _get_file_path() -> str:
