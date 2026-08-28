@@ -319,11 +319,10 @@ class Player(GObject.Object):
 				self._last_known_position = position
 
 	def _save_uri(self, yt_id: str, uri: str):
-		while len(self._song_uris) > len(self._queue.songs):
-			self._song_uris.pop(next(iter(self._song_uris.keys())))
-
 		self._song_uris[yt_id] = uri
+		cache.save_cached_uri(yt_id, uri)
 		logboth.info(__name__, f'Added URI for song "{yt_id}" to known')
+
 
 	def _start_playback(self, task: FindURITask, position: int=0):
 		if task.is_canceled() or self._find_uri_task is not task:

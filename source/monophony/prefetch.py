@@ -29,13 +29,13 @@ class PrefetchTask(Task):
 
 
 class PrefetchManager:
-	'''Manager for prefetching upcoming tracks in playlists/queue.'''
+	'''Manager for prefetching upcoming and retaining previous tracks in playlists/queue.'''
 
 	def __init__(self):
 		self._current_task = PrefetchTask()
 
 	def prefetch_upcoming(self, queue: Group, current_index: int):
-		'''Prefetch upcoming tracks from current queue/playlist.
+		'''Prefetch upcoming and previous tracks from current queue/playlist.
 
 		:param queue: Group representing current playback queue.
 		:param current_index: Current song index in queue.
@@ -47,14 +47,13 @@ class PrefetchManager:
 		if prefetch_count <= 0 or not queue or not queue.songs:
 			return
 
-		start_i = current_index + 1
-		end_i = min(start_i + prefetch_count, len(queue.songs))
-		if start_i >= len(queue.songs):
-			return
+		# Prefetch upcoming tracks AND ensure previous track is cached
+		start_i = max(0, current_index - 1)
+		end_i = min(current_index + 1 + prefetch_count, len(queue.songs))
 
-		upcoming_songs = queue.songs[start_i:end_i]
+		target_songs = queue.songs[start_i:end_i]
 		songs_to_prefetch = [
-			s for s in upcoming_songs
+			s for s in target_songs
 			if not cache.is_cached(s) and not downloads.is_downloaded(s)
 		]
 
@@ -64,6 +63,7 @@ class PrefetchManager:
 		self._current_task.cancel()
 		self._current_task = PrefetchTask(args=(songs_to_prefetch,))
 		self._current_task.start()
+
 
 
 # Singleton instance
