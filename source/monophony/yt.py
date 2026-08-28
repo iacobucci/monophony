@@ -622,6 +622,61 @@ def get_song(id_: str) -> Song | None:
 	return None
 
 
+def _get_playlist_tv(yt_id: str) -> Group | None:
+	if not is_authenticated() or not yt_id:
+		return None
+	try:
+		yt = get_yt_client()
+		browse_id = 'FEmusic_liked_videos' if yt_id == 'LM' else ('VL' + yt_id if not yt_id.startswith('VL') else yt_id)
+		body = {'browseId': browse_id}
+		ctx = {
+			'context': {
+				'client': {
+					'clientName': 'TVHTML5',
+					'clientVersion': '7.20260828.00.00',
+					'hl': 'en'
+				},
+				'user': {}
+			}
+		}
+		body.update(ctx)
+		res = yt._session.post('https://music.youtube.com/youtubei/v1/browse', json=body, headers=yt.headers).json()
+
+		def extract_songs(obj):
+			songs = []
+			if isinstance(obj, dict):
+				if 'videoId' in obj:
+					vid = obj['videoId']
+					title = ''
+					if 'title' in obj:
+						t = obj['title']
+						if isinstance(t, str): title = t
+						elif isinstance(t, dict): title = t.get('simpleText', '') or ''.join(r.get('text','') for r in t.get('runs',[]) if isinstance(r, dict))
+					songs.append({'yt_id': vid, 'title': title})
+				for v in obj.values():
+					songs.extend(extract_songs(v))
+			elif isinstance(obj, list):
+				for item in obj:
+					songs.extend(extract_songs(item))
+			return songs
+
+		raw_songs = extract_songs(res)
+		seen = set()
+		unique = []
+		for s in raw_songs:
+			if s['yt_id'] not in seen:
+				seen.add(s['yt_id'])
+				unique.append(Song(title=s['title'] or s['yt_id'], yt_id=s['yt_id']))
+
+		if unique:
+			title = 'Liked Music' if yt_id == 'LM' else yt_id
+			return Group(title=title, yt_id=yt_id, songs=unique)
+		return None
+	except Exception as e:
+		logboth.warning(__name__, f'TVHTML5 playlist fetch failed for "{yt_id}": {e}')
+		return None
+
+
 def get_album_or_playlist(yt_id: str) -> Group | None:
 	'''Get group from YT ID.
 
@@ -629,6 +684,11 @@ def get_album_or_playlist(yt_id: str) -> Group | None:
 	:return: Group, if found.
 	'''
 	logboth.info(__name__, f'Getting album/playlist "{yt_id}"...')
+
+	if is_authenticated():
+		if tv_group := _get_playlist_tv(yt_id):
+			logboth.info(__name__, f'Got album/playlist "{yt_id}" via TVHTML5 ({len(tv_group.songs)} songs)')
+			return tv_group
 
 	if result := _parse_single_result(
 		get_yt_client(),
@@ -642,6 +702,7 @@ def get_album_or_playlist(yt_id: str) -> Group | None:
 
 	logboth.error(__name__, 'Failed to get album/playlist')
 	return None
+
 
 
 def song_exists(song: Song) -> bool | None:
@@ -892,15 +953,17 @@ class GetRecommendationsTask(Task):
 
 	def _function(self) -> list[Group] | None:
 		logboth.info(__name__, 'Getting recommendations...')
-		yt = get_yt_client()
+		# Unauthenticated YTMusic instance to prevent HTTP 400 Bad Request on FEmusic_home with TV OAuth tokens
+		yt = ytmusicapi.YTMusic()
 
 		try:
 			data = yt.get_home()
-		except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.RequestException):
+		except Exception:
 			logboth.error(
 				__name__, 'Failed to get recommendations', traceback.format_exc()
 			)
 			return None
+
 
 		recommendations = []
 		for i, grouping in enumerate(data):
