@@ -90,6 +90,45 @@ class SettingsWindow(MemoryDebugger, Adw.Dialog):
 
 		page.add(prefetch_group)
 
+		# --- Cover Artwork Cache Group ---
+		thumb_group = Adw.PreferencesGroup()
+		thumb_group.props.title = _('Cover Artwork Cache')
+		thumb_group.props.description = _(
+			'Store high-resolution album and playlist covers locally for instant rendering (vivi-music style).'
+		)
+
+		self._thumb_switch = Adw.SwitchRow()
+		self._thumb_switch.props.title = _('Enable Cover Cache')
+		self._thumb_switch.props.subtitle = _('Save high-definition cover artwork locally')
+		self._thumb_switch.props.active = settings.load('thumbnail_cache_enabled', True)
+		self._thumb_switch.connect(
+			'notify::active',
+			lambda switch, _param: settings.save({'thumbnail_cache_enabled': switch.props.active})
+		)
+		thumb_group.add(self._thumb_switch)
+
+		self._thumb_size_entry = Adw.EntryRow()
+		self._thumb_size_entry.props.title = _('Max Cover Cache Size (MB)')
+		self._thumb_size_entry.props.text = str(settings.load('thumbnail_cache_max_size_mb', 500))
+		self._thumb_size_entry.connect(
+			'changed',
+			lambda entry: self._on_thumb_size_changed(entry.props.text)
+		)
+		thumb_group.add(self._thumb_size_entry)
+
+		self._thumb_usage_row = Adw.ActionRow()
+		self._thumb_usage_row.props.title = _('Cover Cache Usage')
+		self._update_thumb_usage_subtitle()
+
+		clear_thumb_btn = Gtk.Button()
+		clear_thumb_btn.props.label = _('Clear Covers')
+		clear_thumb_btn.add_css_class('destructive-action')
+		clear_thumb_btn.connect('clicked', lambda _btn: self._on_clear_thumb_cache())
+		self._thumb_usage_row.add_suffix(clear_thumb_btn)
+		thumb_group.add(self._thumb_usage_row)
+
+		page.add(thumb_group)
+
 		toolbar_view = Adw.ToolbarView()
 		toolbar_view.props.content = page
 		toolbar_view.add_top_bar(Adw.HeaderBar())
@@ -101,6 +140,11 @@ class SettingsWindow(MemoryDebugger, Adw.Dialog):
 		max_mb = settings.load('cache_max_size_mb', 1000)
 		self._usage_row.props.subtitle = _(f'{mb_used:.1f} MB used of {max_mb} MB limit')
 
+	def _update_thumb_usage_subtitle(self):
+		mb_used = cache.get_thumbnail_cache_size_mb()
+		max_mb = settings.load('thumbnail_cache_max_size_mb', 500)
+		self._thumb_usage_row.props.subtitle = _(f'{mb_used:.1f} MB used of {max_mb} MB limit')
+
 	def _on_cache_size_changed(self, text: str):
 		try:
 			val = int(text.strip())
@@ -108,6 +152,16 @@ class SettingsWindow(MemoryDebugger, Adw.Dialog):
 				settings.save({'cache_max_size_mb': val})
 				cache.enforce_cache_limits()
 				self._update_usage_subtitle()
+		except ValueError:
+			pass
+
+	def _on_thumb_size_changed(self, text: str):
+		try:
+			val = int(text.strip())
+			if val > 0:
+				settings.save({'thumbnail_cache_max_size_mb': val})
+				cache.clean_up_thumbnail_cache()
+				self._update_thumb_usage_subtitle()
 		except ValueError:
 			pass
 
@@ -122,3 +176,8 @@ class SettingsWindow(MemoryDebugger, Adw.Dialog):
 	def _on_clear_cache(self):
 		cache.clear_cache()
 		self._update_usage_subtitle()
+
+	def _on_clear_thumb_cache(self):
+		cache.clear_thumbnail_cache()
+		self._update_thumb_usage_subtitle()
+

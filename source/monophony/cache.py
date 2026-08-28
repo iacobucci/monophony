@@ -19,6 +19,26 @@ def get_cache_dir() -> str:
 	return os.path.join(base_cache, NAME, 'audio_cache')
 
 
+def get_high_res_thumbnail_url(url: str) -> str:
+	'''Rewrite YouTube/Google thumbnail URL to high resolution format (vivi-music style).
+
+	:param url: Original thumbnail URL.
+	:return: High resolution thumbnail URL.
+	'''
+	if not url:
+		return ''
+	import re
+	if '=w' in url or '=s' in url:
+		url = re.sub(r'=w\d+-h\d+[^=]*', '=w512-h512-l90-rj', url)
+		url = re.sub(r'=s\d+[^=]*', '=s512-l90-rj', url)
+		return url
+	if 'i.ytimg.com/vi/' in url:
+		base = url.split('?')[0]
+		base = re.sub(r'/(sddefault|hqdefault|mqdefault|default)\.jpg$', '/hqdefault.jpg', base)
+		return base
+	return url
+
+
 def get_thumbnails_dir() -> str:
 	'''Get path to thumbnail cache directory.
 
@@ -26,6 +46,62 @@ def get_thumbnails_dir() -> str:
 	'''
 	base_cache = os.getenv('XDG_CACHE_HOME', os.path.expanduser('~/.cache'))
 	return os.path.join(base_cache, NAME, 'thumbnails_cache')
+
+
+def get_thumbnail_cache_size_mb() -> float:
+	'''Get total size of cached thumbnails in megabytes.
+
+	:return: Size in MB.
+	'''
+	dest_dir = get_thumbnails_dir()
+	if not os.path.exists(dest_dir):
+		return 0.0
+	total_bytes = sum(
+		os.path.getsize(os.path.join(dest_dir, f))
+		for f in os.listdir(dest_dir)
+		if os.path.isfile(os.path.join(dest_dir, f))
+	)
+	return round(total_bytes / (1024 * 1024), 2)
+
+
+def clear_thumbnail_cache():
+	'''Remove all cached thumbnail files.'''
+	import contextlib
+	dest_dir = get_thumbnails_dir()
+	if os.path.exists(dest_dir):
+		for f in os.listdir(dest_dir):
+			path = os.path.join(dest_dir, f)
+			if os.path.isfile(path):
+				with contextlib.suppress(OSError):
+					os.remove(path)
+	logboth.info(__name__, 'Cleared thumbnail cache')
+
+
+def clean_up_thumbnail_cache():
+	'''Enforce LRU thumbnail cache size limit from settings.'''
+	max_size_mb = settings.load('thumbnail_cache_max_size_mb', 500)
+	dest_dir = get_thumbnails_dir()
+	if not os.path.exists(dest_dir):
+		return
+
+	files = [
+		os.path.join(dest_dir, f)
+		for f in os.listdir(dest_dir)
+		if os.path.isfile(os.path.join(dest_dir, f))
+	]
+	files.sort(key=lambda p: os.path.getmtime(p))
+
+	total_size = sum(os.path.getsize(p) for p in files)
+	max_bytes = max_size_mb * 1024 * 1024
+
+	while total_size > max_bytes and files:
+		oldest = files.pop(0)
+		try:
+			size = os.path.getsize(oldest)
+			os.remove(oldest)
+			total_size -= size
+		except OSError:
+			pass
 
 
 def get_cached_thumbnail(yt_id: str) -> str | None:
@@ -45,31 +121,38 @@ def get_cached_thumbnail(yt_id: str) -> str | None:
 
 
 def cache_thumbnail(yt_id: str, url: str) -> str | None:
-	'''Download and cache a thumbnail image locally.
+	'''Download and cache a thumbnail image locally in separate configurable cache.
 
 	:param yt_id: YouTube item ID.
 	:param url: Thumbnail URL.
 	:return: Local file path if cached, else None.
 	'''
+	if not settings.load('thumbnail_cache_enabled', True):
+		return None
 	if not yt_id or not url:
 		return None
+
 	existing = get_cached_thumbnail(yt_id)
 	if existing:
 		return existing
+
+	high_res_url = get_high_res_thumbnail_url(url)
 	dest_dir = get_thumbnails_dir()
 	os.makedirs(dest_dir, exist_ok=True)
 	target_path = os.path.join(dest_dir, f'{yt_id}.jpg')
 	try:
 		import requests
-		res = requests.get(url, timeout=5)
+		res = requests.get(high_res_url, timeout=5)
 		if res.status_code == 200 and len(res.content) > 0:
 			with open(target_path, 'wb') as f:
 				f.write(res.content)
 			logboth.info(__name__, f'Cached thumbnail for "{yt_id}"')
+			clean_up_thumbnail_cache()
 			return target_path
 	except Exception as e:
 		logboth.warning(__name__, f'Failed to cache thumbnail for "{yt_id}": {e}')
 	return None
+
 
 
 
