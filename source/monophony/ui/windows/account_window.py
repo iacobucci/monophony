@@ -93,14 +93,23 @@ class AccountWindow(MemoryDebugger, Adw.Dialog):
 
 			self._client_id_entry = Adw.EntryRow()
 			self._client_id_entry.props.title = _('OAuth Client ID')
-			self._client_id_entry.props.text = settings.load('oauth_client_id', DEFAULT_CLIENT_ID)
+			self._client_id_entry.props.text = settings.load('oauth_client_id', '')
+			self._client_id_entry.connect(
+				'changed',
+				lambda entry: settings.save({'oauth_client_id': entry.props.text.strip()})
+			)
 
 			self._client_secret_entry = Adw.EntryRow()
 			self._client_secret_entry.props.title = _('OAuth Client Secret')
-			self._client_secret_entry.props.text = settings.load('oauth_client_secret', DEFAULT_CLIENT_SECRET)
+			self._client_secret_entry.props.text = settings.load('oauth_client_secret', '')
+			self._client_secret_entry.connect(
+				'changed',
+				lambda entry: settings.save({'oauth_client_secret': entry.props.text.strip()})
+			)
 
 			creds_group.add(self._client_id_entry)
 			creds_group.add(self._client_secret_entry)
+
 
 			import_file_btn = Gtk.Button()
 			import_file_btn.props.label = _('Import oauth.json File...')
@@ -187,7 +196,9 @@ class AccountWindow(MemoryDebugger, Adw.Dialog):
 		if not cid or not sec:
 			return
 
+		settings.save({'oauth_client_id': cid, 'oauth_client_secret': sec})
 		self.props.sensitive = False
+
 		self._start_button.props.child = Adw.Spinner()
 		code_info = yt.start_oauth_flow(cid, sec)
 		self.props.sensitive = True
