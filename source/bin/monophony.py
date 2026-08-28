@@ -17,9 +17,11 @@ gi.require_versions({
 	'Adw': '1', 'Gdk': '4.0', 'Gst': '1.0', 'GstAudio': '1.0', 'Gtk': '4.0'
 })
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from monophony import NAME, __version__
 from monophony.app import Application
+
 
 import logboth
 from gi.repository import Gio, GLib
