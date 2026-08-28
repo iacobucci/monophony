@@ -784,7 +784,14 @@ def get_album_or_playlist(yt_id: str) -> Group | None:
 	'''
 	logboth.info(__name__, f'Getting album/playlist "{yt_id}"...')
 
-	# 1. Try unauthenticated WEB_REMIX client (vivi-music style: gets all tracks without OAuth HTTP 400 or 15-song TV limits)
+	# 1. For special private library playlist 'LM', handle directly via authenticated TVHTML5
+	if yt_id == 'LM' or yt_id.startswith('FEmusic_'):
+		if is_authenticated():
+			if tv_group := _get_playlist_tv(yt_id):
+				logboth.info(__name__, f'Got album/playlist "{yt_id}" via TVHTML5 ({len(tv_group.songs)} songs)')
+				return tv_group
+
+	# 2. Try unauthenticated WEB_REMIX client (vivi-music style: gets all tracks without OAuth HTTP 400 or 15-song TV limits)
 	try:
 		unauth = ytmusicapi.YTMusic()
 		pl_data = unauth.get_playlist(yt_id, limit=None)
@@ -793,9 +800,9 @@ def get_album_or_playlist(yt_id: str) -> Group | None:
 			logboth.info(__name__, f'Got album/playlist "{yt_id}" via WEB_REMIX ({len(parsed_group.songs)} songs)')
 			return parsed_group
 	except Exception as e:
-		logboth.warning(__name__, f'Unauthenticated get_playlist failed for "{yt_id}": {e}')
+		logboth.debug(__name__, f'Unauthenticated get_playlist failed for "{yt_id}": {e}')
 
-	# 2. Try authenticated YTMusic client
+	# 3. Try authenticated YTMusic client
 	if is_authenticated():
 		try:
 			yt = get_yt_client()
@@ -805,7 +812,7 @@ def get_album_or_playlist(yt_id: str) -> Group | None:
 				logboth.info(__name__, f'Got album/playlist "{yt_id}" via authenticated WEB_REMIX ({len(parsed_group.songs)} songs)')
 				return parsed_group
 		except Exception as e:
-			logboth.warning(__name__, f'Authenticated get_playlist failed for "{yt_id}": {e}')
+			logboth.debug(__name__, f'Authenticated get_playlist failed for "{yt_id}": {e}')
 
 		if tv_group := _get_playlist_tv(yt_id):
 			logboth.info(__name__, f'Got album/playlist "{yt_id}" via TVHTML5 ({len(tv_group.songs)} songs)')
@@ -823,6 +830,7 @@ def get_album_or_playlist(yt_id: str) -> Group | None:
 
 	logboth.error(__name__, 'Failed to get album/playlist')
 	return None
+
 
 
 
