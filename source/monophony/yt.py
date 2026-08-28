@@ -455,29 +455,37 @@ def _parse_single_result(yt: ytmusicapi.YTMusic, data: dict) -> SearchResult | N
 		return None
 
 	if result.type in ('album', 'playlist'):
+		playlist = None
 		try:
+			unauth = ytmusicapi.YTMusic()
 			try:
-				playlist = yt.get_playlist(result.item.yt_id, limit=None)
-			except _YTMUSICAPI_PARSING_EXCEPTIONS:
-				playlist = yt.get_album(result.item.yt_id)
-		except (
-			*_YTMUSICAPI_PARSING_EXCEPTIONS,
-			ytmusicapi.exceptions.YTMusicUserError, # Invalid ID
-			requests.exceptions.RequestException
-		):
-			logboth.error(
-				__name__, 'Failed to parse a result', traceback.format_exc()
-			)
+				playlist = unauth.get_playlist(result.item.yt_id, limit=None)
+			except Exception:
+				playlist = unauth.get_album(result.item.yt_id)
+		except Exception:
+			try:
+				try:
+					playlist = yt.get_playlist(result.item.yt_id, limit=None)
+				except Exception:
+					playlist = yt.get_album(result.item.yt_id)
+			except Exception:
+				logboth.warning(__name__, f'Failed to parse album/playlist "{result.item.yt_id}"')
+				return None
+
+		if not playlist or not isinstance(playlist, dict):
 			return None
 
 		result.item.title = playlist.get('title', result.item.title)
 		for song_data in playlist.get('tracks', []):
+			if not isinstance(song_data, dict):
+				continue
 			song_data['resultType'] = 'song'
 			parsed_song_data = _parse_single_result(yt, song_data)
 			if parsed_song_data:
 				if result.item.thumbnail and not parsed_song_data.item.thumbnail:
 					parsed_song_data.item.thumbnail = result.item.thumbnail
 				result.item.songs.append(parsed_song_data.item)
+
 
 	return result
 
@@ -897,7 +905,12 @@ class ParseResultsTask(Task):
 				if limit and count_per_type.get(temp_result.type, 0) >= limit:
 					continue
 
-			parsed = _parse_single_result(yt, item)
+			try:
+				parsed = _parse_single_result(yt, item)
+			except Exception as e:
+				logboth.warning(__name__, f'Failed to parse search result item {i}: {e}')
+				parsed = None
+
 			self._update_progress(i / len(data))
 			if parsed:
 				if parsed.top:
