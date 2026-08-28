@@ -38,18 +38,34 @@ logboth.basic_info()
 
 
 def get_user_config_dir() -> str:
-	'''Get config directory for monophony.
+	'''Get permanent user config directory.
 
-	Supports XDG_CONFIG_HOME (including unit test overrides).
+	Always uses ~/.config/monophony on the real host filesystem,
+	bypassing sandboxed Flatpak .var redirects.
 	'''
-	xdg = os.getenv('XDG_CONFIG_HOME')
-	if xdg:
+	xdg = os.getenv('XDG_CONFIG_HOME', '')
+	if xdg and '/.var/app/' not in xdg:
 		config_dir = os.path.join(xdg, NAME)
 	else:
-		config_dir = os.path.join(os.path.expanduser('~'), '.config', NAME)
+
+		home = os.path.expanduser('~')
+		config_dir = os.path.join(home, '.config', NAME)
+
+		# Auto-migrate files from sandboxed .var dir if present
+		var_dir = os.path.join(home, '.var', 'app', ID, 'config', NAME)
+		if os.path.exists(var_dir):
+			os.makedirs(config_dir, exist_ok=True)
+			with contextlib.suppress(Exception):
+				import shutil
+				for fname in os.listdir(var_dir):
+					src = os.path.join(var_dir, fname)
+					dst = os.path.join(config_dir, fname)
+					if os.path.isfile(src) and not os.path.exists(dst):
+						shutil.copy2(src, dst)
 
 	os.makedirs(config_dir, exist_ok=True)
 	return config_dir
+
 
 
 

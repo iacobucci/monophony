@@ -17,19 +17,18 @@ from monophony.playlists import ImportTask
 
 
 
-class BaseTestCase(unittest.TestCase):
-	def tearDown(self):
-		shutil.rmtree(
-			playlists.get_directory(),
-			ignore_errors=True
-		)
+import tempfile
 
-		shutil.rmtree(
-			os.getenv(
-				'XDG_DATA_HOME', os.path.expanduser('~/.local/share')
-			) + '/' + NAME,
-			ignore_errors=True
-		)
+
+class BaseTestCase(unittest.TestCase):
+	def setUp(self):
+		self.temp_config = tempfile.TemporaryDirectory()
+		os.environ['XDG_CONFIG_HOME'] = self.temp_config.name
+
+	def tearDown(self):
+		if hasattr(self, 'temp_config'):
+			self.temp_config.cleanup()
+
 
 
 class MetadataTestCase(BaseTestCase):
