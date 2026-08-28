@@ -25,6 +25,7 @@ class AccountWindow(MemoryDebugger, Adw.Dialog):
 		self.props.content_width = MIN_WIDTH
 
 		self._oauth_code_info = None
+		self._error_msg = ''
 		self._build_ui()
 
 	@GObject.Signal(name='sync-finished')
@@ -34,7 +35,18 @@ class AccountWindow(MemoryDebugger, Adw.Dialog):
 	def _build_ui(self):
 		self._page = Adw.PreferencesPage()
 
+		if self._error_msg:
+			err_group = Adw.PreferencesGroup()
+			err_row = Adw.ActionRow()
+			err_row.props.title = _('Authentication Error')
+			err_row.props.subtitle = self._error_msg
+			err_icon = Gtk.Image.new_from_icon_name('dialog-error-symbolic')
+			err_row.add_prefix(err_icon)
+			err_group.add(err_row)
+			self._page.add(err_group)
+
 		if yt.is_authenticated():
+
 			status_row = Adw.ActionRow()
 			status_row.props.title = _('Status')
 			status_row.props.subtitle = _('Connected to YouTube Account')
@@ -168,12 +180,17 @@ class AccountWindow(MemoryDebugger, Adw.Dialog):
 
 		self.props.sensitive = False
 		self._finish_button.props.child = Adw.Spinner()
-		success = yt.finish_oauth_flow(cid, sec, device_code)
+		success, err_msg = yt.finish_oauth_flow(cid, sec, device_code)
 		self.props.sensitive = True
 
 		if success:
 			self._oauth_code_info = None
+			self._error_msg = ''
 			self._build_ui()
+		else:
+			self._error_msg = err_msg
+			self._build_ui()
+
 
 	def _on_logout(self):
 		yt.logout_account()

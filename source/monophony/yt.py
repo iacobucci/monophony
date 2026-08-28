@@ -74,13 +74,13 @@ def start_oauth_flow(client_id: str, client_secret: str) -> dict | None:
 		return None
 
 
-def finish_oauth_flow(client_id: str, client_secret: str, device_code: str) -> bool:
+def finish_oauth_flow(client_id: str, client_secret: str, device_code: str) -> tuple[bool, str]:
 	'''Finish OAuth flow with device code and save credentials.
 
 	:param client_id: OAuth client ID.
 	:param client_secret: OAuth client secret.
 	:param device_code: Device code obtained from start_oauth_flow.
-	:return: True if successfully authenticated and saved.
+	:return: Tuple of (success, error_message).
 	'''
 	try:
 		creds = ytmusicapi.OAuthCredentials(client_id, client_secret)
@@ -91,10 +91,15 @@ def finish_oauth_flow(client_id: str, client_secret: str, device_code: str) -> b
 			json.dump(token_dict, f, indent=True)
 		settings.save({'oauth_client_id': client_id, 'oauth_client_secret': client_secret})
 		logboth.info(__name__, 'Successfully authenticated YouTube account')
-		return True
+		return True, ''
+	except ytmusicapi.auth.oauth.exceptions.BadOAuthClient:
+		msg = _('OAuth client failure. Check client ID/secret, ensure "YouTube Data API v3" is enabled in Google Cloud Console, and app type is "TVs and Limited Input devices".')
+		logboth.error(__name__, f'Failed to complete OAuth flow: {msg}')
+		return False, msg
 	except Exception as e:
 		logboth.error(__name__, f'Failed to complete OAuth flow: {e}')
-		return False
+		return False, str(e)
+
 
 
 def logout_account():
