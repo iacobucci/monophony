@@ -246,9 +246,22 @@ class HomePage(Page):
 				)
 		)
 
+		sync_downloads_button = Gtk.Button.new_from_icon_name('view-refresh-symbolic')
+		sync_downloads_button.props.tooltip_text = _('Sync & Download Missing Tracks')
+		sync_downloads_button.connect(
+			'clicked',
+			lambda _button, ref: ref().emit('sync-mandatory-downloads'),
+			self.weak_ref()
+		)
+
+		downloads_buttons = Gtk.Box()
+		downloads_buttons.props.spacing = 6
+		downloads_buttons.append(sync_downloads_button)
+		downloads_buttons.append(open_dir_button)
+
 		self._downloads_group = QueueableRowGroup()
 		self._downloads_group.props.title = _('Downloads')
-		self._downloads_group.props.header_suffix = open_dir_button
+		self._downloads_group.props.header_suffix = downloads_buttons
 		self._downloads_group.props.margin_start = 12
 		self._downloads_group.props.margin_end = 12
 		self._downloads_group.connect(
@@ -416,6 +429,10 @@ class HomePage(Page):
 
 	@GObject.Signal(name='import-group', arg_types=(object,))
 	def _import_group(self, _group: Group):
+		return
+
+	@GObject.Signal(name='sync-mandatory-downloads')
+	def _sync_mandatory_downloads(self):
 		return
 
 	def _on_clear_history(self):

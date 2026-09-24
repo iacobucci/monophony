@@ -8,7 +8,7 @@ import subprocess
 import traceback
 
 from monophony import NAME, get_user_config_dir
-from monophony.asynchronous import Task
+from monophony.asynchronous import Task, wait_if_user_priority
 
 from monophony.data import Artist, Group, Song
 
@@ -73,6 +73,59 @@ def is_downloaded(song: Song) -> bool:
 	)
 
 
+def resolve_song_metadata(song: Song) -> Song:
+	'''Try to resolve title and author for a song with empty metadata.'''
+	if song.title and song.author.name:
+		return song
+
+	file = get_file(song)
+	if file:
+		basename = os.path.splitext(os.path.basename(file))[0]
+		parts = basename.rsplit('_', 1)
+		if len(parts) == 2:
+			title_author = parts[0]
+			if '_-_' in title_author:
+				t, a = title_author.rsplit('_-_', 1)
+				if not song.title:
+					song.title = t.replace('_', ' ')
+				if not song.author.name:
+					song.author = Artist(name=a.replace('_', ' '))
+			elif not song.title:
+				song.title = title_author.replace('_', ' ')
+
+	if not song.title or not song.author.name:
+		try:
+			from monophony import playlists
+			all_playlists = playlists.read()
+			for pl in all_playlists.values():
+				for s in pl.songs:
+					if s.yt_id == song.yt_id:
+						song.title = song.title or s.title
+						if not song.author.name:
+							song.author = s.author
+						song.length = song.length or s.length
+						song.thumbnail = song.thumbnail or s.thumbnail
+						return song
+		except Exception:
+			pass
+
+	return song
+
+
+def get_missing_mandatory_songs(downloader: '_Downloader') -> list[Song]:
+	'''Get list of songs specified in downloads.json that are missing locally.'''
+	downloader.lock.lock()
+	try:
+		songs = downloader.read().songs
+	finally:
+		downloader.lock.unlock()
+
+	return [
+		song for song in songs
+		if not is_downloaded(song) and not is_being_downloaded(song)
+	]
+
+
 class DownloadTask(Task):
 	'''Task for downloading any number of songs.
 
@@ -131,10 +184,12 @@ class DownloadTask(Task):
 					all_succeeded = False
 					break
 
+				wait_if_user_priority()
+
 				song_url = f'https://music.youtube.com/watch?v={song.yt_id}'
 				logboth.info(
 					__name__,
-					f'[{idx}/{total}] Downloading song "{song.title}" ({song.yt_id})...'
+					f'[{idx}/{total}] Downloading song "{song.title or song.yt_id}" ({song.yt_id})...'
 				)
 
 				result = subprocess.run(
@@ -165,14 +220,15 @@ class DownloadTask(Task):
 					all_succeeded = False
 					logboth.error(
 						__name__,
-						f'Failed to download song "{song.title}" ({song.yt_id})',
+						f'Failed to download song "{song.title or song.yt_id}" ({song.yt_id})',
 						(result.stdout or '') + (result.stderr or '')
 					)
 				elif is_downloaded(song):
 					success_count += 1
+					resolve_song_metadata(song)
 					logboth.info(
 						__name__,
-						f'[{idx}/{total}] Successfully downloaded "{song.title}"'
+						f'[{idx}/{total}] Successfully downloaded "{song.title or song.yt_id}"'
 					)
 					downloader.write(
 						Group(songs=[song] + downloader.read().songs)
@@ -271,20 +327,46 @@ class _Downloader:
 
 		try:
 			with open(songs_path) as songs_file:
-				return Group(
-					songs=[
-						Song(
-							title=item.get('title', ''),
-							author=Artist(
-								name=item.get('author', ''),
-								yt_id=item.get('author_id', '')
-							),
-							length=item.get('length', ''),
-							thumbnail=item.get('thumbnail', ''),
-							yt_id=item.get('id', '')
-						) for item in json.load(songs_file)
-					]
-				)
+				data = json.load(songs_file)
+				if not isinstance(data, list):
+					return Group()
+
+				songs = []
+				for item in data:
+					if isinstance(item, str):
+						yt_id = item.strip()
+						title = ''
+						author_name = ''
+						author_id = ''
+						length = ''
+						thumbnail = ''
+					elif isinstance(item, dict):
+						yt_id = str(item.get('id') or item.get('yt_id', '')).strip()
+						title = str(item.get('title', ''))
+						author_name = str(item.get('author', ''))
+						author_id = str(item.get('author_id', ''))
+						length = str(item.get('length', ''))
+						thumbnail = str(item.get('thumbnail', ''))
+					else:
+						continue
+
+					if not yt_id:
+						continue
+
+					song = Song(
+						title=title,
+						author=Artist(
+							name=author_name,
+							yt_id=author_id
+						),
+						length=length,
+						thumbnail=thumbnail,
+						yt_id=yt_id
+					)
+					resolve_song_metadata(song)
+					songs.append(song)
+
+				return Group(songs=songs)
 		except (OSError, json.decoder.JSONDecodeError):
 			return Group()
 

@@ -129,6 +129,25 @@ class SettingsWindow(MemoryDebugger, Adw.Dialog):
 
 		page.add(thumb_group)
 
+		# --- Mandatory Downloads Group ---
+		downloads_group = Adw.PreferencesGroup()
+		downloads_group.props.title = _('Mandatory Downloads')
+		downloads_group.props.description = _(
+			'Automatically synchronize and download missing tracks specified in downloads.json on startup.'
+		)
+
+		self._auto_download_switch = Adw.SwitchRow()
+		self._auto_download_switch.props.title = _('Auto-download Mandatory Tracks')
+		self._auto_download_switch.props.subtitle = _('Download tracks listed in downloads.json missing on this device')
+		self._auto_download_switch.props.active = settings.load('auto_sync_downloads', True)
+		self._auto_download_switch.connect(
+			'notify::active',
+			lambda switch, _param: settings.save({'auto_sync_downloads': switch.props.active})
+		)
+		downloads_group.add(self._auto_download_switch)
+
+		page.add(downloads_group)
+
 		toolbar_view = Adw.ToolbarView()
 		toolbar_view.props.content = page
 		toolbar_view.add_top_bar(Adw.HeaderBar())

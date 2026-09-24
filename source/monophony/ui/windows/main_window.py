@@ -302,6 +302,11 @@ class MainWindow(Adw.ApplicationWindow):
 			lambda _page, ref: MainWindow._on_show_settings(ref()),
 			self.weak_ref()
 		)
+		self._home_page.connect(
+			'sync-mandatory-downloads',
+			lambda _page, ref: MainWindow._sync_mandatory_downloads(ref()),
+			self.weak_ref()
+		)
 		self._home_page.update_downloads(self._downloader.get_downloads())
 
 		loading_page = LoadingPage()
@@ -529,6 +534,21 @@ class MainWindow(Adw.ApplicationWindow):
 		self._update_external_playlists()
 		self._update_playlists()
 		self._home_page.update_recommendations()
+		self._sync_mandatory_downloads()
+
+	def _sync_mandatory_downloads(self):
+		'''Check downloads.json configuration and download any missing mandatory songs.'''
+		self._update_downloads()
+		if not settings.load('auto_sync_downloads', True):
+			return
+
+		missing = downloads.get_missing_mandatory_songs(self._downloader)
+		if missing:
+			logboth.info(
+				__name__,
+				f'Found {len(missing)} mandatory song(s) missing locally from downloads.json. Starting download...'
+			)
+			self._on_download_songs(Group(songs=missing))
 
 
 	def _on_filter_artist(self, filter_: str):
