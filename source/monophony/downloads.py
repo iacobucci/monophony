@@ -92,8 +92,7 @@ class DownloadTask(Task):
 		logboth.info(__name__, f'Downloading {len(group.songs)} songs...')
 
 		path = get_directory()
-		needed_ids = []
-		new_group = Group()
+		needed_songs: list[Song] = []
 		for song in group.songs:
 			if not song.yt_id:
 				logboth.error(
@@ -109,64 +108,90 @@ class DownloadTask(Task):
 				continue
 
 			downloader.create_lock_file(song.yt_id)
-			needed_ids.append(song.yt_id)
-			new_group.songs.append(song)
+			needed_songs.append(song)
 
 		# *.NAME files act as locks for this part
 		self._update_progress()
 		downloader.lock.unlock()
 
-		if not needed_ids:
+		if not needed_songs:
 			logboth.info(
 				__name__, 'Canceled download as there are no songs to download'
 			)
 			return True
 
-		song_urls = [
-			f'https://music.youtube.com/watch?v={yt_id}' for yt_id in needed_ids
-		]
-		ytdlp = subprocess.Popen(
-			[
-				'yt-dlp',
-				'--extract-audio',
-				'--no-cache-dir',
-				'--audio-quality',
-				'0',
-				'--add-metadata',
-				'--paths',
-				'home:' + path,
-				'--paths',
-				'temp:' + get_temp_directory(),
-				'--restrict-filenames',
-				'--output',
-				'%(title)s_-_%(creators)s_%(id)s.%(ext)s',
-				*song_urls
-			],
-			text=True,
-			stderr=subprocess.STDOUT,
-			stdout=subprocess.PIPE
-		)
-		return_code = ytdlp.wait()
+		success_count = 0
+		all_succeeded = True
+		total = len(needed_songs)
 
-		downloader.lock.lock()
-		for yt_id in needed_ids:
-			downloader.delete_lock_file(yt_id)
+		try:
+			for idx, song in enumerate(needed_songs, start=1):
+				if self.is_canceled():
+					logboth.info(__name__, 'Download canceled by user')
+					all_succeeded = False
+					break
 
-		if return_code != 0:
-			logboth.error(__name__, 'Failed to download songs', ytdlp.stdout.read())
+				song_url = f'https://music.youtube.com/watch?v={song.yt_id}'
+				logboth.info(
+					__name__,
+					f'[{idx}/{total}] Downloading song "{song.title}" ({song.yt_id})...'
+				)
+
+				result = subprocess.run(
+					[
+						'yt-dlp',
+						'--extract-audio',
+						'--no-cache-dir',
+						'--audio-quality',
+						'0',
+						'--add-metadata',
+						'--paths',
+						'home:' + path,
+						'--paths',
+						'temp:' + get_temp_directory(),
+						'--restrict-filenames',
+						'--output',
+						'%(title)s_-_%(creators)s_%(id)s.%(ext)s',
+						song_url
+					],
+					text=True,
+					capture_output=True
+				)
+
+				downloader.lock.lock()
+				downloader.delete_lock_file(song.yt_id)
+
+				if result.returncode != 0:
+					all_succeeded = False
+					logboth.error(
+						__name__,
+						f'Failed to download song "{song.title}" ({song.yt_id})',
+						(result.stdout or '') + (result.stderr or '')
+					)
+				elif is_downloaded(song):
+					success_count += 1
+					logboth.info(
+						__name__,
+						f'[{idx}/{total}] Successfully downloaded "{song.title}"'
+					)
+					downloader.write(
+						Group(songs=[song] + downloader.read().songs)
+					)
+
+				self._update_progress()
+				downloader.lock.unlock()
+		finally:
+			downloader.lock.lock()
+			for song in needed_songs:
+				if is_being_downloaded(song):
+					downloader.delete_lock_file(song.yt_id)
 			downloader.lock.unlock()
-			return False
+			self._update_progress()
 
-		new_group.songs = [song for song in new_group.songs if is_downloaded(song)]
 		logboth.info(
-			__name__, f'Downloaded {len(new_group.songs)}/{len(group.songs)} songs'
+			__name__, f'Downloaded {success_count}/{total} songs'
 		)
-		logboth.info(__name__, 'Saving data about newly downloaded songs...')
-		downloader.write(Group(songs=new_group.songs + downloader.read().songs))
-		logboth.info(__name__, 'Saved newly downloaded song data')
-
-		downloader.lock.unlock()
-		return True
+		return all_succeeded
 
 
 class _Downloader:

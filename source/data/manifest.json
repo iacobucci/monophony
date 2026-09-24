@@ -11,6 +11,7 @@
 		"--share=ipc",
 		"--share=network",
 		"--device=dri",
+		"--filesystem=home",
 		"--own-name=org.mpris.MediaPlayer2.Monophony"
 	],
 	"modules": [
