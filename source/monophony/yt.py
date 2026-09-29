@@ -32,14 +32,33 @@ def get_oauth_path() -> str:
 
 
 
+_cached_unauth_client = None
+_cached_auth_client = None
+_oauth_token_failed = False
+
+
+def _reset_cached_clients():
+	global _cached_unauth_client, _cached_auth_client, _oauth_token_failed
+	_cached_unauth_client = None
+	_cached_auth_client = None
+	_oauth_token_failed = False
+
+
 def get_yt_client(unauth: bool = False) -> ytmusicapi.YTMusic:
 	'''Get a YTMusic client instance, using OAuth credentials if available.
 
 	:param unauth: Whether to force an unauthenticated client.
 	:return: YTMusic instance.
 	'''
-	if unauth:
-		return ytmusicapi.YTMusic()
+	global _cached_unauth_client, _cached_auth_client, _oauth_token_failed
+
+	if unauth or _oauth_token_failed:
+		if _cached_unauth_client is None:
+			_cached_unauth_client = ytmusicapi.YTMusic()
+		return _cached_unauth_client
+
+	if _cached_auth_client is not None:
+		return _cached_auth_client
 
 	oauth_path = get_oauth_path()
 	client_id = settings.load('oauth_client_id', '')
@@ -67,14 +86,20 @@ def get_yt_client(unauth: bool = False) -> ytmusicapi.YTMusic:
 			# Verify token validity; fall back to unauthenticated if token refresh fails
 			try:
 				_ = client.headers
+				_cached_auth_client = client
 				return client
 			except Exception as e:
+				_oauth_token_failed = True
 				logboth.warning(__name__, f'OAuth token invalid or expired ({e}), falling back to unauthenticated client')
-				return ytmusicapi.YTMusic()
+				if _cached_unauth_client is None:
+					_cached_unauth_client = ytmusicapi.YTMusic()
+				return _cached_unauth_client
 		except Exception as e:
 			logboth.error(__name__, f'Failed to load OAuth client: {e}')
 
-	return ytmusicapi.YTMusic()
+	if _cached_unauth_client is None:
+		_cached_unauth_client = ytmusicapi.YTMusic()
+	return _cached_unauth_client
 
 
 
@@ -108,6 +133,7 @@ def import_oauth_file(filepath: str) -> bool:
 		if 'client_id' in data and 'client_secret' in data:
 			settings.save({'oauth_client_id': data['client_id'], 'oauth_client_secret': data['client_secret']})
 
+		_reset_cached_clients()
 		logboth.info(__name__, f'Successfully imported OAuth file from {filepath}')
 		return True
 	except Exception as e:
@@ -156,6 +182,7 @@ def finish_oauth_flow(client_id: str, client_secret: str, device_code: str) -> t
 			json.dump(token_dict, f, indent=True)
 
 		settings.save({'oauth_client_id': client_id, 'oauth_client_secret': client_secret})
+		_reset_cached_clients()
 		logboth.info(__name__, 'Successfully authenticated YouTube account')
 		return True, ''
 	except ytmusicapi.auth.oauth.exceptions.BadOAuthClient as e:
@@ -170,6 +197,7 @@ def finish_oauth_flow(client_id: str, client_secret: str, device_code: str) -> t
 
 def logout_account():
 	'''Remove YouTube account authentication token while preserving client credentials.'''
+	_reset_cached_clients()
 	oauth_path = get_oauth_path()
 	if os.path.exists(oauth_path):
 		with contextlib.suppress(OSError):
@@ -403,7 +431,9 @@ def _get_artist_id(artists: list[dict] | str) -> str:
 	return a_id
 
 
-def _parse_single_result(yt: ytmusicapi.YTMusic, data: dict) -> SearchResult | None:
+def _parse_single_result(
+	yt: ytmusicapi.YTMusic, data: dict, load_tracks: bool = True
+) -> SearchResult | None:
 	category = data.get('category', '')
 	type_ = data.get('resultType', '')
 
@@ -431,8 +461,8 @@ def _parse_single_result(yt: ytmusicapi.YTMusic, data: dict) -> SearchResult | N
 	else:
 		result.item.yt_id = (
 			data.get('videoId', '') or
-			data.get('browseId', '') or
-			data.get('playlistId', '')
+			data.get('playlistId', '') or
+			data.get('browseId', '')
 		)
 		result.item.title = data.get('title', '')
 		result.item.author.yt_id = (
@@ -469,19 +499,28 @@ def _parse_single_result(yt: ytmusicapi.YTMusic, data: dict) -> SearchResult | N
 		return None
 
 	if result.type in ('album', 'playlist'):
+		if not load_tracks:
+			return result
+
 		playlist = None
 		try:
-			unauth = ytmusicapi.YTMusic()
-			try:
-				playlist = unauth.get_playlist(result.item.yt_id, limit=None)
-			except Exception:
+			unauth = get_yt_client(unauth=True)
+			if result.item.yt_id.startswith('MPREb'):
 				playlist = unauth.get_album(result.item.yt_id)
+			else:
+				try:
+					playlist = unauth.get_playlist(result.item.yt_id, limit=None)
+				except Exception:
+					playlist = unauth.get_album(result.item.yt_id)
 		except Exception:
 			try:
-				try:
-					playlist = yt.get_playlist(result.item.yt_id, limit=None)
-				except Exception:
+				if result.item.yt_id.startswith('MPREb'):
 					playlist = yt.get_album(result.item.yt_id)
+				else:
+					try:
+						playlist = yt.get_playlist(result.item.yt_id, limit=None)
+					except Exception:
+						playlist = yt.get_album(result.item.yt_id)
 			except Exception:
 				logboth.warning(__name__, f'Failed to parse album/playlist "{result.item.yt_id}"')
 				return None
@@ -494,12 +533,11 @@ def _parse_single_result(yt: ytmusicapi.YTMusic, data: dict) -> SearchResult | N
 			if not isinstance(song_data, dict):
 				continue
 			song_data['resultType'] = 'song'
-			parsed_song_data = _parse_single_result(yt, song_data)
+			parsed_song_data = _parse_single_result(yt, song_data, load_tracks=False)
 			if parsed_song_data:
 				if result.item.thumbnail and not parsed_song_data.item.thumbnail:
 					parsed_song_data.item.thumbnail = result.item.thumbnail
 				result.item.songs.append(parsed_song_data.item)
-
 
 	return result
 
@@ -1231,9 +1269,21 @@ def get_album_or_playlist(yt_id: str) -> Group | None:
 				logboth.info(__name__, f'Got album/playlist "{yt_id}" via TVHTML5 ({len(tv_group.songs)} songs)')
 				return tv_group
 
-	# 2. Try unauthenticated WEB_REMIX client (vivi-music style: gets all tracks without OAuth HTTP 400 or 15-song TV limits)
+	# 2. If it's an album browseId, fetch via get_album directly
+	if yt_id.startswith('MPREb'):
+		try:
+			unauth = get_yt_client(unauth=True)
+			album_data = unauth.get_album(yt_id)
+			parsed_group = _parse_playlist_dict(yt_id, album_data)
+			if parsed_group and parsed_group.songs:
+				logboth.info(__name__, f'Got album "{yt_id}" via get_album ({len(parsed_group.songs)} songs)')
+				return parsed_group
+		except Exception as e:
+			logboth.warning(__name__, f'get_album failed for "{yt_id}": {e}')
+
+	# 3. Try unauthenticated WEB_REMIX client (vivi-music style: gets all tracks without OAuth HTTP 400 or 15-song TV limits)
 	try:
-		unauth = ytmusicapi.YTMusic()
+		unauth = get_yt_client(unauth=True)
 		pl_data = unauth.get_playlist(yt_id, limit=None)
 		parsed_group = _parse_playlist_dict(yt_id, pl_data)
 		if parsed_group and parsed_group.songs:
@@ -1321,7 +1371,7 @@ class ParseResultsTask(Task):
 
 
 	def _function(
-		self, yt: ytmusicapi.YTMusic, data: list[dict], limit: int | None=None,
+		self, yt: ytmusicapi.YTMusic, data: list[dict], limit: int | None=None, load_tracks: bool = False
 	) -> list[SearchResult] | None:
 		count_per_type = {}
 
@@ -1341,7 +1391,7 @@ class ParseResultsTask(Task):
 					continue
 
 			try:
-				parsed = _parse_single_result(yt, item)
+				parsed = _parse_single_result(yt, item, load_tracks=load_tracks)
 			except Exception as e:
 				logboth.warning(__name__, f'Failed to parse search result item {i}: {e}')
 				parsed = None
@@ -1568,6 +1618,26 @@ class GetRecommendationsTask(Task):
 		return recommendations
 
 
+_SEARCH_CACHE_TTL = 300
+_search_cache: dict[str, tuple[float, list[SearchResult]]] = {}
+
+
+def _get_cached_search(key: str) -> list[SearchResult] | None:
+	if key in _search_cache:
+		timestamp, results = _search_cache[key]
+		if time.time() - timestamp < _SEARCH_CACHE_TTL:
+			return results
+		del _search_cache[key]
+	return None
+
+
+def _set_cached_search(key: str, results: list[SearchResult]):
+	if len(_search_cache) > 50:
+		oldest = min(_search_cache.keys(), key=lambda k: _search_cache[k][0])
+		del _search_cache[oldest]
+	_search_cache[key] = (time.time(), results)
+
+
 class SearchTask(Task):
 	'''Task for searching YT.
 
@@ -1588,6 +1658,13 @@ class SearchTask(Task):
 	def _function(
 		self, query: str, filter_: str='', limit: int | None=None
 	) -> list[SearchResult] | None:
+		cache_key = f"{query.strip().lower()}:{filter_}:{limit}"
+		cached = _get_cached_search(cache_key)
+		if cached is not None:
+			logboth.info(__name__, f'Returning cached search results for "{query}"')
+			self._update_progress(1.0)
+			return cached
+
 		logboth.info(__name__, f'Searching for "{query}" with filter "{filter_}"...')
 		yt = get_yt_client()
 
@@ -1619,17 +1696,18 @@ class SearchTask(Task):
 			self._update_progress(0.2)
 			max_retries = 3
 			one_result_retries = 0
+			search_limit = limit if limit is not None else (30 if filter_ else None)
 			while True:
 				try:
 					data = (
-						yt.search(query, filter=filter_, limit=100) if filter_
+						yt.search(query, filter=filter_, limit=search_limit) if filter_
 							else yt.search(query)
 					)
 				except Exception as e:
 					logboth.warning(__name__, f'Search call failed ({e}), using unauthenticated fallback')
-					unauth_yt = ytmusicapi.YTMusic()
+					unauth_yt = get_yt_client(unauth=True)
 					data = (
-						unauth_yt.search(query, filter=filter_, limit=100) if filter_
+						unauth_yt.search(query, filter=filter_, limit=search_limit) if filter_
 							else unauth_yt.search(query)
 					)
 
@@ -1654,18 +1732,19 @@ class SearchTask(Task):
 		self._update_progress(0.5)
 		parse_task = ParseResultsTask(
 			progress_callback=self._on_parse_progress_update,
-			args=(yt, data, limit)
+			args=(yt, data, limit, False)
 		)
 		parse_task.start()
 		while parse_task.is_running():
-			time.sleep(0.1)
+			time.sleep(0.05)
 			if self.is_canceled():
 				parse_task.cancel()
 				logboth.info(__name__, 'Canceled search')
 				return None
 
 		if parse_task.result is not None:
-			time.sleep(0.1)
+			_set_cached_search(cache_key, parse_task.result)
+			time.sleep(0.05)
 			logboth.info(__name__, 'Done searching')
 			return parse_task.result
 

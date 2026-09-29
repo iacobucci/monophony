@@ -5,6 +5,8 @@ from monophony.data import Artist, Group, Song, TimeString
 from monophony.debug import MemoryDebugger
 from monophony.ui.popovers.group_row_popover import GroupRowPopover
 from monophony.ui.rows.song_row import SongRow
+import contextlib
+import threading
 
 import logboth
 from gi.repository import Adw, GLib, GObject, Gtk
@@ -109,7 +111,42 @@ class GroupRow(MemoryDebugger, Adw.ExpanderRow):
 
 	def _on_expanded(self, _param):
 		if self.props.expanded:
-			self.update_contents()
+			if not self.group.songs and self.group.yt_id:
+				self._load_songs_async()
+			else:
+				self.update_contents()
+
+	def _load_songs_async(self):
+		if getattr(self, '_is_loading_songs', False):
+			return
+		self._is_loading_songs = True
+
+		loading_row = Adw.ActionRow(title=_('Loading tracks...'))
+		spinner = Gtk.Spinner()
+		spinner.start()
+		loading_row.add_prefix(spinner)
+		super().add_row(loading_row)
+
+		def _worker():
+			from monophony import yt
+			group = yt.get_album_or_playlist(self.group.yt_id)
+
+			def _on_done():
+				self._is_loading_songs = False
+				with contextlib.suppress(Exception):
+					self.remove(loading_row)
+				if group and group.songs:
+					self.group.songs = group.songs
+					if not self.group.author.name and group.author.name:
+						self.group.author = group.author
+					self.update_contents()
+				else:
+					empty_row = Adw.ActionRow(title=_('No tracks found'))
+					super(GroupRow, self).add_row(empty_row)
+
+			GLib.idle_add(_on_done)
+
+		threading.Thread(target=_worker, daemon=True).start()
 
 	def _on_toggle_favorite(self):
 		new_state = playlists.toggle_favorite(self.group.title)
@@ -233,8 +270,13 @@ class GroupRow(MemoryDebugger, Adw.ExpanderRow):
 		for song in self.group.songs:
 			total_seconds += TimeString(string=song.length).as_seconds()
 
-		self.props.subtitle = (
-			TimeString(seconds=total_seconds).as_string() +
-			' ' +
-			GLib.markup_escape_text(self.group.author.name, -1)
-		) if total_seconds else ''
+		if total_seconds:
+			self.props.subtitle = (
+				TimeString(seconds=total_seconds).as_string() +
+				' ' +
+				GLib.markup_escape_text(self.group.author.name, -1)
+			)
+		elif self.group.author.name:
+			self.props.subtitle = GLib.markup_escape_text(self.group.author.name, -1)
+		else:
+			self.props.subtitle = ''

@@ -528,6 +528,18 @@ class MainWindow(Adw.ApplicationWindow):
 		self._on_add_group_to(self._player.get_queue())
 
 	def _on_add_to_queue(self, group: Group):
+		if not group.songs and group.yt_id:
+			def _worker():
+				from monophony import yt
+				resolved = yt.get_album_or_playlist(group.yt_id)
+				if resolved and resolved.songs:
+					group.songs = resolved.songs
+					if not group.author.name and resolved.author.name:
+						group.author = resolved.author
+					GLib.idle_add(lambda: self._player.add_to_queue(group))
+			import threading
+			threading.Thread(target=_worker, daemon=True).start()
+			return
 		self._player.add_to_queue(group)
 
 	def _on_add_window_closed(self, window: AddWindow):
@@ -556,6 +568,18 @@ class MainWindow(Adw.ApplicationWindow):
 		return False
 
 	def _on_download_songs(self, group: Group):
+		if not group.songs and group.yt_id:
+			def _worker():
+				from monophony import yt
+				resolved = yt.get_album_or_playlist(group.yt_id)
+				if resolved and resolved.songs:
+					group.songs = resolved.songs
+					if not group.author.name and resolved.author.name:
+						group.author = resolved.author
+					GLib.idle_add(lambda: self._on_download_songs(group))
+			import threading
+			threading.Thread(target=_worker, daemon=True).start()
+			return
 		DownloadTask(
 			progress_callback=self._on_download_status_changed,
 			callback=self._on_download_finished,
@@ -688,6 +712,19 @@ class MainWindow(Adw.ApplicationWindow):
 		self._player.set_pause(not self._player.paused)
 
 	def _on_play(self, song: Song, group: Group):
+		if not group.songs and group.yt_id:
+			def _worker():
+				from monophony import yt
+				resolved = yt.get_album_or_playlist(group.yt_id)
+				if resolved and resolved.songs:
+					group.songs = resolved.songs
+					if not group.author.name and resolved.author.name:
+						group.author = resolved.author
+					start_song = group.songs[0] if (not song or not song.yt_id) else song
+					GLib.idle_add(lambda: self._player.play(start_song, group))
+			import threading
+			threading.Thread(target=_worker, daemon=True).start()
+			return
 		self._player.play(song, group)
 
 	def _on_start_radio(self, item: Song | Group | Artist | None = None):

@@ -365,6 +365,32 @@ class StreamingAndSeamlessRadioTestCase(BaseTestCase):
 		ydl = yt._get_ydl()
 		self.assertIsNotNone(ydl)
 
+	def test_fast_search_and_caching(self):
+		from monophony import yt
+		# Test fast parsing of album search item with load_tracks=False
+		client = yt.get_yt_client(unauth=True)
+		album_item = {
+			'category': None,
+			'resultType': 'album',
+			'title': 'Test Album',
+			'playlistId': 'OLAK5uy_test',
+			'artists': [{'name': 'Test Artist', 'id': 'AR123'}],
+			'thumbnails': [{'url': 'http://example.com/thumb.jpg'}]
+		}
+		res = yt._parse_single_result(client, album_item, load_tracks=False)
+		self.assertIsNotNone(res)
+		self.assertEqual(res.item.title, 'Test Album')
+		self.assertEqual(res.item.yt_id, 'OLAK5uy_test')
+		self.assertEqual(res.item.author.name, 'Test Artist')
+		self.assertEqual(len(res.item.songs), 0)
+
+		# Test search caching
+		yt._set_cached_search('test:query:None', [res])
+		cached = yt._get_cached_search('test:query:None')
+		self.assertIsNotNone(cached)
+		self.assertEqual(len(cached), 1)
+		self.assertEqual(cached[0].item.title, 'Test Album')
+
 
 if __name__ == '__main__':
 	unittest.main()
