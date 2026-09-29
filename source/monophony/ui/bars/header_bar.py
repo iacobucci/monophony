@@ -1,12 +1,16 @@
 '''Header bar widget.'''
 
+import gettext
+
 from monophony.debug import MemoryDebugger
 
-from gi.repository import Adw, GObject, Gtk
+from gi.repository import Adw, Gio, GObject, Gtk
+
+_ = gettext.gettext
 
 
 class HeaderBar(MemoryDebugger, Adw.Bin):
-	'''Header bar widget with "about", "account", and "settings" buttons.'''
+	'''Header bar widget with "account", "settings", and "info & logs" buttons.'''
 
 	__gtype_name__ = __qualname__
 
@@ -30,16 +34,17 @@ class HeaderBar(MemoryDebugger, Adw.Bin):
 			self.weak_ref()
 		)
 
-		about_button = Gtk.Button.new_from_icon_name('help-about-symbolic')
-		about_button.props.tooltip_text = _('About')
-		about_button.connect(
-			'clicked',
-			lambda _button, ref: ref().emit('show-about'),
-			self.weak_ref()
-		)
+		info_menu = Gio.Menu()
+		info_menu.append(_('Logs'), 'win.show-logs')
+		info_menu.append(_('About Monophony'), 'win.show-about')
+
+		info_button = Gtk.MenuButton()
+		info_button.props.icon_name = 'help-about-symbolic'
+		info_button.props.tooltip_text = _('Info & Logs')
+		info_button.props.menu_model = info_menu
 
 		header_bar = Adw.HeaderBar()
-		header_bar.pack_end(about_button)
+		header_bar.pack_end(info_button)
 		header_bar.pack_end(settings_button)
 		header_bar.pack_end(account_button)
 
@@ -55,6 +60,10 @@ class HeaderBar(MemoryDebugger, Adw.Bin):
 
 	@GObject.Signal(name='show-settings')
 	def _show_settings(self):
+		return
+
+	@GObject.Signal(name='show-logs')
+	def _show_logs(self):
 		return
 
 

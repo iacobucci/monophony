@@ -256,7 +256,53 @@ class CacheAndPrefetchTestCase(BaseTestCase):
 		assert(ap is not None)
 
 
+class LogTestCase(BaseTestCase):
+	def test_log_wrapper_and_ui(self):
+		import logboth
+		from gi.repository import Adw, Gio, GLib
+		from monophony import log
+		from monophony.ui.bars.header_bar import HeaderBar
+		from monophony.ui.windows.log_window import LogWindow
+
+		# 1. Test log capture
+		log.clear_logs()
+		logboth.info('test_source', 'Test info message for test_case')
+		logboth.warning('test_source', 'Test warning message for test_case')
+		print('Test print statement for test_case')
+
+		logs = log.get_logs()
+		assert(any('Test info message for test_case' in l for l in logs))
+		assert(any('Test warning message for test_case' in l for l in logs))
+		assert(any('Test print statement for test_case' in l for l in logs))
+
+		# 2. Test HeaderBar menu button
+		hb = HeaderBar()
+		assert(hb is not None)
+		assert(hb.props.child is not None)
+
+		# 3. Test LogWindow creation and filter
+		window = LogWindow()
+		assert(window is not None)
+		assert(window.props.title == 'Logs')
+		assert(len(window._raw_lines) > 0)
+
+		# Test filter
+		window._filter_entry.set_text('warning message')
+		window._on_filter_changed(window._filter_entry)
+		filtered_text = window._buffer.get_text(
+			window._buffer.get_start_iter(), window._buffer.get_end_iter(), False
+		)
+		assert('Test warning message for test_case' in filtered_text)
+		assert('Test info message for test_case' not in filtered_text)
+
+		# Cleanup
+		window._on_closed(window)
+		log.clear_logs()
+		assert(len(log.get_logs()) == 0)
+
+
 if __name__ == '__main__':
 	unittest.main()
+
 
 

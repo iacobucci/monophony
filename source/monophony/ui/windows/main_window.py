@@ -34,6 +34,7 @@ from monophony.ui.queue_sidebar import QueueSidebar
 from monophony.ui.windows.account_window import AccountWindow
 from monophony.ui.windows.add_window import AddWindow
 from monophony.ui.windows.import_window import ImportWindow
+from monophony.ui.windows.log_window import LogWindow
 from monophony.ui.windows.message_window import MessageWindow
 from monophony.ui.windows.settings_window import SettingsWindow
 
@@ -309,6 +310,11 @@ class MainWindow(Adw.ApplicationWindow):
 			self.weak_ref()
 		)
 		self._home_page.connect(
+			'show-logs',
+			lambda _page, ref: MainWindow._on_show_logs(ref()),
+			self.weak_ref()
+		)
+		self._home_page.connect(
 			'show-account',
 			lambda _page, ref: MainWindow._on_show_account(ref()),
 			self.weak_ref()
@@ -334,6 +340,11 @@ class MainWindow(Adw.ApplicationWindow):
 		loading_page.connect(
 			'show-about',
 			lambda _page, ref: MainWindow._on_show_about(ref()),
+			self.weak_ref()
+		)
+		loading_page.connect(
+			'show-logs',
+			lambda _page, ref: MainWindow._on_show_logs(ref()),
 			self.weak_ref()
 		)
 		loading_page.connect(
@@ -437,6 +448,14 @@ class MainWindow(Adw.ApplicationWindow):
 		focus_search_action = Gio.SimpleAction.new('focus-search', None)
 		focus_search_action.connect('activate', self._on_focus_search)
 		self.add_action(focus_search_action)
+
+		show_logs_action = Gio.SimpleAction.new('show-logs', None)
+		show_logs_action.connect('activate', lambda _a, _p: self._on_show_logs())
+		self.add_action(show_logs_action)
+
+		show_about_action = Gio.SimpleAction.new('show-about', None)
+		show_about_action.connect('activate', lambda _a, _p: self._on_show_about())
+		self.add_action(show_about_action)
 
 		self.props.title = DISPLAY_NAME
 		self.props.icon_name = ID
@@ -703,6 +722,11 @@ class MainWindow(Adw.ApplicationWindow):
 			lambda _page, ref: MainWindow._on_show_about(ref()),
 			self.weak_ref()
 		)
+		loading_page.connect(
+			'show-logs',
+			lambda _page, ref: MainWindow._on_show_logs(ref()),
+			self.weak_ref()
+		)
 		self._navigation_view.push(loading_page)
 
 		logboth.info(__name__, f'Searching for "{query}" with filter "{filter_}"...')
@@ -818,6 +842,11 @@ class MainWindow(Adw.ApplicationWindow):
 			self.weak_ref()
 		)
 		page.connect(
+			'show-logs',
+			lambda _page, ref: MainWindow._on_show_logs(ref()),
+			self.weak_ref()
+		)
+		page.connect(
 			'show-account',
 			lambda _page, ref: MainWindow._on_show_account(ref()),
 			self.weak_ref()
@@ -844,6 +873,10 @@ class MainWindow(Adw.ApplicationWindow):
 	def _on_show_settings(self):
 		settings_dialog = SettingsWindow()
 		settings_dialog.present(self)
+
+	def _on_show_logs(self):
+		logs_dialog = LogWindow()
+		logs_dialog.present(self)
 
 
 	def _on_show_about(self):
@@ -950,6 +983,11 @@ class MainWindow(Adw.ApplicationWindow):
 		loading_page.connect(
 			'show-about',
 			lambda _page, ref: MainWindow._on_show_about(ref()),
+			self.weak_ref()
+		)
+		loading_page.connect(
+			'show-logs',
+			lambda _page, ref: MainWindow._on_show_logs(ref()),
 			self.weak_ref()
 		)
 		self._navigation_view.push(loading_page)
@@ -1068,6 +1106,11 @@ class MainWindow(Adw.ApplicationWindow):
 		page.connect(
 			'show-about',
 			lambda _page, ref: MainWindow._on_show_about(ref()),
+			self.weak_ref()
+		)
+		page.connect(
+			'show-logs',
+			lambda _page, ref: MainWindow._on_show_logs(ref()),
 			self.weak_ref()
 		)
 		self._navigation_view.push(page)

@@ -36,6 +36,9 @@ logboth.config.directory = pathlib.Path(
 	os.getenv('XDG_RUNTIME_DIR', '') or tempfile.gettempdir()
 ) / pathlib.Path(NAME)
 logboth.config.file = 'log.txt'
+
+from monophony import log
+log.init_logging_wrapper()
 logboth.basic_info()
 
 

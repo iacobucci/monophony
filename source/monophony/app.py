@@ -40,6 +40,7 @@ class Application(Adw.Application):
 			self._window.present()
 
 			self.set_accels_for_action('win.focus-search', ['<Control>f'])
+			self.set_accels_for_action('win.show-logs', ['<Control><Shift>l'])
 
 	def _on_close_window(self, _action, _param):
 		windows = self.get_windows()
