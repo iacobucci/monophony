@@ -5,6 +5,7 @@ import json
 import os
 import re
 import subprocess
+import threading
 import time
 import traceback
 
@@ -543,6 +544,30 @@ def get_updated_song(song: Song) -> Song | None:
 	return song
 
 
+_ydl_client = None
+_ydl_lock = threading.Lock()
+
+
+def _get_ydl():
+	global _ydl_client
+	if _ydl_client is None:
+		try:
+			import yt_dlp
+			opts = {
+				'format': 'bestaudio/best',
+				'quiet': True,
+				'no_warnings': True,
+				'extract_flat': False,
+				'skip_download': True,
+				'extractor_args': {'youtube': {'player_client': ['ios', 'android', 'web']}}
+			}
+			_ydl_client = yt_dlp.YoutubeDL(opts)
+		except Exception as e:
+			logboth.warning(__name__, f'Failed to initialize in-process yt_dlp: {e}')
+			_ydl_client = False
+	return _ydl_client if _ydl_client is not False else None
+
+
 def get_song_uri(song: Song) -> str | None:
 	'''Get YT playback URI from song ID.
 
@@ -550,6 +575,23 @@ def get_song_uri(song: Song) -> str | None:
 	:return: Playback URI, if found.
 	'''
 	logboth.info(__name__, f'Getting URI for song "{song.yt_id}"...')
+
+	ydl = _get_ydl()
+	if ydl is not None:
+		try:
+			with _ydl_lock:
+				info = ydl.extract_info(
+					f'https://music.youtube.com/watch?v={song.yt_id}',
+					download=False
+				)
+			url = info.get('url') if info else None
+			if url:
+				logboth.info(__name__, f'Got fast streaming URI for song "{song.yt_id}"')
+				return url
+		except Exception as e:
+			logboth.warning(
+				__name__, f'In-process URI extraction failed for "{song.yt_id}" ({e}), falling back to CLI...'
+			)
 
 	out, err = subprocess.Popen(
 		[

@@ -241,36 +241,47 @@ class Player(GObject.Object):
 		logboth.info(__name__, 'Found all song URIs for current queue')
 
 
+	def _seek_to_start(self):
+		if self._start_position > 0:
+			logboth.info(__name__, f'Seeking to {self._start_position}ns')
+			self._playbin.seek_simple(
+				Gst.Format.TIME,
+				Gst.SeekFlags.FLUSH | Gst.SeekFlags.ACCURATE,
+				self._start_position
+			)
+			self._start_position = 0
+
 	def _on_buffering(self, _bus: Gst.Bus, message: Gst.Message):
 		percentage = message.parse_buffering()
 		self.emit('buffering-changed', percentage / 100.0)
-		if percentage < 100: # noqa: PLR2004 - 100%
-			if not self.buffering:
-				logboth.info(__name__, 'Buffering...')
-				self._playbin.set_state(Gst.State.PAUSED)
+
+		# Initial progressive stream startup: start playback as soon as minimal buffer (5%) or 100% is available
+		if self.state == PlaybackState.LOADING:
+			if percentage >= 5 or percentage == 100:
+				logboth.info(__name__, f'Initial buffer reached ({percentage}%), starting progressive streaming')
+				self.buffering = False
+				if not self.paused:
+					self._playbin.set_state(Gst.State.PLAYING)
+				self.state = PlaybackState.PLAYING
+				self.emit('state-changed', self.state)
+				self._seek_to_start()
+			else:
 				self.buffering = True
-
 			return
 
-		logboth.info(__name__, 'Done buffering')
-		self.buffering = False
-		if self.state != PlaybackState.NONE:
-			self._playbin.set_state(Gst.State.PLAYING)
-			self.state = PlaybackState.PLAYING
-			self.emit('state-changed', self.state)
-			if self._start_position > 0:
-				logboth.info(__name__, f'Seeking to {self._start_position}ns')
-				self._playbin.seek_simple(
-					Gst.Format.TIME,
-					Gst.SeekFlags.FLUSH | Gst.SeekFlags.ACCURATE,
-					self._start_position
-				)
-				self._start_position = 0
+		# During active playback, pause only if buffer is depleted (severe underrun)
+		if percentage < 5 and not self.buffering:
+			logboth.info(__name__, 'Buffering underrun, pausing stream...')
+			self._playbin.set_state(Gst.State.PAUSED)
+			self.buffering = True
 			return
 
-		logboth.info(
-			__name__, 'Ignoring end of buffering as state is already NONE'
-		)
+		# Resume playback once recovered
+		if self.buffering and percentage >= 20:
+			logboth.info(__name__, f'Buffer recovered ({percentage}%), resuming playback')
+			self.buffering = False
+			if not self.paused and self.state != PlaybackState.NONE:
+				self._playbin.set_state(Gst.State.PLAYING)
 
 	def _on_bus_error(self, _bus: Gst.Bus, message: Gst.Message):
 		logboth.error(__name__, 'Bus error', message.parse_error().gerror.message)
@@ -315,15 +326,26 @@ class Player(GObject.Object):
 		logboth.info(__name__, f'Starting radio with seed "{seed_title}"...')
 		self.set_mode(PlaybackMode.RADIO)
 		self._radio_seed = seed_item
-		self.state = PlaybackState.LOADING
-		self.emit('state-changed', self.state)
+
+		# Check if the radio seed matches currently playing song for seamless start
+		current = self.get_current_song()
+		is_seamless = (
+			isinstance(seed_item, Song)
+			and current is not None
+			and current.yt_id == seed_item.yt_id
+			and self.state != PlaybackState.NONE
+		)
+
+		if not is_seamless:
+			self.state = PlaybackState.LOADING
+			self.emit('state-changed', self.state)
 
 		self._radio_task.cancel()
 		self._radio_task = StartRadioTask(
 			callback=self._on_start_radio_done,
 			args=(seed_item,)
 		)
-		self._radio_task.extra_data = seed_item
+		self._radio_task.extra_data = (seed_item, is_seamless)
 		self._radio_task.start()
 
 	def _on_start_radio_done(self, task: StartRadioTask):
@@ -334,7 +356,7 @@ class Player(GObject.Object):
 		if not result or not result.get('tracks'):
 			logboth.warning(__name__, 'Radio fetch yielded no tracks')
 			current = self.get_current_song()
-			if current:
+			if current and self.state == PlaybackState.NONE:
 				self.play(current, self._queue)
 			return
 
@@ -343,12 +365,27 @@ class Player(GObject.Object):
 		self._radio_continuation = result.get('continuation')
 		self.emit('radio-chips-changed', self._radio_chips)
 
-		seed = task.extra_data
+		seed, is_seamless = task.extra_data if isinstance(task.extra_data, tuple) else (task.extra_data, False)
 		seed_title = getattr(seed, 'title', None) or getattr(seed, 'name', '')
-		radio_group = Group(
-			title=result.get('title') or (f'Radio ({seed_title})' if seed_title else 'Radio'),
-			songs=tracks
-		)
+		radio_title = result.get('title') or (f'Radio ({seed_title})' if seed_title else 'Radio')
+
+		# Seamless transition: if the seed song is currently playing, keep it playing seamlessly
+		if is_seamless and self._queue.songs and self._queue_index < len(self._queue.songs):
+			current_song = self._queue.songs[self._queue_index]
+			if isinstance(seed, Song) and current_song.yt_id == seed.yt_id:
+				played_songs = self._queue.songs[:self._queue_index + 1]
+				played_ids = {s.yt_id for s in played_songs}
+				upcoming = [s for s in tracks if s.yt_id not in played_ids]
+
+				self._queue = Group(title=radio_title, songs=played_songs + upcoming)
+				self._queue_index = self._queue.songs.index(current_song)
+				self.emit('queue-changed', self._queue, self._queue_index)
+				prefetch_manager.prefetch_upcoming(self._queue, self._queue_index)
+				logboth.info(
+					__name__,
+					f'Seamlessly populated radio queue with {len(upcoming)} tracks without interrupting playback'
+				)
+				return
 
 		start_song = tracks[0]
 		if isinstance(seed, Song):
@@ -357,7 +394,7 @@ class Player(GObject.Object):
 					start_song = s
 					break
 
-		self.play(start_song, radio_group)
+		self.play(start_song, Group(title=radio_title, songs=tracks))
 
 	def select_radio_chip(self, chip: dict):
 		'''Select a radio mood/genre chip to update the radio playlist.
@@ -466,19 +503,14 @@ class Player(GObject.Object):
 			self._playbin.set_state(Gst.State.PAUSED)
 
 	def _on_stream_start(self, _bus: Gst.Bus, _message: Gst.Message):
-		if self.state == PlaybackState.LOADING and not self.buffering:
-			logboth.info(__name__, 'Stream started')
-			self._playbin.set_state(Gst.State.PLAYING)
+		if self.state == PlaybackState.LOADING:
+			logboth.info(__name__, 'Stream started, entering PLAYING state')
+			self.buffering = False
+			if not self.paused:
+				self._playbin.set_state(Gst.State.PLAYING)
 			self.state = PlaybackState.PLAYING
 			self.emit('state-changed', self.state)
-			if self._start_position:
-				logboth.info(__name__, f'Seeking to {self._start_position}ns')
-				self._playbin.seek_simple(
-					Gst.Format.TIME,
-					Gst.SeekFlags.FLUSH | Gst.SeekFlags.ACCURATE,
-					self._start_position
-				)
-				self._start_position = 0
+			self._seek_to_start()
 
 	def _on_stream_end(self, _bus: Gst.Bus, _message):
 		logboth.info(__name__, 'Stream has ended')

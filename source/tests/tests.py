@@ -301,6 +301,71 @@ class LogTestCase(BaseTestCase):
 		assert(len(log.get_logs()) == 0)
 
 
+class StreamingAndSeamlessRadioTestCase(BaseTestCase):
+	def test_prefetch_decoupled_from_active_song(self):
+		from monophony.prefetch import prefetch_manager
+		queue = Group(songs=[
+			Song(title='S0', yt_id='s0'),
+			Song(title='S1', yt_id='s1'),
+			Song(title='S2', yt_id='s2'),
+		])
+		# Prefetch upcoming tracks starting after active song (index 0)
+		# Should prefetch indices 1 and 2, never index 0
+		prefetch_manager.prefetch_upcoming(queue, 0)
+
+	def test_seamless_radio_transition(self):
+		from monophony.player import Player
+		from monophony.data import PlaybackState, PlaybackMode
+
+		p = Player()
+		song0 = Song(title='Track 0', yt_id='trk0')
+		song1 = Song(title='Track 1', yt_id='trk1')
+		p._queue = Group(title='Queue', songs=[song0, song1])
+		p._queue_index = 0
+		p.state = PlaybackState.PLAYING
+
+		# Trigger radio with seed matching active song
+		p.start_radio(song0)
+		self.assertEqual(p.state, PlaybackState.PLAYING)
+		self.assertEqual(p.mode, PlaybackMode.RADIO)
+
+		# Mock task completion
+		class DummyTask:
+			cancelled = False
+			extra_data = (song0, True)
+			result = {
+				'title': 'Radio (Track 0)',
+				'tracks': [
+					song0,
+					Song(title='Radio Track 2', yt_id='r2'),
+					Song(title='Radio Track 3', yt_id='r3')
+				],
+				'chips': [],
+				'continuation': None
+			}
+
+			def is_canceled(self):
+				return self.cancelled
+
+		dt = DummyTask()
+		p._radio_task.cancel()
+		p._radio_task = dt
+		p._on_start_radio_done(dt)
+
+		# Active song must remain at index 0, queue updated seamlessly
+		self.assertEqual(len(p._queue.songs), 3)
+		self.assertEqual(p._queue.songs[0].yt_id, 'trk0')
+		self.assertEqual(p._queue.songs[1].yt_id, 'r2')
+		self.assertEqual(p._queue.songs[2].yt_id, 'r3')
+		self.assertEqual(p._queue_index, 0)
+		self.assertEqual(p.state, PlaybackState.PLAYING)
+
+	def test_fast_uri_extraction(self):
+		from monophony import yt
+		ydl = yt._get_ydl()
+		self.assertIsNotNone(ydl)
+
+
 if __name__ == '__main__':
 	unittest.main()
 

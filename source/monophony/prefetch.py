@@ -50,8 +50,8 @@ class PrefetchManager:
 		if prefetch_count <= 0 or not queue or not queue.songs:
 			return
 
-		# Prefetch upcoming tracks AND ensure previous track is cached
-		start_i = max(0, current_index - 1)
+		# Prefetch upcoming tracks (do not download current track which is actively streaming)
+		start_i = current_index + 1
 		end_i = min(current_index + 1 + prefetch_count, len(queue.songs))
 
 		target_songs = queue.songs[start_i:end_i]
