@@ -71,6 +71,10 @@ class GroupRow(MemoryDebugger, Adw.ExpanderRow):
 	def _play(self, _song: Song, _group: Group):
 		return
 
+	@GObject.Signal(name='start-radio', arg_types=(object,))
+	def _start_radio(self, _item: object):
+		return
+
 	@GObject.Signal(name='queue-song', arg_types=(object,))
 	def _queue_song(self, _song: Song):
 		return
@@ -121,6 +125,11 @@ class GroupRow(MemoryDebugger, Adw.ExpanderRow):
 
 		self._popover = GroupRowPopover(bool(self.group.author.yt_id))
 		self._popover.connect(
+			'start-radio',
+			lambda _popover, row: row().emit('start-radio', row().group),
+			self.weak_ref()
+		)
+		self._popover.connect(
 			'queue-group',
 			lambda _popover, row: row().emit('queue-group', row().group),
 			self.weak_ref()
@@ -150,6 +159,11 @@ class GroupRow(MemoryDebugger, Adw.ExpanderRow):
 		row.connect(
 			'play',
 			lambda _row, song, _group, g_row: g_row().emit('play', song, g_row().group),
+			self.weak_ref()
+		)
+		row.connect(
+			'start-radio',
+			lambda _row, item, g_row: g_row().emit('start-radio', item),
 			self.weak_ref()
 		)
 		row.connect(

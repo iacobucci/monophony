@@ -63,6 +63,10 @@ class SongRow(MemoryDebugger, Adw.ActionRow):
 	def _play(self, _song: Song, _group: Group):
 		return
 
+	@GObject.Signal(name='start-radio', arg_types=(object,))
+	def _start_radio(self, _item: object):
+		return
+
 	@GObject.Signal(name='queue-song', arg_types=(object,))
 	def _queue_song(self, _song: Song):
 		return
@@ -86,6 +90,11 @@ class SongRow(MemoryDebugger, Adw.ActionRow):
 	def _on_show_more(self, button: Gtk.MenuButton):
 		popover = SongRowPopover(
 			downloads.is_downloaded(self.song), downloads.is_being_downloaded(self.song)
+		)
+		popover.connect(
+			'start-radio',
+			lambda _popover, row: row().emit('start-radio', row().song),
+			self.weak_ref()
 		)
 		popover.connect(
 			'queue-song',

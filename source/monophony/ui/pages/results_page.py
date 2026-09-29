@@ -197,6 +197,11 @@ class ResultsPage(Page):
 					lambda _group, song, ref: ref().emit('download-song', song),
 					self.weak_ref()
 				)
+				group.connect(
+					'start-radio',
+					lambda _group, item, ref: ref().emit('start-radio', item),
+					self.weak_ref()
+				)
 			if isinstance(group, ImportableGroupRowGroup):
 				group.connect(
 					'import-group',
@@ -272,6 +277,10 @@ class ResultsPage(Page):
 
 	@GObject.Signal(name='view-artist', arg_types=(object,))
 	def _view_artist(self, _artist: Artist):
+		return
+
+	@GObject.Signal(name='start-radio', arg_types=(object,))
+	def _start_radio(self, _item: object):
 		return
 
 	def _load(self) -> bool:

@@ -12,6 +12,7 @@ class SongRowPopover(RowPopover):
 	actions = (
 		*RowPopover.actions,
 		'queue-song',
+		'start-radio',
 		'add-song-to',
 		'view-artist',
 		'undownload-song',
@@ -29,6 +30,7 @@ class SongRowPopover(RowPopover):
 
 		menu = Gio.Menu()
 		menu.append(_('Add to Queue'), self.__gtype_name__ + '.queue-song')
+		menu.append(_('Start Radio'), self.__gtype_name__ + '.start-radio')
 		menu.append(_('Add to...'), self.__gtype_name__ + '.add-song-to')
 		menu.append(_('View Artist'), self.__gtype_name__ + '.view-artist')
 		if downloaded:
@@ -39,6 +41,10 @@ class SongRowPopover(RowPopover):
 			menu.append(_('Download'), self.__gtype_name__ + '.download-song')
 
 		self.props.menu_model = menu
+
+	@GObject.Signal(name='start-radio')
+	def _start_radio(self):
+		return
 
 	@GObject.Signal(name='queue-song')
 	def _queue_song(self):

@@ -213,6 +213,48 @@ class CacheAndPrefetchTestCase(BaseTestCase):
 		])
 		prefetch_manager.prefetch_upcoming(queue, 0)
 
+	def test_vivi_features(self):
+		import gettext
+		gettext.install('monophony')
+		from monophony.yt import get_search_suggestions, get_radio, get_related
+		from monophony.data import Artist, Song
+		from monophony.ui.bars.search_bar import SearchBar
+		from monophony.ui.bars.player_bar import PlayerBar
+		from monophony.ui.queue_sidebar import QueueSidebar
+		from monophony.ui.pages.artist_page import ArtistPage
+
+		# Test search suggestions parsing
+		sugg = get_search_suggestions('radiohead')
+		assert(isinstance(sugg, dict))
+		assert('queries' in sugg and 'items' in sugg)
+		assert(len(sugg['queries']) > 0)
+		assert(len(sugg['items']) > 0)
+
+		# Test radio generation
+		song = Song(title='Creep', yt_id='k4V3Mo61fJM', author=Artist(name='Radiohead', yt_id='UCurvRO5ud-B0sbgq8U-b07w'))
+		radio = get_radio(seed_song=song)
+		assert(isinstance(radio, dict))
+		assert(len(radio.get('tracks', [])) > 0)
+
+		# Test related endpoint
+		rel = get_related('k4V3Mo61fJM')
+		assert(isinstance(rel, dict))
+		assert('songs' in rel and 'artists' in rel)
+
+		# Test UI widgets
+		sb = SearchBar()
+		assert(sb is not None)
+
+		pb = PlayerBar()
+		assert(pb is not None)
+
+		qs = QueueSidebar()
+		assert(qs is not None)
+		qs.update_radio_chips([{'title': 'Discover', 'params': 'abc', 'is_selected': True}])
+
+		ap = ArtistPage([], None, artist=Artist(name='Radiohead', yt_id='UCurvRO5ud-B0sbgq8U-b07w'))
+		assert(ap is not None)
+
 
 if __name__ == '__main__':
 	unittest.main()

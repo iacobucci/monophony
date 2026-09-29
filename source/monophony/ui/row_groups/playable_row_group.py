@@ -19,6 +19,10 @@ class PlayableRowGroup(RowGroup):
 	def _play(self, _song: Song, _group: Group):
 		return
 
+	@GObject.Signal(name='start-radio', arg_types=(object,))
+	def _start_radio(self, _item: object):
+		return
+
 	@GObject.Signal(name='add-song-to', arg_types=(object,))
 	def _add_song_to(self, _song: Song):
 		return
@@ -41,6 +45,11 @@ class PlayableRowGroup(RowGroup):
 		row.connect(
 			'play',
 			lambda _row, song, group, ref: ref().emit('play', song, group),
+			self.weak_ref()
+		)
+		row.connect(
+			'start-radio',
+			lambda _row, item, ref: ref().emit('start-radio', item),
 			self.weak_ref()
 		)
 		row.connect(

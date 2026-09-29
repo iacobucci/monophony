@@ -31,6 +31,11 @@ class EditableSongRow(DraggableSongRow):
 			downloads.is_downloaded(self.song), downloads.is_being_downloaded(self.song)
 		)
 		popover.connect(
+			'start-radio',
+			lambda _popover, row: row().emit('start-radio', row().song),
+			self.weak_ref()
+		)
+		popover.connect(
 			'queue-song',
 			lambda _popover, row: row().emit('queue-song', row().song),
 			self.weak_ref()

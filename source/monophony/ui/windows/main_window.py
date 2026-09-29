@@ -163,6 +163,12 @@ class MainWindow(Adw.ApplicationWindow):
 		self._player.connect(
 			'raise', lambda _player, ref: ref().present(), self.weak_ref()
 		)
+		self._player.connect(
+			'radio-chips-changed',
+			lambda _player, chips, ref:
+				ref()._queue_sidebar.update_radio_chips(chips),
+			self.weak_ref()
+		)
 
 		self._queue_sidebar = QueueSidebar()
 		self._queue_sidebar.connect(
@@ -219,6 +225,16 @@ class MainWindow(Adw.ApplicationWindow):
 		self._queue_sidebar.connect(
 			'shuffle-queue',
 			lambda _sidebar, ref: MainWindow._on_shuffle_queue(ref()),
+			self.weak_ref()
+		)
+		self._queue_sidebar.connect(
+			'start-radio',
+			lambda _sidebar, item, ref: MainWindow._on_start_radio(ref(), item),
+			self.weak_ref()
+		)
+		self._queue_sidebar.connect(
+			'select-radio-chip',
+			lambda _sidebar, chip, ref: ref()._player.select_radio_chip(chip),
 			self.weak_ref()
 		)
 		self._queue_sidebar.hide_button.connect(
@@ -307,6 +323,11 @@ class MainWindow(Adw.ApplicationWindow):
 			lambda _page, ref: MainWindow._sync_mandatory_downloads(ref()),
 			self.weak_ref()
 		)
+		self._home_page.connect(
+			'start-radio',
+			lambda _page, item, ref: MainWindow._on_start_radio(ref(), item),
+			self.weak_ref()
+		)
 		self._home_page.update_downloads(self._downloader.get_downloads())
 
 		loading_page = LoadingPage()
@@ -368,6 +389,11 @@ class MainWindow(Adw.ApplicationWindow):
 		self._player_bar.connect(
 			'pause',
 			lambda _bar, ref: MainWindow._on_pause_changed_in_frontend(ref()),
+			self.weak_ref()
+		)
+		self._player_bar.connect(
+			'start-radio',
+			lambda _bar, item, ref: MainWindow._on_start_radio(ref(), item),
 			self.weak_ref()
 		)
 
@@ -645,6 +671,9 @@ class MainWindow(Adw.ApplicationWindow):
 	def _on_play(self, song: Song, group: Group):
 		self._player.play(song, group)
 
+	def _on_start_radio(self, item: Song | Group | Artist | None = None):
+		self._player.start_radio(item)
+
 	def _on_previous_song(self):
 		self._player.previous()
 
@@ -775,6 +804,11 @@ class MainWindow(Adw.ApplicationWindow):
 				'view-artist',
 				lambda _page, artist, ref:
 					MainWindow._on_view_artist(ref(), artist, True),
+				self.weak_ref()
+			)
+			page.connect(
+				'start-radio',
+				lambda _page, item, ref: MainWindow._on_start_radio(ref(), item),
 				self.weak_ref()
 			)
 
@@ -929,7 +963,7 @@ class MainWindow(Adw.ApplicationWindow):
 				artist.yt_id, filter_, None if filter_ else 4
 			)
 		)
-		self._current_browsing_task.extra_data = filter_
+		self._current_browsing_task.extra_data = (filter_, artist)
 		self._current_browsing_task.start()
 
 	def _on_view_artist_finished(self, task: GetArtistTask):
@@ -938,7 +972,12 @@ class MainWindow(Adw.ApplicationWindow):
 			return
 
 		results = task.result
-		filter_ = task.extra_data
+		if isinstance(task.extra_data, tuple):
+			filter_, artist = task.extra_data
+		else:
+			filter_ = task.extra_data
+			artist = self._last_artist
+
 		if isinstance(self._navigation_view.get_visible_page(), LoadingPage):
 			self._navigation_view.pop()
 
@@ -959,7 +998,7 @@ class MainWindow(Adw.ApplicationWindow):
 			)
 		else:
 			logboth.info(__name__, 'Loaded artist page')
-			page = ArtistPage(results, filter_)
+			page = ArtistPage(results, filter_, artist=artist)
 			page.connect(
 				'play',
 				lambda _page, song, group, ref: MainWindow._on_play(ref(), song, group),
@@ -1018,6 +1057,11 @@ class MainWindow(Adw.ApplicationWindow):
 				'view-artist',
 				lambda _page, artist, ref:
 					MainWindow._on_view_artist(ref(), artist, True),
+				self.weak_ref()
+			)
+			page.connect(
+				'start-radio',
+				lambda _page, item, ref: MainWindow._on_start_radio(ref(), item),
 				self.weak_ref()
 			)
 

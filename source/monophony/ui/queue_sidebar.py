@@ -56,6 +56,24 @@ class QueueSidebar(Adw.Bin):
 			lambda _group, song, ref: ref().emit('unqueue-song', song),
 			self.weak_ref()
 		)
+		self._queue_group.connect(
+			'start-radio',
+			lambda _group, item, ref: ref().emit('start-radio', item),
+			self.weak_ref()
+		)
+
+		self._chips_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+		self._chips_box.props.spacing = 6
+		self._chips_box.props.margin_start = 12
+		self._chips_box.props.margin_end = 12
+		self._chips_box.props.margin_top = 4
+		self._chips_box.props.margin_bottom = 4
+
+		self._chips_scroll = Gtk.ScrolledWindow()
+		self._chips_scroll.props.hscrollbar_policy = Gtk.PolicyType.AUTOMATIC
+		self._chips_scroll.props.vscrollbar_policy = Gtk.PolicyType.NEVER
+		self._chips_scroll.props.child = self._chips_box
+		self._chips_scroll.props.visible = False
 
 		queue_page = Adw.PreferencesPage()
 		queue_page.props.valign = Gtk.Align.FILL
@@ -81,6 +99,7 @@ class QueueSidebar(Adw.Bin):
 		pages_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 		pages_box.props.valign = Gtk.Align.FILL
 		pages_box.props.vexpand = True
+		pages_box.append(self._chips_scroll)
 		pages_box.append(queue_page)
 		pages_box.append(self._status_page)
 
@@ -104,6 +123,17 @@ class QueueSidebar(Adw.Bin):
 		clear_button.connect(
 			'clicked',
 			lambda _button, ref: ref().emit('clear-queue'),
+			self.weak_ref()
+		)
+
+		self._radio_button = Gtk.Button.new_from_icon_name('audio-radio-symbolic')
+		self._radio_button.props.tooltip_text = _('Start Radio')
+		self._radio_button.props.halign = Gtk.Align.FILL
+		self._radio_button.props.hexpand = False
+		self._radio_button.add_css_class('raised')
+		self._radio_button.connect(
+			'clicked',
+			lambda _button, ref: ref().emit('start-radio', None),
 			self.weak_ref()
 		)
 
@@ -141,6 +171,7 @@ class QueueSidebar(Adw.Bin):
 		buttons_box.hexpand = False
 		buttons_box.append(clear_button)
 		buttons_box.append(add_button)
+		buttons_box.append(self._radio_button)
 		buttons_box.append(self._shuffle_button)
 
 		controls_bar = Adw.HeaderBar()
@@ -196,6 +227,41 @@ class QueueSidebar(Adw.Bin):
 	@GObject.Signal(name='clear-queue')
 	def _clear_queue(self):
 		return
+
+	@GObject.Signal(name='start-radio', arg_types=(object,))
+	def _start_radio(self, _item: object):
+		return
+
+	@GObject.Signal(name='select-radio-chip', arg_types=(object,))
+	def _select_radio_chip(self, _chip: object):
+		return
+
+	def update_radio_chips(self, chips: list[dict] | None):
+		'''Update radio chip buttons above queue.
+
+		:param chips: List of radio filter chips.
+		'''
+		while child := self._chips_box.get_first_child():
+			self._chips_box.remove(child)
+
+		if not chips:
+			self._chips_scroll.props.visible = False
+			return
+
+		self._chips_scroll.props.visible = True
+		for chip in chips:
+			title = chip.get('title', '')
+			button = Gtk.Button(label=title)
+			button.add_css_class('pill')
+			if chip.get('is_selected'):
+				button.add_css_class('suggested-action')
+			button.connect(
+				'clicked',
+				lambda _btn, c=chip, ref=self.weak_ref(): (
+					ref().emit('select-radio-chip', c) if ref() else None
+				)
+			)
+			self._chips_box.append(button)
 
 	def add_song_row(self, song: Song):
 		'''Add song row to queue display.

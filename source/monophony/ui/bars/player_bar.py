@@ -235,10 +235,19 @@ class PlayerBar(Gtk.Box):
 		controls_box.props.margin_start = 8
 		controls_box.props.margin_end = 8
 		controls_box.props.halign = Gtk.Align.FILL
-		controls_box.props.hexpand = True
+		self._radio_button = Gtk.Button.new_from_icon_name('audio-radio-symbolic')
+		self._radio_button.props.tooltip_text = _('Start Radio')
+		self._radio_button.props.valign = Gtk.Align.CENTER
+		self._radio_button.connect(
+			'clicked',
+			lambda _btn, ref: ref().emit('start-radio', None) if ref() else None,
+			self.weak_ref()
+		)
+
 		controls_box.append(self.queue_button)
 		controls_box.append(song_details_box)
 		controls_box.append(self._mode_button)
+		controls_box.append(self._radio_button)
 		controls_box.append(previous_button)
 		controls_box.append(self._spinner)
 		controls_box.append(self._pause_button)
@@ -251,6 +260,10 @@ class PlayerBar(Gtk.Box):
 		self.append(self._buffer_bar)
 		self.append(self._progress_bar)
 		self.append(controls_box)
+
+	@GObject.Signal(name='start-radio', arg_types=(object,))
+	def _start_radio(self, _item: object):
+		return
 
 	@GObject.Signal(name='mode-changed')
 	def _mode_changed(self, _mode: int):

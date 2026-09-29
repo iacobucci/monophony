@@ -77,20 +77,20 @@ class Artist(YTItem):
 	distinction).
 	'''
 
-	def __init__(self, name: str='', yt_id: str=''):
-		'''Initialize with optional name and YT ID.
-
-		An ID should be provided if one is available. It must be an actual ID from
-		YT - do not make one up. If YT does not provide an ID, it may be better to
-		discard such a result rather than attempt to work with an item with no ID.
+	def __init__(self, name: str='', yt_id: str='', radio_id: str=''):
+		'''Initialize with optional name, YT ID, and radio ID.
 
 		:param name: Artist name.
 		:param yt_id: Artist ID.
+		:param radio_id: Artist radio playlist ID (e.g. RDEM...).
 		'''
 		super().__init__(yt_id)
 
 		self.name = name or ''
 		'''Artist's name.'''
+
+		self.radio_id = radio_id or ''
+		'''Artist radio station ID.'''
 
 	def serialize(self) -> dict:
 		'''Generate a dictionary representation of the artist.
@@ -104,7 +104,7 @@ class Artist(YTItem):
 
 		:return: Serialized artist.
 		'''
-		return {'name': self.name, 'id': self.yt_id}
+		return {'name': self.name, 'id': self.yt_id, 'radio_id': self.radio_id}
 
 
 class Song(YTItem):
@@ -191,7 +191,8 @@ class Group(YTItem):
 		title: str='',
 		author: Artist | None=None,
 		songs: list[Song] | None=None,
-		yt_id: str=''
+		yt_id: str='',
+		radio_id: str=''
 	):
 		'''Initialize with optional data.
 
@@ -205,6 +206,7 @@ class Group(YTItem):
 		:param author: First artist listed for the group.
 		:param songs: Songs in the group.
 		:param yt_id: Group ID.
+		:param radio_id: Group radio station ID.
 		'''
 		super().__init__(yt_id)
 
@@ -218,6 +220,9 @@ class Group(YTItem):
 
 		self.songs = songs or []
 		'''Songs in the group.'''
+
+		self.radio_id = radio_id or ''
+		'''Group radio station ID.'''
 
 	@property
 	def songs(self) -> list[Song]:

@@ -6,9 +6,10 @@ import time
 
 from monophony import DISPLAY_NAME, ID, cache, downloads, recents, settings, yt
 from monophony.asynchronous import Task
-from monophony.data import Group, PlaybackMode, PlaybackState, Song
+from monophony.data import Artist, Group, PlaybackMode, PlaybackState, Song
 from monophony.mpris import EventHandler, EventSender, Server
 from monophony.prefetch import prefetch_manager
+from monophony.yt import StartRadioTask
 
 
 import logboth
@@ -130,6 +131,10 @@ class Player(GObject.Object):
 		self._song_uris = {}
 		self._queue = Group()
 		self._queue_index = 0
+		self._radio_chips = []
+		self._radio_continuation = None
+		self._radio_seed = None
+		self._is_fetching_continuation = False
 
 		self.mode = PlaybackMode.NORMAL
 		'''Current playback mode.'''
@@ -211,6 +216,10 @@ class Player(GObject.Object):
 	def _raise(self):
 		return
 
+	@GObject.Signal(name='radio-chips-changed', arg_types=(object,))
+	def _radio_chips_changed(self, _chips: object):
+		return
+
 	def _on_background_uri_search_done(self, task: FindURITask):
 		if task.result:
 			self._save_uri(task.extra_data.yt_id, task.result)
@@ -277,6 +286,165 @@ class Player(GObject.Object):
 			logboth.info(__name__, 'Recalculated latency')
 		else:
 			logboth.error(__name__, 'Failed to recalculate latency')
+
+	def get_radio_chips(self) -> list[dict]:
+		'''Get list of currently available radio filter chips.
+
+		:return: List of chips with 'title', 'params', 'playlist_id', 'is_selected'.
+		'''
+		return self._radio_chips
+
+	def start_radio(self, seed_item: Song | Group | Artist | None = None):
+		'''Start a radio queue based on a song, playlist/album, or artist.
+
+		Inspired by Vivi Music's startRadio / YouTubeQueue.radio.
+
+		:param seed_item: Song, Group, or Artist to seed the radio from.
+		'''
+		if seed_item is None:
+			seed_item = self.get_current_song()
+		if seed_item is None:
+			logboth.warning(__name__, 'Cannot start radio: no seed item provided or playing')
+			return
+
+		seed_title = (
+			seed_item.title if hasattr(seed_item, 'title') else (
+				seed_item.name if hasattr(seed_item, 'name') else str(seed_item)
+			)
+		)
+		logboth.info(__name__, f'Starting radio with seed "{seed_title}"...')
+		self.set_mode(PlaybackMode.RADIO)
+		self._radio_seed = seed_item
+		self.state = PlaybackState.LOADING
+		self.emit('state-changed', self.state)
+
+		self._radio_task.cancel()
+		self._radio_task = StartRadioTask(
+			callback=self._on_start_radio_done,
+			args=(seed_item,)
+		)
+		self._radio_task.extra_data = seed_item
+		self._radio_task.start()
+
+	def _on_start_radio_done(self, task: StartRadioTask):
+		if task.is_canceled() or self._radio_task is not task:
+			return
+
+		result = task.result
+		if not result or not result.get('tracks'):
+			logboth.warning(__name__, 'Radio fetch yielded no tracks')
+			current = self.get_current_song()
+			if current:
+				self.play(current, self._queue)
+			return
+
+		tracks = result.get('tracks', [])
+		self._radio_chips = result.get('chips', [])
+		self._radio_continuation = result.get('continuation')
+		self.emit('radio-chips-changed', self._radio_chips)
+
+		seed = task.extra_data
+		seed_title = getattr(seed, 'title', None) or getattr(seed, 'name', '')
+		radio_group = Group(
+			title=result.get('title') or (f'Radio ({seed_title})' if seed_title else 'Radio'),
+			songs=tracks
+		)
+
+		start_song = tracks[0]
+		if isinstance(seed, Song):
+			for s in tracks:
+				if s.yt_id == seed.yt_id:
+					start_song = s
+					break
+
+		self.play(start_song, radio_group)
+
+	def select_radio_chip(self, chip: dict):
+		'''Select a radio mood/genre chip to update the radio playlist.
+
+		:param chip: Radio chip dictionary with 'params', 'playlist_id'.
+		'''
+		if not self._radio_seed:
+			current = self.get_current_song()
+			if current:
+				self._radio_seed = current
+			else:
+				return
+
+		params = chip.get('params')
+		playlist_id = chip.get('playlist_id')
+		logboth.info(__name__, f'Selecting radio chip "{chip.get("title")}" (params={params})')
+
+		for c in self._radio_chips:
+			c['is_selected'] = (c.get('title') == chip.get('title'))
+		self.emit('radio-chips-changed', self._radio_chips)
+
+		self._radio_task.cancel()
+		self._radio_task = StartRadioTask(
+			callback=self._on_radio_chip_done,
+			args=(self._radio_seed, params, None, playlist_id)
+		)
+		self._radio_task.extra_data = chip
+		self._radio_task.start()
+
+	def _on_radio_chip_done(self, task: StartRadioTask):
+		if task.is_canceled() or self._radio_task is not task:
+			return
+
+		result = task.result
+		if not result or not result.get('tracks'):
+			return
+
+		new_tracks = result.get('tracks', [])
+		if result.get('chips'):
+			self._radio_chips = result.get('chips', [])
+		self._radio_continuation = result.get('continuation')
+		self.emit('radio-chips-changed', self._radio_chips)
+
+		if self._queue.songs and self._queue_index < len(self._queue.songs):
+			current_song = self._queue.songs[self._queue_index]
+			played_songs = self._queue.songs[:self._queue_index + 1]
+			played_ids = {s.yt_id for s in played_songs}
+			upcoming = [s for s in new_tracks if s.yt_id not in played_ids]
+
+			self._queue.songs = played_songs + upcoming
+			self._queue_index = self._queue.songs.index(current_song)
+			self.emit('queue-changed', self._queue, self._queue_index)
+			prefetch_manager.prefetch_upcoming(self._queue, self._queue_index)
+
+	def _fetch_more_radio_songs(self):
+		'''Fetch more radio songs using continuation token in the background.'''
+		if self._is_fetching_continuation or not self._radio_continuation:
+			return
+
+		self._is_fetching_continuation = True
+		logboth.info(__name__, 'Fetching next radio continuation batch...')
+		task = StartRadioTask(
+			callback=self._on_radio_continuation_done,
+			args=(None, None, self._radio_continuation)
+		)
+		task.start()
+
+	def _on_radio_continuation_done(self, task: StartRadioTask):
+		self._is_fetching_continuation = False
+		if task.is_canceled():
+			return
+
+		result = task.result
+		if not result or not result.get('tracks'):
+			self._radio_continuation = None
+			return
+
+		new_tracks = result.get('tracks', [])
+		self._radio_continuation = result.get('continuation')
+
+		existing_ids = {s.yt_id for s in self._queue.songs}
+		unique_new = [s for s in new_tracks if s.yt_id not in existing_ids]
+
+		if unique_new:
+			logboth.info(__name__, f'Added {len(unique_new)} continuation tracks to radio queue')
+			self._queue.songs += unique_new
+			self.emit('queue-changed', self._queue, self._queue_index)
 
 	def _on_radio_songs_found(self, task: FindRadioSongsTask):
 		if task.is_canceled() or self._radio_task is not task:
@@ -455,16 +623,22 @@ class Player(GObject.Object):
 		:param from_user: Whether the user initiated this operation.
 		'''
 		if self.mode == PlaybackMode.RADIO:
+			# If approaching the end of queue, fetch next batch of radio songs
+			if len(self._queue.songs) - self._queue_index <= 4:
+				self._fetch_more_radio_songs()
+
 			if len(self._queue.songs) > self._queue_index + 1:
 				self.play(self._queue.songs[self._queue_index + 1], self._queue)
 				return
 
 			self.state = PlaybackState.LOADING
 			self.emit('state-changed', self.state)
-			self._radio_task = FindRadioSongsTask(
-				callback=self._on_radio_songs_found,
-				args=(self._queue.songs[self._queue_index], self._queue)
+			seed = self._queue.songs[self._queue_index] if self._queue.songs else self._radio_seed
+			self._radio_task = StartRadioTask(
+				callback=self._on_start_radio_done,
+				args=(seed,)
 			)
+			self._radio_task.extra_data = seed
 			self._radio_task.start()
 			return
 
@@ -684,6 +858,10 @@ class Player(GObject.Object):
 		self.buffering = False
 		self._queue = Group()
 		self._queue_index = 0
+		self._radio_chips = []
+		self._radio_continuation = None
+		self._radio_seed = None
+		self.emit('radio-chips-changed', [])
 		self.emit('queue-changed', self._queue, self._queue_index)
 		self._mpris_event_sender.emit_all()
 		logboth.info(__name__, 'Stopped playback')

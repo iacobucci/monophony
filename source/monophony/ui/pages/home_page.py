@@ -77,6 +77,11 @@ class HomePage(Page):
 			lambda _group, group, ref: ref().emit('download-group', group),
 			self.weak_ref()
 		)
+		self._recommended_group.connect(
+			'start-radio',
+			lambda _group, item, ref: ref().emit('start-radio', item),
+			self.weak_ref()
+		)
 
 		open_dir_button = Gtk.Button.new_from_icon_name('folder-symbolic')
 		open_dir_button.props.tooltip_text = _('Playlists Directory')
@@ -145,6 +150,11 @@ class HomePage(Page):
 		self._playlists_group.connect(
 			'toggle-favorite',
 			lambda _group, _playlist, ref: ref().update_playlists(),
+			self.weak_ref()
+		)
+		self._playlists_group.connect(
+			'start-radio',
+			lambda _group, item, ref: ref().emit('start-radio', item),
 			self.weak_ref()
 		)
 		self._playlists_group.props.header_suffix.prepend(open_dir_button)
@@ -235,6 +245,11 @@ class HomePage(Page):
 				HomePage._on_delete_external_playlist(ref(), playlist),
 			self.weak_ref()
 		)
+		self._external_playlists_group.connect(
+			'start-radio',
+			lambda _group, item, ref: ref().emit('start-radio', item),
+			self.weak_ref()
+		)
 
 		open_dir_button = Gtk.Button.new_from_icon_name('folder-symbolic')
 		open_dir_button.props.tooltip_text = _('Downloads Directory')
@@ -289,6 +304,11 @@ class HomePage(Page):
 			lambda _group, song, ref: ref().emit('undownload-song', song),
 			self.weak_ref()
 		)
+		self._downloads_group.connect(
+			'start-radio',
+			lambda _group, item, ref: ref().emit('start-radio', item),
+			self.weak_ref()
+		)
 
 		clear_button = Gtk.Button.new_from_icon_name('edit-clear-all-symbolic')
 		clear_button.add_css_class('destructive-action')
@@ -332,6 +352,11 @@ class HomePage(Page):
 		self._history_group.connect(
 			'download-song',
 			lambda _group, song, ref: ref().emit('download-song', song),
+			self.weak_ref()
+		)
+		self._history_group.connect(
+			'start-radio',
+			lambda _group, item, ref: ref().emit('start-radio', item),
 			self.weak_ref()
 		)
 
@@ -378,6 +403,16 @@ class HomePage(Page):
 			lambda _bar, query, filter_, ref: ref().emit('search', query, filter_),
 			self.weak_ref()
 		)
+		self._search_bar.connect(
+			'play',
+			lambda _bar, song, group, ref: ref().emit('play', song, group),
+			self.weak_ref()
+		)
+		self._search_bar.connect(
+			'view-artist',
+			lambda _bar, artist, ref: ref().emit('view-artist', artist),
+			self.weak_ref()
+		)
 
 		self._toolbar_view.add_top_bar(self._search_bar)
 
@@ -389,6 +424,10 @@ class HomePage(Page):
 
 	@GObject.Signal(name='play', arg_types=(object, object))
 	def _play(self, _song: Song, _group: Group):
+		return
+
+	@GObject.Signal(name='start-radio', arg_types=(object,))
+	def _start_radio(self, _item: object):
 		return
 
 	@GObject.Signal(name='search', arg_types=(str, str))

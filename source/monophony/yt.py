@@ -31,11 +31,15 @@ def get_oauth_path() -> str:
 
 
 
-def get_yt_client() -> ytmusicapi.YTMusic:
+def get_yt_client(unauth: bool = False) -> ytmusicapi.YTMusic:
 	'''Get a YTMusic client instance, using OAuth credentials if available.
 
+	:param unauth: Whether to force an unauthenticated client.
 	:return: YTMusic instance.
 	'''
+	if unauth:
+		return ytmusicapi.YTMusic()
+
 	oauth_path = get_oauth_path()
 	client_id = settings.load('oauth_client_id', '')
 	client_secret = settings.load('oauth_client_secret', '')
@@ -55,8 +59,17 @@ def get_yt_client() -> ytmusicapi.YTMusic:
 
 			if client_id and client_secret:
 				creds = ytmusicapi.OAuthCredentials(client_id, client_secret)
-				return ytmusicapi.YTMusic(oauth_path, oauth_credentials=creds)
-			return ytmusicapi.YTMusic(oauth_path)
+				client = ytmusicapi.YTMusic(oauth_path, oauth_credentials=creds)
+			else:
+				client = ytmusicapi.YTMusic(oauth_path)
+
+			# Verify token validity; fall back to unauthenticated if token refresh fails
+			try:
+				_ = client.headers
+				return client
+			except Exception as e:
+				logboth.warning(__name__, f'OAuth token invalid or expired ({e}), falling back to unauthenticated client')
+				return ytmusicapi.YTMusic()
 		except Exception as e:
 			logboth.error(__name__, f'Failed to load OAuth client: {e}')
 
@@ -559,6 +572,395 @@ def get_song_uri(song: Song) -> str | None:
 	return out.split('\n')[0]
 
 
+def _parse_watch_track(renderer: dict) -> Song | None:
+	'''Parse a playlistPanelVideoRenderer dictionary into a Song.'''
+	video_id = renderer.get('videoId')
+	if not video_id:
+		return None
+
+	title_runs = renderer.get('title', {}).get('runs', [])
+	title = title_runs[0].get('text', '') if title_runs else ''
+
+	length_runs = renderer.get('lengthText', {}).get('runs', [])
+	length = length_runs[0].get('text', '') if length_runs else ''
+
+	thumbs = renderer.get('thumbnail', {}).get('thumbnails', [])
+	thumbnail = thumbs[-1].get('url', '') if thumbs else ''
+
+	byline_runs = renderer.get('longBylineText', {}).get('runs', [])
+	artist_name = ''
+	artist_id = ''
+	for r in byline_runs:
+		if 'browseEndpoint' in r.get('navigationEndpoint', {}):
+			artist_name = r.get('text', '')
+			artist_id = r['navigationEndpoint']['browseEndpoint'].get('browseId', '')
+			break
+	if not artist_name and byline_runs:
+		artist_name = byline_runs[0].get('text', '')
+
+	return Song(
+		title=title,
+		author=Artist(name=artist_name, yt_id=artist_id),
+		length=length,
+		thumbnail=thumbnail,
+		yt_id=video_id
+	)
+
+
+def get_watch_next(
+	video_id: str | None = None,
+	playlist_id: str | None = None,
+	radio: bool = False,
+	shuffle: bool = False,
+	params: str | None = None,
+	continuation: str | None = None
+) -> dict:
+	'''Robust wrapper for YouTube's "next" endpoint (watch panel / radio).
+
+	Extracts tracks, radio chips, continuations, and related tab browseId without
+	crashing on missing endpoints or unexpected tab structures.
+
+	:return: dict with keys: 'tracks', 'chips', 'continuation', 'title', 'related_browse_id', 'lyrics_browse_id'.
+	'''
+	yt = get_yt_client(unauth=True)
+
+	body = {
+		'enablePersistentPlaylistPanel': True,
+		'isAudioOnly': True,
+		'tunerSettingValue': 'AUTOMIX_SETTING_NORMAL',
+	}
+	if video_id:
+		body['videoId'] = video_id
+		if not playlist_id:
+			playlist_id = f'RDAMVM{video_id}'
+	if playlist_id:
+		body['playlistId'] = playlist_id
+	if shuffle and playlist_id is not None:
+		body['params'] = 'wAEB8gECKAE%3D'
+	elif radio and not params:
+		body['params'] = 'wAEB'
+	elif params:
+		body['params'] = params
+
+	additional_params = f'&continuation={continuation}&ctoken={continuation}' if continuation else ''
+	try:
+		res = yt._send_request('next', body, additionalParams=additional_params)
+	except Exception as e:
+		logboth.error(__name__, f'Failed to call next endpoint: {e}')
+		return {
+			'tracks': [],
+			'chips': [],
+			'continuation': None,
+			'title': '',
+			'related_browse_id': None,
+			'lyrics_browse_id': None
+		}
+
+	tracks = []
+	chips = []
+	next_continuation = None
+	queue_title = ''
+	related_browse_id = None
+	lyrics_browse_id = None
+
+	if continuation:
+		panel = res.get('continuationContents', {}).get('playlistPanelContinuation', {})
+		for item in panel.get('contents', []):
+			if 'playlistPanelVideoRenderer' in item:
+				if song := _parse_watch_track(item['playlistPanelVideoRenderer']):
+					tracks.append(song)
+		conts = panel.get('continuations', [])
+		if conts:
+			next_continuation = conts[0].get('nextRadioContinuationData', {}).get('continuation') or \
+								conts[0].get('nextContinuationData', {}).get('continuation')
+		return {
+			'tracks': tracks,
+			'chips': [],
+			'continuation': next_continuation,
+			'title': '',
+			'related_browse_id': None,
+			'lyrics_browse_id': None
+		}
+
+	single_col = res.get('contents', {}).get('singleColumnMusicWatchNextResultsRenderer', {})
+	tabs = single_col.get('tabbedRenderer', {}).get('watchNextTabbedResultsRenderer', {}).get('tabs', [])
+	if not tabs:
+		return {
+			'tracks': [],
+			'chips': [],
+			'continuation': None,
+			'title': '',
+			'related_browse_id': None,
+			'lyrics_browse_id': None
+		}
+
+	queue_content = None
+	for tab in tabs:
+		tab_renderer = tab.get('tabRenderer', {})
+		if 'content' in tab_renderer and 'musicQueueRenderer' in tab_renderer['content']:
+			queue_content = tab_renderer['content']['musicQueueRenderer']
+		endpoint = tab_renderer.get('endpoint', {}).get('browseEndpoint', {})
+		music_config = endpoint.get('browseEndpointContextSupportedConfigs', {}).get('browseEndpointContextMusicConfig', {})
+		page_type = music_config.get('pageType', '')
+		if page_type == 'MUSIC_PAGE_TYPE_TRACK_RELATED' or tab_renderer.get('title') == 'Related':
+			related_browse_id = endpoint.get('browseId')
+		elif page_type == 'MUSIC_PAGE_TYPE_TRACK_LYRICS' or tab_renderer.get('title') == 'Lyrics':
+			lyrics_browse_id = endpoint.get('browseId')
+
+	if queue_content:
+		queue_header = queue_content.get('header', {}).get('musicQueueHeaderRenderer', {})
+		subtitle_runs = queue_header.get('subtitle', {}).get('runs', [])
+		if subtitle_runs:
+			queue_title = subtitle_runs[0].get('text', '')
+
+		raw_chips = queue_content.get('subHeaderChipCloud', {}).get('chipCloudRenderer', {}).get('chips', [])
+		for c in raw_chips:
+			rc = c.get('chipCloudChipRenderer', {})
+			text_runs = rc.get('text', {}).get('runs', [])
+			text = text_runs[0].get('text', '') if text_runs else ''
+			is_selected = rc.get('isSelected', False)
+			nav_endpoint = rc.get('navigationEndpoint', {})
+			watch_ep = nav_endpoint.get('watchEndpoint') or nav_endpoint.get('queueUpdateCommand', {}).get('fetchContentsCommand', {}).get('watchEndpoint', {})
+			chip_params = watch_ep.get('params', '')
+			chip_playlist_id = watch_ep.get('playlistId', '')
+			if text:
+				chips.append({
+					'title': text,
+					'params': chip_params,
+					'playlist_id': chip_playlist_id,
+					'is_selected': is_selected
+				})
+
+		panel = queue_content.get('content', {}).get('playlistPanelRenderer', {})
+		for item in panel.get('contents', []):
+			if 'playlistPanelVideoRenderer' in item:
+				if song := _parse_watch_track(item['playlistPanelVideoRenderer']):
+					tracks.append(song)
+
+		conts = panel.get('continuations', [])
+		if conts:
+			next_continuation = conts[0].get('nextRadioContinuationData', {}).get('continuation') or \
+								conts[0].get('nextContinuationData', {}).get('continuation')
+
+	return {
+		'tracks': tracks,
+		'chips': chips,
+		'continuation': next_continuation,
+		'title': queue_title,
+		'related_browse_id': related_browse_id,
+		'lyrics_browse_id': lyrics_browse_id
+	}
+
+
+def get_radio(
+	seed_song: Song | None = None,
+	seed_group: Group | None = None,
+	seed_artist: Artist | None = None,
+	params: str | None = None,
+	continuation: str | None = None,
+	playlist_id: str | None = None
+) -> dict:
+	'''Start or continue a radio station based on a song, artist, playlist, or chip filter.
+
+	Inspired by Vivi Music's YouTubeQueue radio implementation.
+
+	:param seed_song: Seed song.
+	:param seed_group: Seed playlist or album group.
+	:param seed_artist: Seed artist.
+	:param params: Optional radio chip filter parameter (e.g. Discover, Popular).
+	:param continuation: Optional continuation token for infinite loading.
+	:param playlist_id: Explicit radio playlist ID if known.
+	:return: dict with 'tracks', 'chips', 'continuation', 'title'.
+	'''
+	video_id = None
+	resolved_playlist_id = playlist_id
+	title = 'Radio'
+
+	if continuation:
+		return get_watch_next(continuation=continuation)
+
+	if seed_song and seed_song.yt_id:
+		video_id = seed_song.yt_id
+		if not resolved_playlist_id:
+			resolved_playlist_id = f'RDAMVM{seed_song.yt_id}'
+		title = f'Radio - {seed_song.title}'
+	elif seed_artist and seed_artist.yt_id:
+		title = f'Radio - {seed_artist.name}'
+		if not resolved_playlist_id:
+			if getattr(seed_artist, 'radio_id', None):
+				resolved_playlist_id = seed_artist.radio_id
+			else:
+				try:
+					yt = get_yt_client(unauth=True)
+					data = yt.get_artist(seed_artist.yt_id)
+					resolved_playlist_id = data.get('radioId')
+				except Exception:
+					pass
+				if not resolved_playlist_id:
+					resolved_playlist_id = f'RDEM{seed_artist.yt_id[2:] if seed_artist.yt_id.startswith("UC") else seed_artist.yt_id}'
+	elif seed_group and seed_group.yt_id:
+		title = f'Radio - {seed_group.title}'
+		if not resolved_playlist_id:
+			pl = seed_group.yt_id
+			if pl.startswith('VL'):
+				pl = pl[2:]
+			if not pl.startswith('RD'):
+				resolved_playlist_id = f'RDAMPL{pl}'
+			else:
+				resolved_playlist_id = pl
+
+	res = get_watch_next(
+		video_id=video_id,
+		playlist_id=resolved_playlist_id,
+		radio=True,
+		params=params
+	)
+	if not res.get('title') and title:
+		res['title'] = title
+	return res
+
+
+def get_search_suggestions(query: str) -> dict:
+	'''Get search suggestions from YouTube Music.
+
+	Returns both text query completions and direct matching items (artists, songs, playlists, albums).
+
+	:param query: Query string typed by the user.
+	:return: dict with 'queries' (list[str]) and 'items' (list[dict]).
+	'''
+	if not query or not query.strip():
+		return {'queries': [], 'items': []}
+
+	yt = get_yt_client(unauth=True)
+	try:
+		res = yt._send_request('music/get_search_suggestions', {'input': query.strip()})
+	except Exception as e:
+		logboth.warning(__name__, f'Failed to get search suggestions: {e}')
+		return {'queries': [], 'items': []}
+
+	contents = res.get('contents', [])
+	queries = []
+	items = []
+
+	if len(contents) > 0:
+		for c in contents[0].get('searchSuggestionsSectionRenderer', {}).get('contents', []):
+			runs = c.get('searchSuggestionRenderer', {}).get('suggestion', {}).get('runs', [])
+			q = ''.join(r.get('text', '') for r in runs)
+			if q and q not in queries:
+				queries.append(q)
+
+	if len(contents) > 1:
+		for c in contents[1].get('searchSuggestionsSectionRenderer', {}).get('contents', []):
+			mr = c.get('musicResponsiveListItemRenderer', {})
+			if not mr:
+				continue
+			col0_runs = mr.get('flexColumns', [{}])[0].get('musicResponsiveListItemFlexColumnRenderer', {}).get('text', {}).get('runs', [])
+			title = col0_runs[0].get('text', '') if col0_runs else ''
+			col1_runs = mr.get('flexColumns', [{}, {}])[1].get('musicResponsiveListItemFlexColumnRenderer', {}).get('text', {}).get('runs', [])
+			subtitle = ''.join(r.get('text', '') for r in col1_runs)
+
+			thumbs = mr.get('thumbnail', {}).get('musicThumbnailRenderer', {}).get('thumbnail', {}).get('thumbnails', [])
+			thumbnail = thumbs[-1].get('url', '') if thumbs else ''
+
+			nav = mr.get('navigationEndpoint', {})
+			page_type = nav.get('browseEndpoint', {}).get('browseEndpointContextSupportedConfigs', {}).get('browseEndpointContextMusicConfig', {}).get('pageType', '')
+			browse_id = nav.get('browseEndpoint', {}).get('browseId', '')
+			video_id = mr.get('playlistItemData', {}).get('videoId', '') or nav.get('watchEndpoint', {}).get('videoId', '')
+
+			if page_type == 'MUSIC_PAGE_TYPE_ARTIST':
+				item = Artist(name=title, yt_id=browse_id)
+				item_type = 'artist'
+			elif page_type in ('MUSIC_PAGE_TYPE_ALBUM', 'MUSIC_PAGE_TYPE_AUDIOBOOK'):
+				item = Group(title=title, yt_id=browse_id)
+				item_type = 'album'
+			elif page_type == 'MUSIC_PAGE_TYPE_PLAYLIST':
+				item = Group(title=title, yt_id=browse_id)
+				item_type = 'playlist'
+			elif video_id:
+				author_name = ''
+				if ' • ' in subtitle:
+					parts = subtitle.split(' • ')
+					if len(parts) > 1:
+						author_name = parts[1]
+				item = Song(
+					title=title,
+					author=Artist(name=author_name or subtitle),
+					thumbnail=thumbnail,
+					yt_id=video_id
+				)
+				item_type = 'song'
+			else:
+				continue
+
+			items.append({
+				'type': item_type,
+				'title': title,
+				'subtitle': subtitle,
+				'thumbnail': thumbnail,
+				'item': item
+			})
+
+	return {'queries': queries, 'items': items}
+
+
+def get_related(video_id: str) -> dict:
+	'''Get related content for a song (similar songs, playlists, artists).
+
+	:param video_id: YouTube video ID of the song.
+	:return: dict with 'songs', 'artists', 'playlists', 'description'.
+	'''
+	yt = get_yt_client(unauth=True)
+	watch_res = get_watch_next(video_id=video_id)
+	related_browse_id = watch_res.get('related_browse_id')
+	if not related_browse_id:
+		return {'songs': [], 'artists': [], 'playlists': [], 'description': ''}
+
+	try:
+		sections = yt.get_song_related(related_browse_id)
+	except Exception as e:
+		logboth.error(__name__, f'Failed to get related content: {e}')
+		return {'songs': [], 'artists': [], 'playlists': [], 'description': ''}
+
+	songs = []
+	artists = []
+	playlists = []
+	description = ''
+
+	for section in sections:
+		title = section.get('title', '').lower()
+		contents = section.get('contents', [])
+		if isinstance(contents, str):
+			if 'about' in title:
+				description = contents
+			continue
+
+		for item in contents:
+			if not isinstance(item, dict):
+				continue
+			if 'videoId' in item:
+				s_artist = item.get('artists', [{}])[0] if item.get('artists') else {}
+				thumbs = item.get('thumbnails', [])
+				songs.append(Song(
+					title=item.get('title', ''),
+					author=Artist(name=s_artist.get('name', ''), yt_id=s_artist.get('id', '')),
+					thumbnail=thumbs[-1].get('url', '') if thumbs else '',
+					yt_id=item.get('videoId', '')
+				))
+			elif 'subscribers' in item or ('browseId' in item and item.get('browseId', '').startswith('UC')):
+				artists.append(Artist(
+					name=item.get('title', ''),
+					yt_id=item.get('browseId', '')
+				))
+			elif 'playlistId' in item or 'browseId' in item:
+				pl_id = item.get('playlistId', '') or item.get('browseId', '')
+				playlists.append(Group(
+					title=item.get('title', ''),
+					yt_id=pl_id
+				))
+
+	return {'songs': songs, 'artists': artists, 'playlists': playlists, 'description': description}
+
+
 def get_similar_songs(song: Song, ignore: Group | None=None) -> Group | None:
 	'''Get group of songs similar to a song.
 
@@ -568,39 +970,27 @@ def get_similar_songs(song: Song, ignore: Group | None=None) -> Group | None:
 	'''
 	logboth.info(
 		__name__,
-		f'Getting similar song to "{song.yt_id}" ignoring '
+		f'Getting similar songs to "{song.yt_id}" ignoring '
 		f'{len(ignore.songs) if ignore else 0} songs...'
 	)
-	yt = get_yt_client()
 	ignore = ignore or Group()
 
-	try:
-		data = yt.get_watch_playlist(song.yt_id, radio=True)['tracks']
-	except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.RequestException):
-		logboth.error(
-			__name__, 'Failed to get similar song', traceback.format_exc()
-		)
-		return None
+	res = get_watch_next(video_id=song.yt_id, radio=True)
+	data = res.get('tracks', [])
 
 	available_songs = []
-	for item in data:
-		item['resultType'] = 'song'
-		parsed = _parse_single_result(yt, item)
-		if not parsed:
-			continue
-
-		song = parsed.item
+	for s in data:
 		for ignore_song in ignore.songs:
-			if ignore_song.yt_id == song.yt_id:
+			if ignore_song.yt_id == s.yt_id:
 				break
 		else:
-			available_songs.append(song)
+			available_songs.append(s)
 
 	if available_songs:
 		logboth.info(__name__, f'Got {len(available_songs)} similar songs')
 		return Group(songs=available_songs)
 
-	logboth.error(__name__, 'Failed to get similar song - no songs available')
+	logboth.error(__name__, 'Failed to get similar songs - no songs available')
 	return Group()
 
 
@@ -1239,3 +1629,98 @@ class SearchTask(Task):
 
 		logboth.error(__name__, 'Failed to search')
 		return None
+
+
+class StartRadioTask(Task):
+	'''Task for fetching a radio queue from YouTube.
+
+	Inspired by Vivi Music's YouTubeQueue.radio implementation.
+
+	.. code-block::
+
+		StartRadioTask(
+			args=(seed_item, params, continuation, playlist_id)
+		)
+
+	'''
+
+	is_user_priority = True
+
+	def _function(
+		self,
+		seed_item: Song | Group | Artist | None = None,
+		params: str | None = None,
+		continuation: str | None = None,
+		playlist_id: str | None = None
+	) -> dict | None:
+		logboth.info(__name__, f'Starting radio task for {seed_item} (params={params})...')
+		self._update_progress(0.1)
+
+		if self.is_canceled():
+			return None
+
+		seed_song = seed_item if isinstance(seed_item, Song) else None
+		seed_group = seed_item if isinstance(seed_item, Group) else None
+		seed_artist = seed_item if isinstance(seed_item, Artist) else None
+
+		self._update_progress(0.3)
+		result = get_radio(
+			seed_song=seed_song,
+			seed_group=seed_group,
+			seed_artist=seed_artist,
+			params=params,
+			continuation=continuation,
+			playlist_id=playlist_id
+		)
+
+		if self.is_canceled():
+			return None
+
+		self._update_progress(1.0)
+		logboth.info(__name__, f'Radio task completed: {len(result.get("tracks", []))} tracks, {len(result.get("chips", []))} chips')
+		return result
+
+
+class GetSearchSuggestionsTask(Task):
+	'''Task for fetching search suggestions as user types.
+
+	Inspired by Vivi Music's searchSuggestions implementation.
+
+	.. code-block::
+
+		GetSearchSuggestionsTask(
+			args=(query,)
+		)
+
+	'''
+
+	is_user_priority = True
+
+	def _function(self, query: str) -> dict | None:
+		if self.is_canceled():
+			return None
+
+		return get_search_suggestions(query)
+
+
+class GetRelatedTask(Task):
+	'''Task for fetching related content for a song (similar tracks, artists, playlists).
+
+	Inspired by Vivi Music's related implementation.
+
+	.. code-block::
+
+		GetRelatedTask(
+			args=(video_id,)
+		)
+
+	'''
+
+	is_user_priority = True
+
+	def _function(self, video_id: str) -> dict | None:
+		if self.is_canceled():
+			return None
+
+		return get_related(video_id)
+

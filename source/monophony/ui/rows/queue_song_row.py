@@ -34,6 +34,11 @@ class QueueSongRow(DraggableSongRow):
 			downloads.is_downloaded(self.song), downloads.is_being_downloaded(self.song)
 		)
 		popover.connect(
+			'start-radio',
+			lambda _popover, row: row().emit('start-radio', row().song),
+			self.weak_ref()
+		)
+		popover.connect(
 			'add-song-to', lambda _popover, row: row().emit('add-song-to', row().song),
 			self.weak_ref()
 		)

@@ -12,6 +12,7 @@ class GroupRowPopover(RowPopover):
 	actions = (
 		*RowPopover.actions,
 		'queue-group',
+		'start-radio',
 		'add-group-to',
 		'view-artist',
 		'download-group'
@@ -27,12 +28,17 @@ class GroupRowPopover(RowPopover):
 
 		menu = Gio.Menu()
 		menu.append(_('Add to Queue'), self.__gtype_name__ + '.queue-group')
+		menu.append(_('Start Radio'), self.__gtype_name__ + '.start-radio')
 		menu.append(_('Add to...'), self.__gtype_name__ + '.add-group-to')
 		if viewable_artist:
 			menu.append(_('View Artist'), self.__gtype_name__ + '.view-artist')
 		menu.append(_('Download'), self.__gtype_name__ + '.download-group')
 
 		self.props.menu_model = menu
+
+	@GObject.Signal(name='start-radio')
+	def _start_radio(self):
+		return
 
 	@GObject.Signal(name='queue-group')
 	def _queue_group(self):
