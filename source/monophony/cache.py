@@ -210,6 +210,29 @@ def save_cached_uri(yt_id: str, uri: str):
 		logboth.error(__name__, f'Failed to save URI cache: {e}')
 
 
+def invalidate_cached_uri(yt_id: str):
+	'''Remove streaming URI from cache.
+
+	:param yt_id: YouTube song ID.
+	'''
+	if not yt_id:
+		return
+	cache_file = _get_uri_cache_file()
+	if not os.path.exists(cache_file):
+		return
+	try:
+		import json
+		with open(cache_file, encoding='utf-8') as f:
+			data = json.load(f)
+		if yt_id in data:
+			del data[yt_id]
+			with open(cache_file, 'w', encoding='utf-8') as f:
+				json.dump(data, f, indent=True)
+			logboth.info(__name__, f'Invalidated cached URI for "{yt_id}"')
+	except Exception as e:
+		logboth.error(__name__, f'Failed to invalidate URI cache: {e}')
+
+
 
 def get_cached_file(song: Song) -> str | None:
 	'''Get cached audio file path if song is cached.

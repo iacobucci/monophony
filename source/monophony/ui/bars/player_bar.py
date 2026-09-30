@@ -170,7 +170,7 @@ class PlayerBar(Gtk.Box):
 		)
 
 		self._lyrics_button = Gtk.Button()
-		self._lyrics_button.props.icon_name = 'format-text-plaintext-symbolic'
+		self._lyrics_button.props.icon_name = 'audio-input-microphone-symbolic'
 		self._lyrics_button.props.tooltip_text = _('Lyrics')
 		self._lyrics_button.props.has_frame = False
 		self._lyrics_button.props.valign = Gtk.Align.CENTER

@@ -152,7 +152,7 @@ class QueueSidebar(Adw.Bin):
 		)
 
 		self._lyrics_button = Gtk.Button.new_from_icon_name(
-			'format-text-plaintext-symbolic'
+			'audio-input-microphone-symbolic'
 		)
 		self._lyrics_button.props.tooltip_text = _('Lyrics')
 		self._lyrics_button.props.halign = Gtk.Align.FILL

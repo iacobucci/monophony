@@ -129,6 +129,7 @@ class Player(GObject.Object):
 		self._last_known_position = 0
 		self._start_position = 0
 		self._song_uris = {}
+		self._retry_counts = {}
 		self._queue = Group()
 		self._queue_index = 0
 		self._radio_chips = []
@@ -284,13 +285,32 @@ class Player(GObject.Object):
 				self._playbin.set_state(Gst.State.PLAYING)
 
 	def _on_bus_error(self, _bus: Gst.Bus, message: Gst.Message):
-		logboth.error(__name__, 'Bus error', message.parse_error().gerror.message)
-		self.pop_uri(self._queue.songs[self._queue_index].yt_id)
-		self.play(
-			self._queue.songs[self._queue_index],
-			self._queue,
-			self._last_known_position
-		)
+		err_msg = message.parse_error().gerror.message
+		logboth.error(__name__, 'Bus error', err_msg)
+		if not self._queue.songs or self._queue_index >= len(self._queue.songs):
+			self.stop()
+			return
+		current_song = self._queue.songs[self._queue_index]
+		self.pop_uri(current_song.yt_id)
+		retries = self._retry_counts.get(current_song.yt_id, 0)
+		if retries < 2:
+			self._retry_counts[current_song.yt_id] = retries + 1
+			logboth.info(
+				__name__,
+				f'Retrying playback for "{current_song.yt_id}" (attempt {retries + 1}/2)'
+			)
+			self.play(
+				current_song,
+				self._queue,
+				self._last_known_position
+			)
+		else:
+			logboth.warning(
+				__name__,
+				f'Max retries reached for "{current_song.yt_id}", skipping to next song'
+			)
+			self._retry_counts.pop(current_song.yt_id, None)
+			self.next()
 
 	def _on_latency(self, _bus: Gst.Bus, _message: Gst.Message):
 		if self._playbin.recalculate_latency():
@@ -511,6 +531,8 @@ class Player(GObject.Object):
 			self.state = PlaybackState.PLAYING
 			self.emit('state-changed', self.state)
 			self._seek_to_start()
+			if self._queue.songs and self._queue_index < len(self._queue.songs):
+				self._retry_counts.pop(self._queue.songs[self._queue_index].yt_id, None)
 
 	def _on_stream_end(self, _bus: Gst.Bus, _message):
 		logboth.info(__name__, 'Stream has ended')
@@ -749,6 +771,7 @@ class Player(GObject.Object):
 		:param yt_id: Song ID for which to get a URI.
 		:return: The URI, if any.
 		'''
+		cache.invalidate_cached_uri(yt_id)
 		if yt_id in self._song_uris:
 			logboth.info(__name__, f'Popped known URI for song "{yt_id}"')
 			return self._song_uris.pop(yt_id)

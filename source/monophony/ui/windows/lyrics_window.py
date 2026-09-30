@@ -40,8 +40,8 @@ class LyricsWindow(MemoryDebugger, Adw.Dialog):
 
 		header_bar = Adw.HeaderBar()
 		title_widget = Adw.WindowTitle()
-		title_widget.props.title = _('Lyrics')
-		title_widget.props.subtitle = f'{self.song.title} • {self.song.author.name}'
+		author_name = self.song.author.name if hasattr(self.song.author, 'name') else str(self.song.author or '')
+		title_widget.props.subtitle = f'{self.song.title} • {author_name}' if author_name else self.song.title
 		header_bar.props.title_widget = title_widget
 
 		# Copy button
@@ -101,7 +101,7 @@ class LyricsWindow(MemoryDebugger, Adw.Dialog):
 
 		# 3. Empty / Not available page
 		self._status_page = Adw.StatusPage()
-		self._status_page.props.icon_name = 'music-note-symbolic'
+		self._status_page.props.icon_name = 'audio-x-generic-symbolic'
 		self._status_page.props.title = _('No Lyrics Available')
 		self._status_page.props.description = _(
 			'Lyrics could not be found for this song.'
@@ -112,8 +112,9 @@ class LyricsWindow(MemoryDebugger, Adw.Dialog):
 		self._stack.set_visible_child_name('loading')
 
 	def _load_lyrics(self):
+		author_name = self.song.author.name if hasattr(self.song.author, 'name') else str(self.song.author or '')
 		task = GetLyricsTask(
-			args=(self.song.yt_id, self.song.title, self.song.author.name),
+			args=(self.song.yt_id, self.song.title, author_name),
 			callback=lambda t, ref: (r := ref()) and r._on_lyrics_loaded(t),
 			callback_args=(self.weak_ref(),)
 		)

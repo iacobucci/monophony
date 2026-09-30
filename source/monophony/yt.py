@@ -609,6 +609,9 @@ def _get_ydl():
 	global _ydl_client
 	if _ydl_client is None:
 		try:
+			import sys, os
+			if os.path.exists('/app/bin/yt-dlp') and '/app/bin/yt-dlp' not in sys.path:
+				sys.path.insert(0, '/app/bin/yt-dlp')
 			import yt_dlp
 			opts = {
 				'format': 'bestaudio/best',
