@@ -613,6 +613,13 @@ class Player(GObject.Object):
 
 		return None
 
+	def get_song_index(self) -> int:
+		'''Get index of current song in queue.
+
+		:return: Current song index.
+		'''
+		return self._queue_index
+
 	def get_duration_ns(self) -> float:
 		'''Get current song duraton in ns.
 

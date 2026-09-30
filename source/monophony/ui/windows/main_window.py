@@ -1018,11 +1018,9 @@ class MainWindow(Adw.ApplicationWindow):
 		self._home_page.update_liked_songs()
 
 	def _on_show_lyrics(self):
-		queue = self._player.get_queue()
-		song_index = self._player.get_song_index()
-		if not queue.songs or song_index >= len(queue.songs):
+		song = self._player.get_current_song()
+		if not song:
 			return
-		song = queue.songs[song_index]
 		from monophony.ui.windows.lyrics_window import LyricsWindow
 		self._lyrics_window = LyricsWindow(song)
 		self._lyrics_window.present(self)
