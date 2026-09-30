@@ -1,4 +1,4 @@
-'''Home page widget.'''
+import contextlib
 
 from monophony import downloads, playlists, recents, recommendations
 from monophony.data import Artist, Group, Song
@@ -10,6 +10,7 @@ from monophony.ui.row_groups.queueable_row_group import QueueableRowGroup
 from monophony.ui.row_groups.synchronized_group_row_group import (
 	SynchronizedGroupRowGroup,
 )
+from monophony.ui.rows.song_row import SongRow
 
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
 
@@ -28,10 +29,21 @@ class HomePage(Page):
 
 		self._deleted_playlists = []
 
+		self._liked_group = GroupRowGroup()
+		self._liked_group.props.title = _('Liked Music')
+		self._liked_group.props.margin_start = 12
+		self._liked_group.props.margin_end = 12
+		self._liked_group.props.visible = False
+		self._connect_group_signals(self._liked_group)
+
+		self._home_feeds_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
+		self._home_feed_groups = []
+
 		self._recommended_group = GroupRowGroup()
 		self._recommended_group.props.title = _('Recommended')
 		self._recommended_group.props.margin_start = 12
 		self._recommended_group.props.margin_end = 12
+		self._connect_group_signals(self._recommended_group)
 		self._recommended_group.connect(
 			'play',
 			lambda _group, song, group, ref: ref().emit('play', song, group),

@@ -156,6 +156,19 @@ class PlayerBar(Gtk.Box):
 		info_box.append(self._title_link)
 		info_box.append(self._artist_label)
 
+		self._like_button = Gtk.Button()
+		self._like_button.props.icon_name = 'non-starred-symbolic'
+		self._like_button.props.tooltip_text = _('Like')
+		self._like_button.props.has_frame = False
+		self._like_button.props.valign = Gtk.Align.CENTER
+		self._like_button.props.margin_start = 2
+		self._like_button.props.visible = False
+		self._like_button.connect(
+			'clicked',
+			lambda _btn, ref: ref().emit('toggle-like'),
+			self.weak_ref()
+		)
+
 		song_details_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
 		song_details_box.props.spacing = 6
 		song_details_box.props.valign = Gtk.Align.CENTER
@@ -163,6 +176,7 @@ class PlayerBar(Gtk.Box):
 		song_details_box.props.hexpand = True
 		song_details_box.append(self._thumbnail_box)
 		song_details_box.append(info_box)
+		song_details_box.append(self._like_button)
 
 
 		self._mode_button = Gtk.MenuButton()
@@ -261,6 +275,10 @@ class PlayerBar(Gtk.Box):
 		self.append(self._progress_bar)
 		self.append(controls_box)
 
+	@GObject.Signal(name='toggle-like')
+	def _toggle_like_signal(self):
+		return
+
 	@GObject.Signal(name='start-radio', arg_types=(object,))
 	def _start_radio(self, _item: object):
 		return
@@ -336,6 +354,28 @@ class PlayerBar(Gtk.Box):
 		self._artist_label.props.label = song.author.name
 
 		self._update_thumbnail(song)
+		self.update_liked_status(song.yt_id)
+
+	def update_liked_status(self, yt_id: str | None = None):
+		'''Update the displayed like status of current song.
+
+		:param yt_id: Optional song ID to check. Defaults to current song.
+		'''
+		target_id = yt_id or getattr(self, '_current_song_yt_id', None)
+		if not target_id:
+			self._like_button.props.visible = False
+			return
+
+		self._like_button.props.visible = True
+		from monophony import likes
+		is_fav = likes.is_liked(target_id)
+		self._like_button.props.icon_name = 'starred-symbolic' if is_fav else 'non-starred-symbolic'
+		if is_fav:
+			self._like_button.add_css_class('accent')
+			self._like_button.props.tooltip_text = _('Unlike')
+		else:
+			self._like_button.remove_css_class('accent')
+			self._like_button.props.tooltip_text = _('Like')
 
 	def _update_thumbnail(self, song: Song):
 		if not song or not song.yt_id:

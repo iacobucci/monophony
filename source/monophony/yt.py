@@ -377,6 +377,25 @@ def delete_user_playlist(playlist_id: str) -> bool:
 		return False
 
 
+def rate_song(video_id: str, rating: str = 'LIKE') -> bool:
+	'''Rate a song on YouTube Music (LIKE, DISLIKE, INDIFFERENT).
+
+	:param video_id: YouTube video ID.
+	:param rating: One of 'LIKE', 'DISLIKE', 'INDIFFERENT'.
+	:return: True if successful.
+	'''
+	if not is_authenticated():
+		return False
+	try:
+		yt = get_yt_client()
+		yt.rate_song(video_id, rating)
+		logboth.info(__name__, f'Rated song "{video_id}" as "{rating}" on YouTube Music')
+		return True
+	except Exception as e:
+		logboth.warning(__name__, f'Failed to rate song "{video_id}": {e}')
+		return False
+
+
 
 class SearchResult:
 	'''Wrapper for supported search result type.'''
@@ -1616,6 +1635,72 @@ class GetRecommendationsTask(Task):
 
 		logboth.info(__name__, f'Got {len(recommendations)} groups of recommendations')
 		return recommendations
+
+
+def get_home_feeds(limit: int = 4) -> list[dict]:
+	'''Get personalized or trending home feed sections from YouTube Music.
+
+	:param limit: Number of sections to retrieve.
+	:return: List of dicts with 'title' and 'items' (list of Song or Group).
+	'''
+	yt = get_yt_client()
+	try:
+		sections = yt.get_home(limit=limit)
+	except Exception as e:
+		logboth.warning(__name__, f'Failed to fetch home feeds ({e}), using unauthenticated client')
+		try:
+			unauth = get_yt_client(unauth=True)
+			sections = unauth.get_home(limit=limit)
+		except Exception as err:
+			logboth.error(__name__, f'Failed to fetch home feeds: {err}')
+			return []
+
+	parsed_sections = []
+	for sec in sections:
+		sec_title = sec.get('title', '')
+		parsed_items = []
+		for item in sec.get('contents', []):
+			if 'videoId' in item:
+				artists = item.get('artists', [])
+				art_name = artists[0].get('name', '') if artists and isinstance(artists, list) else ''
+				art_id = artists[0].get('id', '') if artists and isinstance(artists, list) else ''
+				thumbs = item.get('thumbnails', [])
+				thumb = thumbs[-1].get('url', '') if thumbs else ''
+				parsed_items.append(
+					Song(
+						title=item.get('title', ''),
+						yt_id=item.get('videoId', ''),
+						author=Artist(name=art_name, yt_id=art_id),
+						thumbnail=thumb
+					)
+				)
+			elif 'audioPlaylistId' in item or 'playlistId' in item or 'browseId' in item:
+				gid = item.get('audioPlaylistId') or item.get('playlistId') or item.get('browseId')
+				artists = item.get('artists', [])
+				art_name = artists[0].get('name', '') if artists and isinstance(artists, list) else (item.get('description') or '')
+				thumbs = item.get('thumbnails', [])
+				thumb = thumbs[-1].get('url', '') if thumbs else ''
+				grp = Group(
+					title=item.get('title', ''),
+					yt_id=gid,
+					author=Artist(name=art_name),
+					songs=[]
+				)
+				grp.thumbnail = thumb
+				parsed_items.append(grp)
+		if parsed_items:
+			parsed_sections.append({'title': sec_title, 'items': parsed_items})
+
+	logboth.info(__name__, f'Retrieved {len(parsed_sections)} home feed sections')
+	return parsed_sections
+
+
+class GetHomeFeedsTask(Task):
+	'''Task for fetching YouTube Music home feeds.'''
+
+	def _function(self, limit: int = 4) -> list[dict]:
+		logboth.info(__name__, 'Fetching home feeds task started...')
+		return get_home_feeds(limit)
 
 
 _SEARCH_CACHE_TTL = 300
