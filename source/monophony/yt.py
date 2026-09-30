@@ -1703,6 +1703,68 @@ class GetHomeFeedsTask(Task):
 		return get_home_feeds(limit)
 
 
+def get_lyrics(
+	video_id: str,
+	title: str | None = None,
+	artist: str | None = None
+) -> dict | None:
+	'''Fetch lyrics for a song from YouTube Music.
+
+	:param video_id: YouTube video/song ID.
+	:param title: Song title (used for fallback matching if needed).
+	:param artist: Artist name (used for fallback matching if needed).
+	:return: dict with 'lyrics' (str) and optional 'source' (str), or None.
+	'''
+	if not video_id:
+		return None
+
+	client = get_yt_client(unauth=True)
+	# 1. Try watch next endpoint directly
+	try:
+		next_data = get_watch_next(video_id=video_id)
+		l_id = next_data.get('lyrics_browse_id')
+		if l_id:
+			l = client.get_lyrics(l_id)
+			if l and l.get('lyrics'):
+				logboth.info(__name__, f'Retrieved lyrics for "{video_id}"')
+				return l
+	except Exception as e:
+		logboth.warning(__name__, f'Failed to get lyrics for "{video_id}" via watch_next: {e}')
+
+	# 2. Fallback: Search official song track on YouTube Music
+	search_q = f'{title or ""} {artist or ""}'.strip()
+	if search_q:
+		try:
+			results = client.search(search_q, filter='songs')
+			if results:
+				candidate_id = results[0].get('videoId')
+				if candidate_id and candidate_id != video_id:
+					candidate_next = get_watch_next(video_id=candidate_id)
+					candidate_lid = candidate_next.get('lyrics_browse_id')
+					if candidate_lid:
+						l = client.get_lyrics(candidate_lid)
+						if l and l.get('lyrics'):
+							logboth.info(__name__, f'Retrieved lyrics for "{video_id}" via fallback search "{candidate_id}"')
+							return l
+		except Exception as err:
+			logboth.warning(__name__, f'Failed to get lyrics via fallback search for "{search_q}": {err}')
+
+	return None
+
+
+class GetLyricsTask(Task):
+	'''Task for asynchronously retrieving song lyrics.'''
+
+	def _function(
+		self,
+		video_id: str,
+		title: str | None = None,
+		artist: str | None = None
+	) -> dict | None:
+		logboth.info(__name__, f'Fetching lyrics for video_id="{video_id}"...')
+		return get_lyrics(video_id, title, artist)
+
+
 _SEARCH_CACHE_TTL = 300
 _search_cache: dict[str, tuple[float, list[SearchResult]]] = {}
 

@@ -169,6 +169,19 @@ class PlayerBar(Gtk.Box):
 			self.weak_ref()
 		)
 
+		self._lyrics_button = Gtk.Button()
+		self._lyrics_button.props.icon_name = 'format-text-plaintext-symbolic'
+		self._lyrics_button.props.tooltip_text = _('Lyrics')
+		self._lyrics_button.props.has_frame = False
+		self._lyrics_button.props.valign = Gtk.Align.CENTER
+		self._lyrics_button.props.margin_start = 2
+		self._lyrics_button.props.visible = False
+		self._lyrics_button.connect(
+			'clicked',
+			lambda _btn, ref: ref().emit('show-lyrics'),
+			self.weak_ref()
+		)
+
 		song_details_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
 		song_details_box.props.spacing = 6
 		song_details_box.props.valign = Gtk.Align.CENTER
@@ -177,6 +190,7 @@ class PlayerBar(Gtk.Box):
 		song_details_box.append(self._thumbnail_box)
 		song_details_box.append(info_box)
 		song_details_box.append(self._like_button)
+		song_details_box.append(self._lyrics_button)
 
 
 		self._mode_button = Gtk.MenuButton()
@@ -279,6 +293,10 @@ class PlayerBar(Gtk.Box):
 	def _toggle_like_signal(self):
 		return
 
+	@GObject.Signal(name='show-lyrics')
+	def _show_lyrics_signal(self):
+		return
+
 	@GObject.Signal(name='start-radio', arg_types=(object,))
 	def _start_radio(self, _item: object):
 		return
@@ -356,6 +374,7 @@ class PlayerBar(Gtk.Box):
 
 		self._update_thumbnail(song)
 		self.update_liked_status(song.yt_id)
+		self._lyrics_button.props.visible = True
 
 	def update_liked_status(self, yt_id: str | None = None):
 		'''Update the displayed like status of current song.
@@ -365,6 +384,7 @@ class PlayerBar(Gtk.Box):
 		target_id = yt_id or getattr(self, '_current_song_yt_id', None)
 		if not target_id:
 			self._like_button.props.visible = False
+			self._lyrics_button.props.visible = False
 			return
 
 		self._like_button.props.visible = True

@@ -151,6 +151,20 @@ class QueueSidebar(Adw.Bin):
 			self.weak_ref()
 		)
 
+		self._lyrics_button = Gtk.Button.new_from_icon_name(
+			'format-text-plaintext-symbolic'
+		)
+		self._lyrics_button.props.tooltip_text = _('Lyrics')
+		self._lyrics_button.props.halign = Gtk.Align.FILL
+		self._lyrics_button.props.hexpand = False
+		self._lyrics_button.props.sensitive = False
+		self._lyrics_button.add_css_class('raised')
+		self._lyrics_button.connect(
+			'clicked',
+			lambda _button, ref: ref().emit('show-lyrics'),
+			self.weak_ref()
+		)
+
 		button_content = Adw.ButtonContent()
 		button_content.props.label = _('Add to...')
 		button_content.props.icon_name = 'list-add-symbolic'
@@ -173,6 +187,7 @@ class QueueSidebar(Adw.Bin):
 		buttons_box.append(add_button)
 		buttons_box.append(self._radio_button)
 		buttons_box.append(self._shuffle_button)
+		buttons_box.append(self._lyrics_button)
 
 		controls_bar = Adw.HeaderBar()
 		controls_bar.props.show_back_button = False
@@ -222,6 +237,10 @@ class QueueSidebar(Adw.Bin):
 
 	@GObject.Signal(name='shuffle-queue')
 	def _shuffle_queue(self):
+		return
+
+	@GObject.Signal(name='show-lyrics')
+	def _show_lyrics_signal(self):
 		return
 
 	@GObject.Signal(name='clear-queue')
@@ -282,6 +301,7 @@ class QueueSidebar(Adw.Bin):
 		self._shuffle_button.props.sensitive = (
 			len(group.songs) >= self._min_songs_for_shuffle
 		)
+		self._lyrics_button.props.sensitive = bool(group.songs)
 
 		total_seconds = 0
 		for song in group.songs:

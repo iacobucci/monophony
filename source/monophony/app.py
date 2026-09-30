@@ -49,6 +49,6 @@ class Application(Adw.Application):
 
 	def _on_quit(self, _action, _param):
 		if self._window:
-			self._window.close()
+			self._window._on_close(force=True)
 
 		self.quit()

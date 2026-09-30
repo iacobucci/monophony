@@ -471,6 +471,23 @@ class LikesAndHomeFeedsTestCase(BaseTestCase):
 			self.assertEqual(feeds[1]['items'][0].title, 'Playlist One')
 			self.assertEqual(feeds[1]['items'][0].yt_id, 'pl1')
 
+	def test_lyrics_fetch(self):
+		from monophony import yt
+		from unittest.mock import MagicMock, patch
+
+		mock_client = MagicMock()
+		mock_client.get_lyrics.return_value = {
+			'lyrics': 'Test lyrics text\nSecond line',
+			'source': 'Source: Test'
+		}
+
+		with patch('monophony.yt.get_yt_client', return_value=mock_client), \
+		     patch('monophony.yt.get_watch_next', return_value={'lyrics_browse_id': 'MPLYt_123'}):
+			lyrics = yt.get_lyrics('dummy_vid', 'Test Title', 'Test Artist')
+			self.assertIsNotNone(lyrics)
+			self.assertEqual(lyrics['lyrics'], 'Test lyrics text\nSecond line')
+			self.assertEqual(lyrics['source'], 'Source: Test')
+
 
 if __name__ == '__main__':
 	unittest.main()

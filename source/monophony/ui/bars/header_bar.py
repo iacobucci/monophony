@@ -37,6 +37,7 @@ class HeaderBar(MemoryDebugger, Adw.Bin):
 		info_menu = Gio.Menu()
 		info_menu.append(_('Logs'), 'win.show-logs')
 		info_menu.append(_('About Monophony'), 'win.show-about')
+		info_menu.append(_('Quit'), 'app.quit')
 
 		info_button = Gtk.MenuButton()
 		info_button.props.icon_name = 'help-about-symbolic'

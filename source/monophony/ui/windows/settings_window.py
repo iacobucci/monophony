@@ -23,6 +23,21 @@ class SettingsWindow(MemoryDebugger, Adw.Dialog):
 	def _build_ui(self):
 		page = Adw.PreferencesPage()
 
+		# --- General / Window Behavior Group ---
+		general_group = Adw.PreferencesGroup()
+		general_group.props.title = _('Application Behavior')
+
+		self._background_switch = Adw.SwitchRow()
+		self._background_switch.props.title = _('Keep Playing in Background')
+		self._background_switch.props.subtitle = _('Keep playing music when closing the main window')
+		self._background_switch.props.active = settings.load('background_playback', False)
+		self._background_switch.connect(
+			'notify::active',
+			lambda switch, _param: settings.save({'background_playback': switch.props.active})
+		)
+		general_group.add(self._background_switch)
+		page.add(general_group)
+
 		# --- Cache Group ---
 		cache_group = Adw.PreferencesGroup()
 		cache_group.props.title = _('Audio Caching')

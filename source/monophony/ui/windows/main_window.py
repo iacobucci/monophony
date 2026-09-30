@@ -239,6 +239,11 @@ class MainWindow(Adw.ApplicationWindow):
 			lambda _sidebar, chip, ref: ref()._player.select_radio_chip(chip),
 			self.weak_ref()
 		)
+		self._queue_sidebar.connect(
+			'show-lyrics',
+			lambda _sidebar, ref: MainWindow._on_show_lyrics(ref()),
+			self.weak_ref()
+		)
 		self._queue_sidebar.hide_button.connect(
 			'clicked',
 			lambda _b, ref: MainWindow._on_hide_sidebar(ref()),
@@ -413,6 +418,11 @@ class MainWindow(Adw.ApplicationWindow):
 			lambda _bar, ref: MainWindow._on_toggle_like(ref()),
 			self.weak_ref()
 		)
+		self._player_bar.connect(
+			'show-lyrics',
+			lambda _bar, ref: MainWindow._on_show_lyrics(ref()),
+			self.weak_ref()
+		)
 
 		self._toolbar_view = Adw.ToolbarView()
 		self._toolbar_view.props.content = self._navigation_view
@@ -559,19 +569,22 @@ class MainWindow(Adw.ApplicationWindow):
 	def _on_clear_queue(self):
 		self._player.stop()
 
-	def _on_close(self) -> bool:
-		logboth.info(__name__, 'Close requested')
-		if self._player.get_queue().songs:
+	def _on_close(self, force: bool = False) -> bool:
+		logboth.info(__name__, f'Close requested (force={force})')
+		if not force and settings.load('background_playback', False) and self._player.get_queue().songs:
 			logboth.info(__name__, 'Still playing - hiding instead of closing')
 			self.props.visible = False
 			return True
 
+		self._player.stop()
+		self._uninhibit_suspend()
 		size = self.get_default_size()
 		settings.save({
 			'window-width': size.width,
 			'window-height': size.height
 		})
 		self._application.release()
+		self.destroy()
 		return False
 
 	def _on_download_songs(self, group: Group):
@@ -1003,6 +1016,16 @@ class MainWindow(Adw.ApplicationWindow):
 	def _on_likes_changed(self):
 		self._player_bar.update_liked_status()
 		self._home_page.update_liked_songs()
+
+	def _on_show_lyrics(self):
+		queue = self._player.get_queue()
+		song_index = self._player.get_song_index()
+		if not queue.songs or song_index >= len(queue.songs):
+			return
+		song = queue.songs[song_index]
+		from monophony.ui.windows.lyrics_window import LyricsWindow
+		self._lyrics_window = LyricsWindow(song)
+		self._lyrics_window.present(self)
 
 	def _on_shuffle_queue(self):
 		self._player.shuffle()
