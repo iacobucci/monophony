@@ -346,6 +346,7 @@ class PlayerBar(Gtk.Box):
 
 		:param song: Song to display.
 		'''
+		self._current_song = song
 		self._current_song_yt_id = song.yt_id
 		self._title_link.props.child.props.label = song.title
 		self._title_link.props.uri = (

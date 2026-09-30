@@ -3,6 +3,7 @@
 Thread-safe via module-wide lock.
 '''
 
+import gettext
 import json
 import os
 import threading
@@ -14,7 +15,12 @@ from monophony.data import Artist, Group, Song
 import logboth
 from gi.repository import GLib
 
-_lock = threading.Lock()
+try:
+	_
+except NameError:
+	_ = gettext.gettext
+
+_lock = threading.RLock()
 _cached_liked_group: Group | None = None
 _listeners: list[Callable[[], None]] = []
 

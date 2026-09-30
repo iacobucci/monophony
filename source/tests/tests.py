@@ -392,6 +392,84 @@ class StreamingAndSeamlessRadioTestCase(BaseTestCase):
 		self.assertEqual(cached[0].item.title, 'Test Album')
 
 
+class LikesAndHomeFeedsTestCase(BaseTestCase):
+	def test_likes_management(self):
+		from monophony import likes
+		from monophony.data import Artist, Song
+
+		# Reset cache in test env
+		likes._cached_liked_group = None
+		grp = likes.read()
+		self.assertEqual(grp.yt_id, 'LM')
+		self.assertFalse(likes.is_liked('test_vid_1'))
+
+		notified = []
+		def _on_changed():
+			notified.append(True)
+
+		likes.add_listener(_on_changed)
+
+		song1 = Song(title='Liked Song 1', yt_id='test_vid_1', author=Artist(name='Artist 1'))
+		# Toggle ON
+		res1 = likes.toggle_like(song1)
+		self.assertTrue(res1)
+		self.assertTrue(likes.is_liked('test_vid_1'))
+		self.assertEqual(len(likes.read().songs), 1)
+
+		# Toggle OFF
+		res2 = likes.toggle_like(song1)
+		self.assertFalse(res2)
+		self.assertFalse(likes.is_liked('test_vid_1'))
+		self.assertEqual(len(likes.read().songs), 0)
+
+		likes.remove_listener(_on_changed)
+
+	def test_home_feeds_parsing(self):
+		from monophony import yt
+		from unittest.mock import MagicMock, patch
+
+		mock_sections = [
+			{
+				'title': 'Quick picks',
+				'contents': [
+					{
+						'title': 'Track One',
+						'videoId': 'vid1',
+						'artists': [{'name': 'Artist A', 'id': 'art1'}],
+						'thumbnails': [{'url': 'http://img/1.jpg'}]
+					}
+				]
+			},
+			{
+				'title': 'Featured playlists',
+				'contents': [
+					{
+						'title': 'Playlist One',
+						'playlistId': 'pl1',
+						'artists': [{'name': 'Various'}],
+						'thumbnails': [{'url': 'http://img/pl1.jpg'}]
+					}
+				]
+			}
+		]
+
+		mock_client = MagicMock()
+		mock_client.get_home.return_value = mock_sections
+
+		with patch('monophony.yt.get_yt_client', return_value=mock_client):
+			feeds = yt.get_home_feeds(limit=2)
+			self.assertEqual(len(feeds), 2)
+			self.assertEqual(feeds[0]['title'], 'Quick picks')
+			self.assertEqual(len(feeds[0]['items']), 1)
+			self.assertEqual(feeds[0]['items'][0].title, 'Track One')
+			self.assertEqual(feeds[0]['items'][0].yt_id, 'vid1')
+
+			self.assertEqual(feeds[1]['title'], 'Featured playlists')
+			self.assertEqual(len(feeds[1]['items']), 1)
+			self.assertEqual(feeds[1]['items'][0].title, 'Playlist One')
+			self.assertEqual(feeds[1]['items'][0].yt_id, 'pl1')
+
+
 if __name__ == '__main__':
 	unittest.main()
 

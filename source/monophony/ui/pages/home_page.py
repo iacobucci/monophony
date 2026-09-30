@@ -29,12 +29,13 @@ class HomePage(Page):
 
 		self._deleted_playlists = []
 
-		self._liked_group = GroupRowGroup()
+		self._liked_group = QueueableRowGroup()
 		self._liked_group.props.title = _('Liked Music')
 		self._liked_group.props.margin_start = 12
 		self._liked_group.props.margin_end = 12
 		self._liked_group.props.visible = False
 		self._connect_group_signals(self._liked_group)
+		self._liked_group.on_play_all = self._on_play_all_liked
 
 		self._home_feeds_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
 		self._home_feed_groups = []
@@ -44,56 +45,6 @@ class HomePage(Page):
 		self._recommended_group.props.margin_start = 12
 		self._recommended_group.props.margin_end = 12
 		self._connect_group_signals(self._recommended_group)
-		self._recommended_group.connect(
-			'play',
-			lambda _group, song, group, ref: ref().emit('play', song, group),
-			self.weak_ref()
-		)
-		self._recommended_group.connect(
-			'queue-song',
-			lambda _group, song, ref: ref().emit('queue-song', song),
-			self.weak_ref()
-		)
-		self._recommended_group.connect(
-			'add-song-to',
-			lambda _group, song, ref: ref().emit('add-song-to', song),
-			self.weak_ref()
-		)
-		self._recommended_group.connect(
-			'view-artist',
-			lambda _group, artist, ref: ref().emit('view-artist', artist),
-			self.weak_ref()
-		)
-		self._recommended_group.connect(
-			'undownload-song',
-			lambda _group, song, ref: ref().emit('undownload-song', song),
-			self.weak_ref()
-		)
-		self._recommended_group.connect(
-			'download-song',
-			lambda _group, song, ref: ref().emit('download-song', song),
-			self.weak_ref()
-		)
-		self._recommended_group.connect(
-			'queue-group',
-			lambda _group, group, ref: ref().emit('queue-group', group),
-			self.weak_ref()
-		)
-		self._recommended_group.connect(
-			'add-group-to',
-			lambda _group, group, ref: ref().emit('add-group-to', group),
-			self.weak_ref()
-		)
-		self._recommended_group.connect(
-			'download-group',
-			lambda _group, group, ref: ref().emit('download-group', group),
-			self.weak_ref()
-		)
-		self._recommended_group.connect(
-			'start-radio',
-			lambda _group, item, ref: ref().emit('start-radio', item),
-			self.weak_ref()
-		)
 
 		open_dir_button = Gtk.Button.new_from_icon_name('folder-symbolic')
 		open_dir_button.props.tooltip_text = _('Playlists Directory')
@@ -400,6 +351,8 @@ class HomePage(Page):
 		donate_group.props.margin_end = 12
 		donate_group.add(donate_button)
 
+		self._page.add(self._liked_group)
+		self._page.add(self._home_feeds_box)
 		self._page.add(self._recommended_group)
 		self._page.add(self._playlists_group)
 		self._page.add(no_playlists_group)
@@ -431,6 +384,7 @@ class HomePage(Page):
 		self.props.title = _('Home')
 		self.update_playlists()
 		self.update_recommendations()
+		self.update_liked_songs()
 		self.update_external_playlists()
 		self.update_history()
 
@@ -569,15 +523,101 @@ class HomePage(Page):
 		'''
 		self._downloads_group.update_contents(downloads.songs)
 
+	def _connect_group_signals(self, group):
+		signals = (
+			('play', lambda _g, song, grp, ref: ref().emit('play', song, grp)),
+			('start-radio', lambda _g, item, ref: ref().emit('start-radio', item)),
+			('add-song-to', lambda _g, song, ref: ref().emit('add-song-to', song)),
+			('undownload-song', lambda _g, song, ref: ref().emit('undownload-song', song)),
+			('download-song', lambda _g, song, ref: ref().emit('download-song', song)),
+			('queue-song', lambda _g, song, ref: ref().emit('queue-song', song)),
+			('view-artist', lambda _g, artist, ref: ref().emit('view-artist', artist)),
+			('queue-group', lambda _g, grp, ref: ref().emit('queue-group', grp)),
+			('add-group-to', lambda _g, grp, ref: ref().emit('add-group-to', grp)),
+			('download-group', lambda _g, grp, ref: ref().emit('download-group', grp)),
+		)
+		for sig_name, handler in signals:
+			with contextlib.suppress(TypeError):
+				group.connect(sig_name, handler, self.weak_ref())
+
+	def _on_play_all_liked(self):
+		from monophony import likes
+		grp = likes.read()
+		if grp.songs:
+			self.emit('play', grp.songs[0], grp)
+
+	def update_liked_songs(self):
+		'''Update Liked Music widget content with local liked songs.'''
+		from monophony import likes
+		grp = likes.read()
+		songs = grp.songs
+		if songs:
+			self._liked_group.update_contents(songs[:30])
+			self._liked_group.props.visible = True
+		else:
+			self._liked_group.clear()
+			self._liked_group.props.visible = False
+
+	def load_home_feeds(self):
+		'''Asynchronously fetch YouTube Music home feeds.'''
+		from monophony import yt
+		task = yt.GetHomeFeedsTask(
+			callback=lambda t, ref: (r := ref()) and r._on_home_feeds_finished(t),
+			callback_args=(self.weak_ref(),)
+		)
+		task.start()
+
+	def _on_home_feeds_finished(self, task):
+		feeds = task.result
+		if feeds:
+			self.update_home_feeds(feeds)
+
+	def update_home_feeds(self, feeds: list[dict]):
+		'''Populate home feed sections from YouTube Music.
+
+		:param feeds: List of dicts with 'title' and 'items'.
+		'''
+		for grp in self._home_feed_groups:
+			self._home_feeds_box.remove(grp)
+		self._home_feed_groups.clear()
+
+		if not feeds:
+			return
+
+		for sec in feeds:
+			title = sec.get('title')
+			items = sec.get('items', [])
+			if not items or not title:
+				continue
+
+			if isinstance(items[0], Song):
+				grp = QueueableRowGroup()
+			else:
+				grp = GroupRowGroup()
+
+			grp.props.title = title
+			grp.props.margin_start = 12
+			grp.props.margin_end = 12
+			self._connect_group_signals(grp)
+			grp.update_contents(items)
+			self._home_feed_groups.append(grp)
+			self._home_feeds_box.append(grp)
+
+		if self._home_feed_groups:
+			self._recommended_group.props.visible = False
+
 	def update_download_status(self):
 		'''Make all child widgets update their download statuses.'''
-		for group in (
+		groups = [
+			self._liked_group,
+			*self._home_feed_groups,
 			self._recommended_group,
 			self._playlists_group,
 			self._external_playlists_group,
 			self._downloads_group,
 			self._history_group
-		):
+		]
+		for group in groups:
 			group.update_download_status()
 
 	def update_history(self):

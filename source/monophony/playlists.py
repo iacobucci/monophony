@@ -554,6 +554,14 @@ class SyncPlaylistsTask(Task):
 
 			_write(playlists=updated_local)
 			logboth.info(__name__, f'2-way playlist sync finished. Total playlists: {len(updated_local)}')
+
+			# 3. Sync Liked Songs ("Liked Music" / LM auto-playlist)
+			try:
+				from monophony import likes
+				likes.sync_from_remote()
+			except Exception as err:
+				logboth.warning(__name__, f'Failed to sync liked songs: {err}')
+
 			return True
 
 		except Exception as e:

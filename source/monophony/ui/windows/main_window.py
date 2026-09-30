@@ -15,6 +15,7 @@ from monophony import (
 	NAME,
 	__version__,
 	downloads,
+	likes,
 	recommendations,
 	settings,
 	yt,
@@ -407,6 +408,11 @@ class MainWindow(Adw.ApplicationWindow):
 			lambda _bar, item, ref: MainWindow._on_start_radio(ref(), item),
 			self.weak_ref()
 		)
+		self._player_bar.connect(
+			'toggle-like',
+			lambda _bar, ref: MainWindow._on_toggle_like(ref()),
+			self.weak_ref()
+		)
 
 		self._toolbar_view = Adw.ToolbarView()
 		self._toolbar_view.props.content = self._navigation_view
@@ -478,6 +484,7 @@ class MainWindow(Adw.ApplicationWindow):
 		self._current_browsing_task.start()
 		self._on_volume_changed_in_backend(self._player.get_volume())
 		self._on_mode_changed_in_backend(self._player.mode)
+		likes.add_listener(lambda: GLib.idle_add(self._on_likes_changed))
 
 	def _inhibit_suspend(self):
 		self._uninhibit_suspend()
@@ -602,7 +609,9 @@ class MainWindow(Adw.ApplicationWindow):
 		self._navigation_view.replace([self._home_page])
 		self._update_external_playlists()
 		self._update_playlists()
+		self._home_page.update_liked_songs()
 		self._home_page.update_recommendations()
+		self._home_page.load_home_feeds()
 		self._sync_mandatory_downloads()
 
 	def _sync_mandatory_downloads(self):
@@ -981,6 +990,19 @@ class MainWindow(Adw.ApplicationWindow):
 			)
 
 		about_dialog.present(self)
+
+	def _on_toggle_like(self):
+		queue = self._player.get_queue()
+		song_index = self._player.get_song_index()
+		if not queue.songs or song_index >= len(queue.songs):
+			return
+		song = queue.songs[song_index]
+		likes.toggle_like(song)
+		self._player_bar.update_liked_status(song.yt_id)
+
+	def _on_likes_changed(self):
+		self._player_bar.update_liked_status()
+		self._home_page.update_liked_songs()
 
 	def _on_shuffle_queue(self):
 		self._player.shuffle()
