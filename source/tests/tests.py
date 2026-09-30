@@ -316,49 +316,51 @@ class StreamingAndSeamlessRadioTestCase(BaseTestCase):
 	def test_seamless_radio_transition(self):
 		from monophony.player import Player
 		from monophony.data import PlaybackState, PlaybackMode
+		from unittest.mock import patch
 
-		p = Player()
-		song0 = Song(title='Track 0', yt_id='trk0')
-		song1 = Song(title='Track 1', yt_id='trk1')
-		p._queue = Group(title='Queue', songs=[song0, song1])
-		p._queue_index = 0
-		p.state = PlaybackState.PLAYING
+		with patch('mprisify.Server.publish'):
+			p = Player()
+			song0 = Song(title='Track 0', yt_id='trk0')
+			song1 = Song(title='Track 1', yt_id='trk1')
+			p._queue = Group(title='Queue', songs=[song0, song1])
+			p._queue_index = 0
+			p.state = PlaybackState.PLAYING
 
-		# Trigger radio with seed matching active song
-		p.start_radio(song0)
-		self.assertEqual(p.state, PlaybackState.PLAYING)
-		self.assertEqual(p.mode, PlaybackMode.RADIO)
+			# Trigger radio with seed matching active song
+			p.start_radio(song0)
+			self.assertEqual(p.state, PlaybackState.PLAYING)
+			self.assertEqual(p.mode, PlaybackMode.RADIO)
 
-		# Mock task completion
-		class DummyTask:
-			cancelled = False
-			extra_data = (song0, True)
-			result = {
-				'title': 'Radio (Track 0)',
-				'tracks': [
-					song0,
-					Song(title='Radio Track 2', yt_id='r2'),
-					Song(title='Radio Track 3', yt_id='r3')
-				],
-				'chips': [],
-				'continuation': None
-			}
+			# Mock task completion
+			class DummyTask:
+				cancelled = False
+				extra_data = (song0, True)
+				result = {
+					'title': 'Radio (Track 0)',
+					'tracks': [
+						song0,
+						Song(title='Radio Track 2', yt_id='r2'),
+						Song(title='Radio Track 3', yt_id='r3')
+					],
+					'chips': [],
+					'continuation': None
+				}
 
-			def is_canceled(self):
-				return self.cancelled
+				def is_canceled(self):
+					return self.cancelled
 
-		dt = DummyTask()
-		p._radio_task.cancel()
-		p._radio_task = dt
-		p._on_start_radio_done(dt)
+			dt = DummyTask()
+			p._radio_task.cancel()
+			p._radio_task = dt
+			p._on_start_radio_done(dt)
 
-		# Active song must remain at index 0, queue updated seamlessly
-		self.assertEqual(len(p._queue.songs), 3)
-		self.assertEqual(p._queue.songs[0].yt_id, 'trk0')
-		self.assertEqual(p._queue.songs[1].yt_id, 'r2')
-		self.assertEqual(p._queue.songs[2].yt_id, 'r3')
-		self.assertEqual(p._queue_index, 0)
-		self.assertEqual(p.state, PlaybackState.PLAYING)
+			# Active song must remain at index 0, queue updated seamlessly
+			self.assertEqual(len(p._queue.songs), 3)
+			self.assertEqual(p._queue.songs[0].yt_id, 'trk0')
+			self.assertEqual(p._queue.songs[1].yt_id, 'r2')
+			self.assertEqual(p._queue.songs[2].yt_id, 'r3')
+			self.assertEqual(p._queue_index, 0)
+			self.assertEqual(p.state, PlaybackState.PLAYING)
 
 	def test_fast_uri_extraction(self):
 		from monophony import yt

@@ -38,6 +38,9 @@ class HomePage(Page):
 		self._liked_group.on_play_all = self._on_play_all_liked
 
 		self._home_feeds_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
+		self._home_feeds_group = Adw.PreferencesGroup()
+		self._home_feeds_group.add(self._home_feeds_box)
+		self._home_feeds_group.props.visible = False
 		self._home_feed_groups = []
 
 		self._recommended_group = GroupRowGroup()
@@ -352,7 +355,7 @@ class HomePage(Page):
 		donate_group.add(donate_button)
 
 		self._page.add(self._liked_group)
-		self._page.add(self._home_feeds_box)
+		self._page.add(self._home_feeds_group)
 		self._page.add(self._recommended_group)
 		self._page.add(self._playlists_group)
 		self._page.add(no_playlists_group)
@@ -582,6 +585,7 @@ class HomePage(Page):
 		self._home_feed_groups.clear()
 
 		if not feeds:
+			self._home_feeds_group.props.visible = False
 			return
 
 		for sec in feeds:
@@ -603,7 +607,9 @@ class HomePage(Page):
 			self._home_feed_groups.append(grp)
 			self._home_feeds_box.append(grp)
 
-		if self._home_feed_groups:
+		has_feeds = bool(self._home_feed_groups)
+		self._home_feeds_group.props.visible = has_feeds
+		if has_feeds:
 			self._recommended_group.props.visible = False
 
 	def update_download_status(self):
