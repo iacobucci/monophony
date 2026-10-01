@@ -365,7 +365,7 @@ class Player(GObject.Object):
 			callback=self._on_start_radio_done,
 			args=(seed_item,)
 		)
-		self._radio_task.extra_data = (seed_item, is_seamless)
+		self._radio_task.extra_data = (seed_item, is_seamless, False)
 		self._radio_task.start()
 
 	def _on_start_radio_done(self, task: StartRadioTask):
@@ -385,27 +385,56 @@ class Player(GObject.Object):
 		self._radio_continuation = result.get('continuation')
 		self.emit('radio-chips-changed', self._radio_chips)
 
-		seed, is_seamless = task.extra_data if isinstance(task.extra_data, tuple) else (task.extra_data, False)
+		extra = task.extra_data
+		if isinstance(extra, tuple):
+			seed = extra[0]
+			is_seamless = extra[1]
+			from_next = extra[2] if len(extra) > 2 else False
+		else:
+			seed = extra
+			is_seamless = False
+			from_next = False
+
 		seed_title = getattr(seed, 'title', None) or getattr(seed, 'name', '')
 		radio_title = result.get('title') or (f'Radio ({seed_title})' if seed_title else 'Radio')
 
-		# Seamless transition: if the seed song is currently playing, keep it playing seamlessly
-		if is_seamless and self._queue.songs and self._queue_index < len(self._queue.songs):
-			current_song = self._queue.songs[self._queue_index]
-			if isinstance(seed, Song) and current_song.yt_id == seed.yt_id:
+		# Seamless transition: if playback is active, keep it playing seamlessly and append tracks
+		if is_seamless and not from_next and self.state == PlaybackState.PLAYING:
+			if self._queue.songs and self._queue_index < len(self._queue.songs):
+				current_song = self._queue.songs[self._queue_index]
 				played_songs = self._queue.songs[:self._queue_index + 1]
 				played_ids = {s.yt_id for s in played_songs}
 				upcoming = [s for s in tracks if s.yt_id not in played_ids]
 
-				self._queue = Group(title=radio_title, songs=played_songs + upcoming)
-				self._queue_index = self._queue.songs.index(current_song)
-				self.emit('queue-changed', self._queue, self._queue_index)
-				prefetch_manager.prefetch_upcoming(self._queue, self._queue_index)
-				logboth.info(
-					__name__,
-					f'Seamlessly populated radio queue with {len(upcoming)} tracks without interrupting playback'
-				)
-				return
+				if upcoming:
+					self._queue = Group(title=radio_title, songs=played_songs + upcoming)
+					self._queue_index = self._queue.songs.index(current_song)
+					self.emit('queue-changed', self._queue, self._queue_index)
+					prefetch_manager.prefetch_upcoming(self._queue, self._queue_index)
+					logboth.info(
+						__name__,
+						f'Seamlessly populated radio queue with {len(upcoming)} tracks without interrupting playback'
+					)
+					return
+
+		# If transitioning from song end, next(), or if the song ended during seamless prefetch:
+		# Never replay the song that just ended!
+		is_song_ended = from_next or (is_seamless and self.state == PlaybackState.LOADING)
+		if is_song_ended:
+			played_songs = self._queue.songs[:self._queue_index + 1] if self._queue.songs else []
+			played_ids = {s.yt_id for s in played_songs}
+			if isinstance(seed, Song):
+				played_ids.add(seed.yt_id)
+
+			upcoming = [s for s in tracks if s.yt_id not in played_ids]
+			if not upcoming:
+				seed_id = seed.yt_id if isinstance(seed, Song) else ''
+				upcoming = [s for s in tracks if s.yt_id != seed_id] or tracks
+
+			start_song = upcoming[0]
+			new_queue = Group(title=radio_title, songs=played_songs + upcoming)
+			self.play(start_song, new_queue)
+			return
 
 		start_song = tracks[0]
 		if isinstance(seed, Song):
@@ -502,6 +531,34 @@ class Player(GObject.Object):
 			logboth.info(__name__, f'Added {len(unique_new)} continuation tracks to radio queue')
 			self._queue.songs += unique_new
 			self.emit('queue-changed', self._queue, self._queue_index)
+			prefetch_manager.prefetch_upcoming(self._queue, self._queue_index)
+
+	def _check_radio_prefetch(self):
+		'''Check if upcoming radio songs should be prefetched and seamlessly added.'''
+		if self.mode != PlaybackMode.RADIO:
+			return
+		if not self._queue.songs or self._queue_index >= len(self._queue.songs):
+			return
+		# Only prefetch if 2 or fewer songs remaining until end of queue
+		if len(self._queue.songs) - self._queue_index > 2:
+			return
+		if getattr(self._radio_task, 'is_running', lambda: False)():
+			return
+		if self._is_fetching_continuation:
+			return
+		if self._radio_continuation:
+			self._fetch_more_radio_songs()
+			return
+
+		seed = self._queue.songs[-1]
+		self._radio_seed = seed
+		logboth.info(__name__, f'Prefetching radio tracks for seed "{seed.yt_id}" in background...')
+		self._radio_task = StartRadioTask(
+			callback=self._on_start_radio_done,
+			args=(seed,)
+		)
+		self._radio_task.extra_data = (seed, True, False)
+		self._radio_task.start()
 
 	def _on_radio_songs_found(self, task: FindRadioSongsTask):
 		if task.is_canceled() or self._radio_task is not task:
@@ -587,6 +644,7 @@ class Player(GObject.Object):
 		self._playbin.set_state(Gst.State.PAUSED)
 		logboth.info(__name__, 'Started playback')
 		prefetch_manager.prefetch_upcoming(self._queue, self._queue_index)
+		self._check_radio_prefetch()
 
 
 	def add_to_queue(self, group: Group):
@@ -695,11 +753,15 @@ class Player(GObject.Object):
 			self.state = PlaybackState.LOADING
 			self.emit('state-changed', self.state)
 			seed = self._queue.songs[self._queue_index] if self._queue.songs else self._radio_seed
+			if getattr(self._radio_task, 'is_running', lambda: False)():
+				self._radio_task.extra_data = (seed, False, True)
+				return
+
 			self._radio_task = StartRadioTask(
 				callback=self._on_start_radio_done,
 				args=(seed,)
 			)
-			self._radio_task.extra_data = seed
+			self._radio_task.extra_data = (seed, False, True)
 			self._radio_task.start()
 			return
 
@@ -884,6 +946,8 @@ class Player(GObject.Object):
 			settings.save({'mode': mode})
 
 		self.emit('mode-changed', self.mode)
+		if self.mode == PlaybackMode.RADIO:
+			self._check_radio_prefetch()
 
 	def shuffle(self):
 		'''Randomize order of songs in queue.'''

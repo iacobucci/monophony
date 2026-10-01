@@ -12,6 +12,23 @@ class PrefetchTask(Task):
 
 	def _function(self, songs_to_prefetch: list[Song]):
 		logboth.info(__name__, f'Starting prefetching for {len(songs_to_prefetch)} upcoming songs...')
+		# Phase 1: Rapidly resolve and cache streaming URIs so tracks can play immediately with zero delay
+		for song in songs_to_prefetch:
+			if self.is_canceled():
+				logboth.info(__name__, 'Prefetching canceled')
+				return
+
+			if not cache.is_cached(song) and not downloads.is_downloaded(song) and not cache.get_cached_uri(song.yt_id):
+				try:
+					from monophony import yt
+					uri = yt.get_song_uri(song)
+					if uri:
+						cache.save_cached_uri(song.yt_id, uri)
+						logboth.info(__name__, f'Prefetched streaming URI for upcoming song "{song.yt_id}"')
+				except Exception as e:
+					logboth.warning(__name__, f'Failed to prefetch URI for "{song.yt_id}": {e}')
+
+		# Phase 2: Cache audio files in background
 		for i, song in enumerate(songs_to_prefetch):
 			if self.is_canceled():
 				logboth.info(__name__, 'Prefetching canceled')
@@ -26,7 +43,6 @@ class PrefetchTask(Task):
 			logboth.info(__name__, f'Prefetching upcoming song #{i + 1} "{song.yt_id}" ({song.title})...')
 			cache.cache_song(song)
 			self._update_progress((i + 1) / len(songs_to_prefetch))
-
 
 		logboth.info(__name__, 'Prefetching completed')
 

@@ -349,6 +349,9 @@ class StreamingAndSeamlessRadioTestCase(BaseTestCase):
 				def is_canceled(self):
 					return self.cancelled
 
+				def is_running(self):
+					return False
+
 			dt = DummyTask()
 			p._radio_task.cancel()
 			p._radio_task = dt
@@ -361,6 +364,50 @@ class StreamingAndSeamlessRadioTestCase(BaseTestCase):
 			self.assertEqual(p._queue.songs[2].yt_id, 'r3')
 			self.assertEqual(p._queue_index, 0)
 			self.assertEqual(p.state, PlaybackState.PLAYING)
+
+			# When song ends or next() is called in PlaybackMode.RADIO:
+			# Verify it moves to the next song without repeating the current one
+			with patch.object(p, 'play') as mock_play:
+				p.next()
+				mock_play.assert_called_once_with(p._queue.songs[1], p._queue)
+
+			# Now test when queue has ended and next() fetches radio:
+			# It must NEVER replay the song that just ended!
+			p._queue = Group(title='Queue', songs=[song0])
+			p._queue_index = 0
+			p.state = PlaybackState.PLAYING
+			p.next()
+			self.assertEqual(p.state, PlaybackState.LOADING)
+
+			class DummyEndTask:
+				cancelled = False
+				extra_data = p._radio_task.extra_data
+				result = {
+					'title': 'Radio',
+					'tracks': [
+						song0,
+						Song(title='Radio Next Track', yt_id='r_next'),
+						Song(title='Radio Track 5', yt_id='r5')
+					],
+					'chips': [],
+					'continuation': None
+				}
+
+				def is_canceled(self):
+					return self.cancelled
+
+				def is_running(self):
+					return False
+
+			end_task = DummyEndTask()
+			p._radio_task.cancel()
+			p._radio_task = end_task
+			with patch.object(p, 'play') as mock_play:
+				p._on_start_radio_done(end_task)
+				mock_play.assert_called_once()
+				played_song = mock_play.call_args[0][0]
+				self.assertNotEqual(played_song.yt_id, song0.yt_id)
+				self.assertEqual(played_song.yt_id, 'r_next')
 
 	def test_fast_uri_extraction(self):
 		from monophony import yt
