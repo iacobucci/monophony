@@ -489,6 +489,62 @@ class LikesAndHomeFeedsTestCase(BaseTestCase):
 			self.assertEqual(lyrics['source'], 'Source: Test')
 
 
+class UIKeyboardAndLayoutTestCase(unittest.TestCase):
+	'''Tests for keyboard navigation, button deduplication, and home page reordering.'''
+
+	@classmethod
+	def setUpClass(cls):
+		import gi
+		gi.require_version('Gtk', '4.0')
+		gi.require_version('Adw', '1')
+		from gi.repository import Gtk, Adw
+		Gtk.init()
+
+	def test_buttons_deduplication(self):
+		from monophony.ui.bars.player_bar import PlayerBar
+		from monophony.ui.queue_sidebar import QueueSidebar
+
+		pb = PlayerBar()
+		# PlayerBar should NOT have lyrics or start radio buttons
+		self.assertFalse(hasattr(pb, '_lyrics_button'))
+		self.assertFalse(hasattr(pb, '_radio_button'))
+
+		qs = QueueSidebar()
+		# QueueSidebar SHOULD have lyrics and start radio buttons
+		self.assertTrue(hasattr(qs, '_lyrics_button'))
+		self.assertTrue(hasattr(qs, '_radio_button'))
+
+	def test_home_page_quick_picks_filtered(self):
+		from monophony.data import Song, Artist
+		from monophony.ui.pages.home_page import HomePage
+
+		hp = HomePage()
+		# Verify liked_group is not present on HomePage
+		self.assertFalse(hasattr(hp, '_liked_group'))
+
+		# Test quick picks filtering in update_home_feeds
+		sample_song = Song(title='Song 1', yt_id='id1', author=Artist(name='Artist'))
+		feeds = [
+			{'title': 'Quick picks', 'items': [sample_song]},
+			{'title': 'Recently played', 'items': [sample_song]},
+		]
+		hp.update_home_feeds(feeds)
+		# Only 'Recently played' should be included
+		titles = [grp.props.title for grp in hp._home_feed_groups]
+		self.assertNotIn('Quick picks', titles)
+		self.assertIn('Recently played', titles)
+
+	def test_scroll_vertical_methods(self):
+		from monophony.ui.pages.page import Page
+		from monophony.ui.queue_sidebar import QueueSidebar
+
+		p = Page()
+		self.assertTrue(callable(getattr(p, 'scroll_vertical', None)))
+
+		qs = QueueSidebar()
+		self.assertTrue(callable(getattr(qs, 'scroll_vertical', None)))
+
+
 if __name__ == '__main__':
 	unittest.main()
 

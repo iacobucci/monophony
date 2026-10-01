@@ -169,19 +169,6 @@ class PlayerBar(Gtk.Box):
 			self.weak_ref()
 		)
 
-		self._lyrics_button = Gtk.Button()
-		self._lyrics_button.props.icon_name = 'audio-input-microphone-symbolic'
-		self._lyrics_button.props.tooltip_text = _('Lyrics')
-		self._lyrics_button.props.has_frame = False
-		self._lyrics_button.props.valign = Gtk.Align.CENTER
-		self._lyrics_button.props.margin_start = 2
-		self._lyrics_button.props.visible = False
-		self._lyrics_button.connect(
-			'clicked',
-			lambda _btn, ref: ref().emit('show-lyrics'),
-			self.weak_ref()
-		)
-
 		song_details_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
 		song_details_box.props.spacing = 6
 		song_details_box.props.valign = Gtk.Align.CENTER
@@ -190,7 +177,6 @@ class PlayerBar(Gtk.Box):
 		song_details_box.append(self._thumbnail_box)
 		song_details_box.append(info_box)
 		song_details_box.append(self._like_button)
-		song_details_box.append(self._lyrics_button)
 
 
 		self._mode_button = Gtk.MenuButton()
@@ -263,19 +249,10 @@ class PlayerBar(Gtk.Box):
 		controls_box.props.margin_start = 8
 		controls_box.props.margin_end = 8
 		controls_box.props.halign = Gtk.Align.FILL
-		self._radio_button = Gtk.Button.new_from_icon_name('audio-radio-symbolic')
-		self._radio_button.props.tooltip_text = _('Start Radio')
-		self._radio_button.props.valign = Gtk.Align.CENTER
-		self._radio_button.connect(
-			'clicked',
-			lambda _btn, ref: ref().emit('start-radio', None) if ref() else None,
-			self.weak_ref()
-		)
 
 		controls_box.append(self.queue_button)
 		controls_box.append(song_details_box)
 		controls_box.append(self._mode_button)
-		controls_box.append(self._radio_button)
 		controls_box.append(previous_button)
 		controls_box.append(self._spinner)
 		controls_box.append(self._pause_button)
@@ -374,7 +351,6 @@ class PlayerBar(Gtk.Box):
 
 		self._update_thumbnail(song)
 		self.update_liked_status(song.yt_id)
-		self._lyrics_button.props.visible = True
 
 	def update_liked_status(self, yt_id: str | None = None):
 		'''Update the displayed like status of current song.
@@ -384,7 +360,6 @@ class PlayerBar(Gtk.Box):
 		target_id = yt_id or getattr(self, '_current_song_yt_id', None)
 		if not target_id:
 			self._like_button.props.visible = False
-			self._lyrics_button.props.visible = False
 			return
 
 		self._like_button.props.visible = True

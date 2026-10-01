@@ -40,6 +40,10 @@ class SearchBar(Adw.Bin):
 		self._list_box.add_css_class('boxed-list')
 		self._list_box.connect('row-activated', self._on_row_activated)
 
+		list_key_controller = Gtk.EventControllerKey()
+		list_key_controller.connect('key-pressed', self._on_list_key_pressed)
+		self._list_box.add_controller(list_key_controller)
+
 		self._popover_scroll = Gtk.ScrolledWindow()
 		self._popover_scroll.props.hscrollbar_policy = Gtk.PolicyType.NEVER
 		self._popover_scroll.props.vscrollbar_policy = Gtk.PolicyType.AUTOMATIC
@@ -97,16 +101,41 @@ class SearchBar(Adw.Bin):
 		self._cancel_debounce()
 		self._cancel_task()
 		self._popover.popdown()
+		while child := self._list_box.get_first_child():
+			self._list_box.remove(child)
 		text = entry.props.text.strip()
 		if text:
 			self.emit('search', text, '')
 
 	def _on_entry_key_pressed(self, _controller, keyval, _keycode, _state):
-		if keyval == Gdk.KEY_Down and self._popover.get_visible():
-			first_row = self._list_box.get_row_at_index(0)
-			if first_row:
-				self._list_box.select_row(first_row)
-				self._list_box.grab_focus()
+		if keyval == Gdk.KEY_Escape:
+			self._cancel_debounce()
+			self._cancel_task()
+			self._popover.popdown()
+			return True
+		if keyval == Gdk.KEY_Down:
+			if self._popover.get_visible():
+				first_row = self._list_box.get_row_at_index(0)
+				if first_row:
+					self._list_box.select_row(first_row)
+					first_row.grab_focus()
+					return True
+			else:
+				root = self._search_entry.get_root()
+				if root:
+					root.child_focus(Gtk.DirectionType.DOWN)
+					return True
+		return False
+
+	def _on_list_key_pressed(self, _controller, keyval, _keycode, _state):
+		if keyval == Gdk.KEY_Escape:
+			self._popover.popdown()
+			self._search_entry.grab_focus()
+			return True
+		if keyval == Gdk.KEY_Up:
+			selected = self._list_box.get_selected_row()
+			if selected and selected.get_index() == 0:
+				self._search_entry.grab_focus()
 				return True
 		return False
 
@@ -116,6 +145,8 @@ class SearchBar(Adw.Bin):
 		if len(query) < 2:
 			self._cancel_task()
 			self._popover.popdown()
+			while child := self._list_box.get_first_child():
+				self._list_box.remove(child)
 			return
 
 		self._debounce_source_id = GLib.timeout_add(
@@ -168,8 +199,10 @@ class SearchBar(Adw.Bin):
 			self._list_box.append(row)
 			has_rows = True
 
-		if has_rows:
+		if has_rows and self._search_entry.has_focus():
 			self._popover.popup()
+			# Ensure the search entry retains keyboard focus so typing is never interrupted
+			self._search_entry.grab_focus()
 		else:
 			self._popover.popdown()
 

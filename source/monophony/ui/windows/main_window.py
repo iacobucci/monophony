@@ -31,6 +31,7 @@ from monophony.ui.pages.home_page import HomePage
 from monophony.ui.pages.loading_page import LoadingPage
 from monophony.ui.pages.results_page import ResultsPage
 from monophony.ui.pages.status_page import StatusPage
+from monophony.ui.pages.page import Page
 from monophony.ui.queue_sidebar import QueueSidebar
 from monophony.ui.windows.account_window import AccountWindow
 from monophony.ui.windows.add_window import AddWindow
@@ -43,7 +44,7 @@ from monophony.yt import GetArtistTask, GetRecommendationsTask, SearchTask
 
 
 import logboth
-from gi.repository import Adw, Gio, GLib, GObject, Gtk
+from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk
 
 
 class PrepareHomePageTask(Task):
@@ -409,18 +410,8 @@ class MainWindow(Adw.ApplicationWindow):
 			self.weak_ref()
 		)
 		self._player_bar.connect(
-			'start-radio',
-			lambda _bar, item, ref: MainWindow._on_start_radio(ref(), item),
-			self.weak_ref()
-		)
-		self._player_bar.connect(
 			'toggle-like',
 			lambda _bar, ref: MainWindow._on_toggle_like(ref()),
-			self.weak_ref()
-		)
-		self._player_bar.connect(
-			'show-lyrics',
-			lambda _bar, ref: MainWindow._on_show_lyrics(ref()),
 			self.weak_ref()
 		)
 
@@ -485,6 +476,16 @@ class MainWindow(Adw.ApplicationWindow):
 		self.connect('close-request', MainWindow._on_close)
 		self.add_breakpoint(view_breakpoint)
 
+		key_controller = Gtk.EventControllerKey()
+		key_controller.set_propagation_phase(Gtk.PropagationPhase.BUBBLE)
+		key_controller.connect(
+			'key-pressed',
+			lambda _c, keyval, _k, _s, ref=self.weak_ref(): (
+				ref()._on_window_key_pressed(keyval) if ref() else False
+			)
+		)
+		self.add_controller(key_controller)
+
 		self._current_browsing_task = PrepareHomePageTask(
 			sync_callback=lambda _task: self._update_playlists(),
 			progress_callback=self._on_loading_progress,
@@ -495,6 +496,33 @@ class MainWindow(Adw.ApplicationWindow):
 		self._on_volume_changed_in_backend(self._player.get_volume())
 		self._on_mode_changed_in_backend(self._player.mode)
 		likes.add_listener(lambda: GLib.idle_add(self._on_likes_changed))
+
+	def _on_window_key_pressed(self, keyval: int) -> bool:
+		focus = self.get_focus()
+		if focus and isinstance(focus, (Gtk.Editable, Gtk.Text, Gtk.Entry)):
+			return False
+
+		if keyval in (Gdk.KEY_Up, Gdk.KEY_Down, Gdk.KEY_Page_Up, Gdk.KEY_Page_Down):
+			direction_down = keyval in (Gdk.KEY_Down, Gdk.KEY_Page_Down)
+			page_step = keyval in (Gdk.KEY_Page_Up, Gdk.KEY_Page_Down)
+
+			is_sidebar_focused = False
+			if focus:
+				w = focus
+				while w:
+					if w == self._queue_sidebar:
+						is_sidebar_focused = True
+						break
+					w = w.get_parent()
+
+			if is_sidebar_focused:
+				return self._queue_sidebar.scroll_vertical(direction_down, page_step)
+
+			visible_page = self._navigation_view.get_visible_page()
+			if isinstance(visible_page, Page):
+				return visible_page.scroll_vertical(direction_down, page_step)
+
+		return False
 
 	def _inhibit_suspend(self):
 		self._uninhibit_suspend()

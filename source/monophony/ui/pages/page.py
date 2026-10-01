@@ -3,7 +3,7 @@
 from monophony.debug import MemoryDebugger
 from monophony.ui.bars.header_bar import HeaderBar
 
-from gi.repository import Adw, GObject
+from gi.repository import Adw, GObject, Gtk
 
 
 class Page(MemoryDebugger, Adw.NavigationPage):
@@ -53,6 +53,26 @@ class Page(MemoryDebugger, Adw.NavigationPage):
 		self._toast_overlay.props.child = self._toolbar_view
 
 		self.props.child = self._toast_overlay
+
+	def scroll_vertical(self, direction_down: bool, page_step: bool = False) -> bool:
+		'''Scroll the preferences page vertically.
+
+		:param direction_down: True to scroll down, False to scroll up.
+		:param page_step: True to scroll by page, False to scroll by small step.
+		:return: True if scrolled, False otherwise.
+		'''
+		scrolled = self._page.get_first_child()
+		if not isinstance(scrolled, Gtk.ScrolledWindow):
+			return False
+		adj = scrolled.get_vadjustment()
+		if not adj:
+			return False
+		step = (adj.get_page_size() * 0.8) if page_step else 70.0
+		val = adj.get_value() + (step if direction_down else -step)
+		max_val = max(adj.get_lower(), adj.get_upper() - adj.get_page_size())
+		val = max(adj.get_lower(), min(val, max_val))
+		adj.set_value(val)
+		return True
 
 	@GObject.Signal(name='show-about')
 	def _show_about(self):

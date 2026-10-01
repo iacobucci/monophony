@@ -29,13 +29,7 @@ class HomePage(Page):
 
 		self._deleted_playlists = []
 
-		self._liked_group = QueueableRowGroup()
-		self._liked_group.props.title = _('Liked Music')
-		self._liked_group.props.margin_start = 12
-		self._liked_group.props.margin_end = 12
-		self._liked_group.props.visible = False
-		self._connect_group_signals(self._liked_group)
-		self._liked_group.on_play_all = self._on_play_all_liked
+
 
 		self._home_feeds_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
 		self._home_feeds_group = Adw.PreferencesGroup()
@@ -354,13 +348,12 @@ class HomePage(Page):
 		donate_group.props.margin_end = 12
 		donate_group.add(donate_button)
 
-		self._page.add(self._liked_group)
-		self._page.add(self._home_feeds_group)
-		self._page.add(self._recommended_group)
 		self._page.add(self._playlists_group)
 		self._page.add(no_playlists_group)
 		self._page.add(import_group)
 		self._page.add(self._external_playlists_group)
+		self._page.add(self._home_feeds_group)
+		self._page.add(self._recommended_group)
 		self._page.add(self._history_group)
 		self._page.add(self._downloads_group)
 		self._page.add(donate_group)
@@ -543,23 +536,9 @@ class HomePage(Page):
 			with contextlib.suppress(TypeError):
 				group.connect(sig_name, handler, self.weak_ref())
 
-	def _on_play_all_liked(self):
-		from monophony import likes
-		grp = likes.read()
-		if grp.songs:
-			self.emit('play', grp.songs[0], grp)
-
 	def update_liked_songs(self):
-		'''Update Liked Music widget content with local liked songs.'''
-		from monophony import likes
-		grp = likes.read()
-		songs = grp.songs
-		if songs:
-			self._liked_group.update_contents(songs[:30])
-			self._liked_group.props.visible = True
-		else:
-			self._liked_group.clear()
-			self._liked_group.props.visible = False
+		'''Update Liked Music widget content (no-op: section removed).'''
+		pass
 
 	def load_home_feeds(self):
 		'''Asynchronously fetch YouTube Music home feeds.'''
@@ -594,6 +573,10 @@ class HomePage(Page):
 			if not items or not title:
 				continue
 
+			title_lower = title.strip().lower()
+			if 'quick picks' in title_lower or 'scelte rapide' in title_lower or 'selezioni rapide' in title_lower:
+				continue
+
 			if isinstance(items[0], Song):
 				grp = QueueableRowGroup()
 			else:
@@ -615,7 +598,6 @@ class HomePage(Page):
 	def update_download_status(self):
 		'''Make all child widgets update their download statuses.'''
 		groups = [
-			self._liked_group,
 			*self._home_feed_groups,
 			self._recommended_group,
 			self._playlists_group,

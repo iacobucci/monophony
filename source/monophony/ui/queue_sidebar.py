@@ -4,7 +4,7 @@ from monophony.data import Artist, Group, Song, TimeString
 from monophony.ui.row_groups.queue_row_group import QueueRowGroup
 from monophony.ui.rows.queue_song_row import QueueSongRow
 
-from gi.repository import Adw, GObject, Gtk
+from gi.repository import Adw, Gdk, GObject, Gtk
 
 
 class QueueSidebar(Adw.Bin):
@@ -75,11 +75,11 @@ class QueueSidebar(Adw.Bin):
 		self._chips_scroll.props.child = self._chips_box
 		self._chips_scroll.props.visible = False
 
-		queue_page = Adw.PreferencesPage()
-		queue_page.props.valign = Gtk.Align.FILL
-		queue_page.props.vexpand = True
-		queue_page.props.visible = False
-		queue_page.add(self._queue_group)
+		self._queue_page = Adw.PreferencesPage()
+		self._queue_page.props.valign = Gtk.Align.FILL
+		self._queue_page.props.vexpand = True
+		self._queue_page.props.visible = False
+		self._queue_page.add(self._queue_group)
 
 		self._status_page = Adw.StatusPage()
 		self._status_page.props.valign = Gtk.Align.FILL
@@ -89,7 +89,7 @@ class QueueSidebar(Adw.Bin):
 		self._status_page.props.icon_name = 'view-list-symbolic'
 		self._status_page.bind_property(
 			'visible',
-			queue_page,
+			self._queue_page,
 			'visible',
 			GObject.BindingFlags.BIDIRECTIONAL |
 			GObject.BindingFlags.INVERT_BOOLEAN |
@@ -100,7 +100,7 @@ class QueueSidebar(Adw.Bin):
 		pages_box.props.valign = Gtk.Align.FILL
 		pages_box.props.vexpand = True
 		pages_box.append(self._chips_scroll)
-		pages_box.append(queue_page)
+		pages_box.append(self._queue_page)
 		pages_box.append(self._status_page)
 
 		self.hide_button = Gtk.Button.new_from_icon_name('go-previous-symbolic')
@@ -202,6 +202,44 @@ class QueueSidebar(Adw.Bin):
 		self._toolbar_view.add_bottom_bar(controls_bar)
 
 		self.props.child = self._toolbar_view
+
+		key_controller = Gtk.EventControllerKey()
+		key_controller.set_propagation_phase(Gtk.PropagationPhase.BUBBLE)
+		key_controller.connect(
+			'key-pressed',
+			lambda _c, keyval, _k, _s, ref=self.weak_ref(): (
+				ref()._on_key_pressed(keyval) if ref() else False
+			)
+		)
+		self.add_controller(key_controller)
+
+	def _on_key_pressed(self, keyval: int) -> bool:
+		if keyval in (Gdk.KEY_Up, Gdk.KEY_Down, Gdk.KEY_Page_Up, Gdk.KEY_Page_Down):
+			return self.scroll_vertical(
+				direction_down=keyval in (Gdk.KEY_Down, Gdk.KEY_Page_Down),
+				page_step=keyval in (Gdk.KEY_Page_Up, Gdk.KEY_Page_Down)
+			)
+		return False
+
+	def scroll_vertical(self, direction_down: bool, page_step: bool = False) -> bool:
+		'''Scroll the queue list vertically.
+
+		:param direction_down: True to scroll down, False to scroll up.
+		:param page_step: True to scroll by page, False to scroll by small step.
+		:return: True if scrolled, False otherwise.
+		'''
+		scrolled = self._queue_page.get_first_child()
+		if not isinstance(scrolled, Gtk.ScrolledWindow):
+			return False
+		adj = scrolled.get_vadjustment()
+		if not adj:
+			return False
+		step = (adj.get_page_size() * 0.8) if page_step else 70.0
+		val = adj.get_value() + (step if direction_down else -step)
+		max_val = max(adj.get_lower(), adj.get_upper() - adj.get_page_size())
+		val = max(adj.get_lower(), min(val, max_val))
+		adj.set_value(val)
+		return True
 
 	@GObject.Signal(name='play', arg_types=(object, object))
 	def _play(self, _song: Song, _group: Group):
