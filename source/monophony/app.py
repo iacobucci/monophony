@@ -19,6 +19,17 @@ class Application(Adw.Application):
 			flags=Gio.ApplicationFlags.DEFAULT_FLAGS
 		)
 		self._window = None
+		self._search_provider = None
+
+	def do_startup(self):
+		'''Run application startup and register D-Bus search provider.'''
+		Adw.Application.do_startup(self)
+		try:
+			from monophony.search_provider import SearchProvider
+			self._search_provider = SearchProvider(self)
+			self._search_provider.register()
+		except Exception as e:
+			logboth.error(__name__, f'Failed to register SearchProvider: {e}')
 
 	def do_activate(self):
 		'''Raise a window if one exists, otherwise create one.'''
@@ -49,6 +60,9 @@ class Application(Adw.Application):
 
 	def _on_quit(self, _action, _param):
 		logboth.info(__name__, 'Application quit requested')
+		if self._search_provider is not None:
+			self._search_provider.unregister()
+			self._search_provider = None
 		if self._window is not None:
 			self._window.cleanup()
 			self._window = None

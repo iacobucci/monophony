@@ -522,16 +522,18 @@ class UIKeyboardAndLayoutTestCase(unittest.TestCase):
 		# Verify liked_group is not present on HomePage
 		self.assertFalse(hasattr(hp, '_liked_group'))
 
-		# Test quick picks filtering in update_home_feeds
+		# Test quick picks and new releases filtering in update_home_feeds
 		sample_song = Song(title='Song 1', yt_id='id1', author=Artist(name='Artist'))
 		feeds = [
 			{'title': 'Quick picks', 'items': [sample_song]},
+			{'title': 'New releases', 'items': [sample_song]},
 			{'title': 'Recently played', 'items': [sample_song]},
 		]
 		hp.update_home_feeds(feeds)
 		# Only 'Recently played' should be included
 		titles = [grp.props.title for grp in hp._home_feed_groups]
 		self.assertNotIn('Quick picks', titles)
+		self.assertNotIn('New releases', titles)
 		self.assertIn('Recently played', titles)
 
 	def test_scroll_vertical_methods(self):
@@ -543,6 +545,58 @@ class UIKeyboardAndLayoutTestCase(unittest.TestCase):
 
 		qs = QueueSidebar()
 		self.assertTrue(callable(getattr(qs, 'scroll_vertical', None)))
+
+	def test_search_provider_results_and_prioritization(self):
+		import time
+		from unittest.mock import MagicMock, patch
+		from monophony.search_provider import SearchProvider
+		from monophony.data import Song, Group, Artist
+
+		mock_app = MagicMock()
+		sp = SearchProvider(mock_app)
+
+		mock_items = [
+			{'type': 'artist', 'title': 'Artist 1', 'subtitle': 'Artist', 'item': Artist(name='Artist 1')},
+			{'type': 'album', 'title': 'Album 1', 'subtitle': 'Album', 'item': Group(title='Album 1', yt_id='alb1')},
+			{'type': 'song', 'title': 'Song 1', 'subtitle': 'Artist 1', 'item': Song(title='Song 1', yt_id='s1')},
+			{'type': 'song', 'title': 'Song 2', 'subtitle': 'Artist 1', 'item': Song(title='Song 2', yt_id='s2')},
+			{'type': 'playlist', 'title': 'Playlist 1', 'subtitle': 'Playlist', 'item': Group(title='Playlist 1', yt_id='pl1')},
+			{'type': 'song', 'title': 'Song 3', 'subtitle': 'Artist 1', 'item': Song(title='Song 3', yt_id='s3')},
+		]
+
+		with patch('monophony.yt.get_search_suggestions', return_value={'items': mock_items, 'queries': []}):
+			from gi.repository import GLib
+			invocation = MagicMock()
+			sp._handle_search(['test', 'query'], invocation)
+			time.sleep(0.05)
+			for _ in range(20):
+				GLib.MainContext.default().iteration(False)
+
+			invocation.return_value.assert_called_once()
+			variant = invocation.return_value.call_args[0][0]
+			result_ids = variant.unpack()[0]
+
+			# 1. First entry must be the search action
+			self.assertEqual(result_ids[0], 'search:test query')
+
+			# 2. Maximum 4 suggestions in total (total items <= 5)
+			self.assertLessEqual(len(result_ids), 5)
+
+			# 3. Songs are prioritized
+			self.assertEqual(result_ids[1], 'song:s1')
+			self.assertEqual(result_ids[2], 'song:s2')
+			self.assertEqual(result_ids[3], 'song:s3')
+			self.assertIn(result_ids[4], ('album:alb1', 'playlist:pl1'))
+
+			# Test GetResultMetas
+			meta_invoc = MagicMock()
+			sp._handle_get_metas(result_ids, meta_invoc)
+			meta_invoc.return_value.assert_called_once()
+			metas_var = meta_invoc.return_value.call_args[0][0]
+			metas = metas_var.unpack()[0]
+			self.assertEqual(len(metas), len(result_ids))
+			self.assertIn('Cerca "test query"', metas[0]['name'])
+			self.assertEqual(metas[1]['name'], 'Song 1')
 
 
 if __name__ == '__main__':

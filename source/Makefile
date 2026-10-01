@@ -15,6 +15,8 @@ LOCALES_DIR = $(DATA_DIR)/locale
 APPS_DIR = $(DATA_DIR)/applications
 META_DIR = $(DATA_DIR)/metainfo
 LICENSE_DIR = $(DATA_DIR)/licenses
+SEARCH_PROVIDER_DIR = $(DATA_DIR)/gnome-shell/search-providers
+SERVICES_DIR = $(DATA_DIR)/dbus-1/services
 
 
 # Only use for packaging. For manual builds, see "flatpak" instead
@@ -34,6 +36,14 @@ install:
 
 	@# Desktop file
 	$(INSTALL_DATA) data/$(NAME).desktop $(APPS_DIR)/$(ID).desktop
+
+	@# D-Bus service
+	mkdir --parents $(SERVICES_DIR)
+	$(INSTALL_DATA) data/$(ID).service $(SERVICES_DIR)/$(ID).service
+
+	@# GNOME Shell Search Provider
+	mkdir --parents $(SEARCH_PROVIDER_DIR)
+	$(INSTALL_DATA) data/$(ID).search-provider.ini $(SEARCH_PROVIDER_DIR)/$(ID).search-provider.ini
 
 	@# Metainfo
 	$(INSTALL_DATA) data/metainfo.xml $(META_DIR)/$(ID).metainfo.xml

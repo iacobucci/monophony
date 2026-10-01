@@ -574,7 +574,7 @@ class HomePage(Page):
 				continue
 
 			title_lower = title.strip().lower()
-			if 'quick picks' in title_lower or 'scelte rapide' in title_lower or 'selezioni rapide' in title_lower:
+			if any(k in title_lower for k in ('quick picks', 'scelte rapide', 'selezioni rapide', 'new releases', 'nuove uscite')):
 				continue
 
 			if isinstance(items[0], Song):
