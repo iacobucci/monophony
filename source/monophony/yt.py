@@ -1670,12 +1670,20 @@ def song_exists(song: Song) -> bool | None:
 	'''
 	logboth.info(__name__, f'Checking if song "{song.yt_id}" exists...')
 	yt = get_yt_client()
+	song_data = None
 	try:
 		song_data = yt.get_song(song.yt_id)
-	except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.RequestException):
-		logboth.error(
-			__name__, 'Failed to check if song exists', traceback.format_exc()
-		)
+	except Exception:
+		try:
+			unauth = get_yt_client(unauth=True)
+			song_data = unauth.get_song(song.yt_id)
+		except Exception:
+			logboth.error(
+				__name__, 'Failed to check if song exists', traceback.format_exc()
+			)
+			return None
+
+	if not song_data:
 		return None
 
 	exists = song_data.get('playabilityStatus', {}).get('status') not in (
@@ -1771,22 +1779,28 @@ class GetArtistTask(Task):
 			f'{limit} per type...'
 		)
 		yt = get_yt_client()
-
 		logboth.info(__name__, 'Fetching artist...')
-		try:
+		data = None
+
+		for client in (yt, get_yt_client(unauth=True)):
 			try:
-				data = yt.get_artist(browse_id)
-				logboth.info(__name__, 'Fetched artist')
-			except _YTMUSICAPI_PARSING_EXCEPTIONS:
-				logboth.info(__name__, 'No such artist, fetching as user instead...')
-				data = yt.get_user(browse_id)
-				logboth.info(__name__, 'Fetched artist as user')
-		except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.RequestException):
-			logboth.error(
-				__name__,
-				'Failed to get artist - could not fetch',
-				traceback.format_exc()
-			)
+				try:
+					data = client.get_artist(browse_id)
+					logboth.info(__name__, 'Fetched artist')
+					yt = client
+					break
+				except _YTMUSICAPI_PARSING_EXCEPTIONS:
+					logboth.info(__name__, 'No such artist, fetching as user instead...')
+					data = client.get_user(browse_id)
+					logboth.info(__name__, 'Fetched artist as user')
+					yt = client
+					break
+			except Exception as e:
+				logboth.warning(__name__, f'Failed to fetch artist with client ({e}), trying fallback...')
+				continue
+
+		if not data:
+			logboth.error(__name__, f'Failed to get artist "{browse_id}" - could not fetch')
 			return None
 
 		if self.is_canceled():
@@ -1818,9 +1832,8 @@ class GetArtistTask(Task):
 					)
 					# Does not raise _YTMUSICAPI_PARSING_EXCEPTIONS, ever
 					tracks = yt.get_user_videos(browse_id, group.get('params', ''))
-			except requests.exceptions.RequestException:
-				logboth.error(__name__, 'Failed to get artist', traceback.format_exc())
-				return None
+			except Exception as e:
+				logboth.warning(__name__, f'Failed to get {type_} from artist: {e}')
 
 			if not tracks:
 				logboth.info(
@@ -1864,9 +1877,8 @@ class GetArtistTask(Task):
 					)
 					# Does not raise _YTMUSICAPI_PARSING_EXCEPTIONS, ever
 					lists = yt.get_user_playlists(browse_id, group.get('params', ''))
-			except requests.exceptions.RequestException:
-				logboth.error(__name__, 'Failed to get artist', traceback.format_exc())
-				return None
+			except Exception as e:
+				logboth.warning(__name__, f'Failed to get {type_} from artist: {e}')
 
 			if not lists:
 				logboth.info(
@@ -1898,7 +1910,7 @@ class GetArtistTask(Task):
 				logboth.info(__name__, 'Canceled getting artist')
 				return None
 
-		if results := parse_task.result:
+		if (results := parse_task.result) is not None:
 			for result in results:
 				if not result.item.author.name:
 					result.item.author.name = data.get('name', '')

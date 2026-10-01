@@ -700,6 +700,55 @@ class UIKeyboardAndLayoutTestCase(unittest.TestCase):
 			self.assertTrue(success)
 			mock_client.rate_song.assert_called_with('s1', 'LIKE')
 
+	def test_get_artist_task_fallback(self):
+		from unittest.mock import MagicMock, patch
+		from monophony import yt
+
+		task = yt.GetArtistTask(lambda *args: None)
+		mock_auth = MagicMock()
+		mock_auth.get_artist.side_effect = Exception("Server returned HTTP 400: Bad Request")
+		mock_unauth = MagicMock()
+		mock_unauth.get_artist.return_value = {
+			'name': 'Fallback Artist',
+			'channelId': 'UC123',
+			'thumbnails': [],
+			'songs': {
+				'browseId': 'VLPL123',
+				'results': [{
+					'videoId': 'vid1',
+					'title': 'Track 1',
+					'artists': [{'name': 'Fallback Artist', 'id': 'UC123'}],
+					'duration': '3:00',
+					'thumbnails': []
+				}]
+			},
+			'albums': {'results': []},
+			'singles': {'results': []}
+		}
+		mock_unauth.get_playlist.return_value = {
+			'tracks': [{
+				'videoId': 'vid1',
+				'title': 'Track 1',
+				'artists': [{'name': 'Fallback Artist', 'id': 'UC123'}],
+				'duration': '3:00',
+				'thumbnails': []
+			}]
+		}
+
+		def fake_get_yt_client(unauth=False):
+			if unauth:
+				return mock_unauth
+			return mock_auth
+
+		with patch('monophony.yt.get_yt_client', side_effect=fake_get_yt_client):
+			res = task._function('UC123', '', 4)
+			self.assertIsNotNone(res)
+			self.assertEqual(len(res), 1)
+			self.assertEqual(res[0].item.title, 'Track 1')
+			self.assertEqual(res[0].item.author.name, 'Fallback Artist')
+			mock_auth.get_artist.assert_called_once_with('UC123')
+			mock_unauth.get_artist.assert_called_once_with('UC123')
+
 
 if __name__ == '__main__':
 	unittest.main()
