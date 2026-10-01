@@ -569,23 +569,31 @@ class MainWindow(Adw.ApplicationWindow):
 	def _on_clear_queue(self):
 		self._player.stop()
 
-	def _on_close(self, force: bool = False) -> bool:
-		logboth.info(__name__, f'Close requested (force={force})')
-		if not force and settings.load('background_playback', False) and self._player.get_queue().songs:
-			logboth.info(__name__, 'Still playing - hiding instead of closing')
-			self.props.visible = False
-			return True
+	def _on_close(self, *args) -> bool:
+		logboth.info(__name__, 'Window close requested (Alt+F4 / Close button): hiding window and keeping in background')
+		size = self.get_default_size()
+		settings.save({
+			'window-width': size.width,
+			'window-height': size.height
+		})
+		self.props.visible = False
+		return True
 
-		self._player.stop()
+	def cleanup(self):
+		'''Clean up resources and prepare for application exit.'''
+		logboth.info(__name__, 'Cleaning up MainWindow for application quit...')
+		self._player.cleanup()
 		self._uninhibit_suspend()
 		size = self.get_default_size()
 		settings.save({
 			'window-width': size.width,
 			'window-height': size.height
 		})
-		self._application.release()
+		try:
+			self._application.release()
+		except Exception:
+			pass
 		self.destroy()
-		return False
 
 	def _on_download_songs(self, group: Group):
 		if not group.songs and group.yt_id:
@@ -1036,9 +1044,6 @@ class MainWindow(Adw.ApplicationWindow):
 		if not queue.songs:
 			self._toolbar_view.props.reveal_bottom_bars = False
 			self._uninhibit_suspend()
-			if not self.props.visible:
-				logboth.info(__name__, 'Playback ended while window hidden')
-				self.close()
 			return
 
 		self._toolbar_view.props.reveal_bottom_bars = True
@@ -1204,4 +1209,5 @@ class MainWindow(Adw.ApplicationWindow):
 	def present(self):
 		'''Present the window.'''
 		logboth.info(__name__, 'Presenting window')
+		self.props.visible = True
 		super().present()

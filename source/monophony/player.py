@@ -927,3 +927,11 @@ class Player(GObject.Object):
 		self.emit('queue-changed', self._queue, self._queue_index)
 		self._mpris_event_sender.emit_all()
 		logboth.info(__name__, 'Stopped playback')
+
+	def cleanup(self):
+		'''Clean up resources before application exit.'''
+		self.stop()
+		try:
+			self._mpris_server.unpublish()
+		except Exception as e:
+			logboth.warning(__name__, f'Failed to unpublish MPRIS server: {e}')

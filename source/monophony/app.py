@@ -1,5 +1,6 @@
 '''Main application module.'''
 
+import logboth
 from monophony import ID
 from monophony.ui.windows.main_window import MainWindow
 
@@ -21,34 +22,35 @@ class Application(Adw.Application):
 
 	def do_activate(self):
 		'''Raise a window if one exists, otherwise create one.'''
-		windows = self.get_windows()
-
-		if len(windows) > 0:
-			windows[0].props.visible = True
-		else:
-			quit_action = Gio.SimpleAction.new('quit', None)
-			quit_action.connect('activate', self._on_quit)
-			self.add_action(quit_action)
-			self.set_accels_for_action('app.quit', ['<Control>q'])
-
-			close_window_action = Gio.SimpleAction.new('close-window', None)
-			close_window_action.connect('activate', self._on_close_window)
-			self.add_action(close_window_action)
-			self.set_accels_for_action('app.close-window', ['<Control>w'])
-
-			self._window = MainWindow(application=self)
+		if self._window is not None:
+			logboth.info(__name__, 'Activating existing window from background...')
 			self._window.present()
+			return
 
-			self.set_accels_for_action('win.focus-search', ['<Control>f'])
-			self.set_accels_for_action('win.show-logs', ['<Control><Shift>l'])
+		quit_action = Gio.SimpleAction.new('quit', None)
+		quit_action.connect('activate', self._on_quit)
+		self.add_action(quit_action)
+		self.set_accels_for_action('app.quit', ['<Control>q'])
+
+		close_window_action = Gio.SimpleAction.new('close-window', None)
+		close_window_action.connect('activate', self._on_close_window)
+		self.add_action(close_window_action)
+		self.set_accels_for_action('app.close-window', ['<Control>w'])
+
+		self._window = MainWindow(application=self)
+		self._window.present()
+
+		self.set_accels_for_action('win.focus-search', ['<Control>f'])
+		self.set_accels_for_action('win.show-logs', ['<Control><Shift>l'])
 
 	def _on_close_window(self, _action, _param):
-		windows = self.get_windows()
-		if windows:
-			windows[0].close()
+		if self._window is not None:
+			self._window._on_close()
 
 	def _on_quit(self, _action, _param):
-		if self._window:
-			self._window._on_close(force=True)
+		logboth.info(__name__, 'Application quit requested')
+		if self._window is not None:
+			self._window.cleanup()
+			self._window = None
 
 		self.quit()
