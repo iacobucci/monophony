@@ -598,6 +598,40 @@ class UIKeyboardAndLayoutTestCase(unittest.TestCase):
 			self.assertIn('Cerca "test query"', metas[0]['name'])
 			self.assertEqual(metas[1]['name'], 'Song 1')
 
+	def test_user_playlist_crud_and_tv_context(self):
+		from unittest.mock import MagicMock, patch
+		from monophony import yt
+
+		# Test _tv_context
+		mock_client = MagicMock()
+		mock_client.context = {'context': {'client': {'clientName': 'WEB_REMIX', 'clientVersion': '1.0'}}}
+		with yt._tv_context(mock_client):
+			self.assertEqual(mock_client.context['context']['client']['clientName'], 'TVHTML5')
+		self.assertEqual(mock_client.context['context']['client']['clientName'], 'WEB_REMIX')
+
+		# Test _tv_context restores on exception
+		try:
+			with yt._tv_context(mock_client):
+				raise RuntimeError('test exception')
+		except RuntimeError:
+			pass
+		self.assertEqual(mock_client.context['context']['client']['clientName'], 'WEB_REMIX')
+
+		# Test add_songs_to_user_playlist with TVHTML5 success
+		with patch('monophony.yt.is_authenticated', return_value=True), \
+		     patch('monophony.yt.get_yt_client', return_value=mock_client):
+			mock_client.add_playlist_items.return_value = {'status': 'STATUS_SUCCEEDED'}
+			success = yt.add_songs_to_user_playlist('PL123', ['s1', 's2'])
+			self.assertTrue(success)
+			mock_client.add_playlist_items.assert_called_with('PL123', ['s1', 's2'])
+
+		# Test rate_song with TVHTML5
+		with patch('monophony.yt.is_authenticated', return_value=True), \
+		     patch('monophony.yt.get_yt_client', return_value=mock_client):
+			success = yt.rate_song('s1', 'LIKE')
+			self.assertTrue(success)
+			mock_client.rate_song.assert_called_with('s1', 'LIKE')
+
 
 if __name__ == '__main__':
 	unittest.main()

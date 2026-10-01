@@ -44,6 +44,37 @@ def _reset_cached_clients():
 	_oauth_token_failed = False
 
 
+@contextlib.contextmanager
+def _tv_context(yt_client):
+	'''Temporarily set YTMusic client to TVHTML5 to allow OAuth mutations.'''
+	client_dict = yt_client.context.get('context', {}).get('client', {})
+	orig_name = client_dict.get('clientName')
+	orig_ver = client_dict.get('clientVersion')
+	client_dict['clientName'] = 'TVHTML5'
+	client_dict['clientVersion'] = '7.20260828.00.00'
+	try:
+		yield yt_client
+	finally:
+		if orig_name is not None:
+			client_dict['clientName'] = orig_name
+		if orig_ver is not None:
+			client_dict['clientVersion'] = orig_ver
+
+
+def _get_oauth_headers() -> dict[str, str] | None:
+	'''Get Authorization headers for YouTube Data API v3 calls.'''
+	if not is_authenticated():
+		return None
+	try:
+		yt = get_yt_client()
+		token = yt.headers.get('Authorization')
+		if token:
+			return {'Authorization': token, 'Accept': 'application/json', 'Content-Type': 'application/json'}
+	except Exception:
+		pass
+	return None
+
+
 def get_yt_client(unauth: bool = False) -> ytmusicapi.YTMusic:
 	'''Get a YTMusic client instance, using OAuth credentials if available.
 
@@ -270,24 +301,87 @@ def _get_user_playlists_tv(yt: ytmusicapi.YTMusic) -> list[dict]:
 		return []
 
 
+def _get_tv_playlist_tracks(yt_client: ytmusicapi.YTMusic, playlist_id: str) -> list[dict]:
+	'''Extract videoId and setVideoId from TVHTML5 playlist response.'''
+	try:
+		ctx = {'context': {'client': {'clientName': 'TVHTML5', 'clientVersion': '7.20260828.00.00', 'hl': 'en'}, 'user': {}}}
+		browse_id = playlist_id if playlist_id.startswith('VL') else f'VL{playlist_id}'
+		body = {'browseId': browse_id}
+		body.update(ctx)
+		res = yt_client._session.post('https://music.youtube.com/youtubei/v1/browse', json=body, headers=yt_client.headers).json()
+
+		tracks = []
+		def find_tiles(obj):
+			if isinstance(obj, dict):
+				if 'tileRenderer' in obj:
+					tr = obj['tileRenderer']
+					video_id = tr.get('contentId') or tr.get('onSelectCommand', {}).get('watchEndpoint', {}).get('videoId', '')
+					set_video_id = ''
+					for item in tr.get('onLongPressCommand', {}).get('showMenuCommand', {}).get('menu', {}).get('menuRenderer', {}).get('items', []):
+						actions = item.get('menuServiceItemRenderer', {}).get('serviceEndpoint', {}).get('playlistEditEndpoint', {}).get('actions', [])
+						for act in actions:
+							if act.get('action') == 'ACTION_REMOVE_VIDEO' and act.get('setVideoId'):
+								set_video_id = act['setVideoId']
+								break
+						if set_video_id:
+							break
+					if video_id:
+						tracks.append({'videoId': video_id, 'setVideoId': set_video_id})
+				for v in obj.values():
+					find_tiles(v)
+			elif isinstance(obj, list):
+				for item in obj:
+					find_tiles(item)
+		find_tiles(res)
+		return tracks
+	except Exception as e:
+		logboth.warning(__name__, f'Failed to get TV playlist tracks for "{playlist_id}": {e}')
+		return []
+
+
 def get_user_playlists() -> list[dict]:
-	'''Get list of playlists from the authenticated user's library.
+	'''Get list of playlists from the authenticated user's library and account.
 
 	:return: List of playlist dicts.
 	'''
 	if not is_authenticated():
 		return []
+
+	playlists = []
+	seen_ids = set()
+
+	# 1. Try YouTube Data API v3 (returns all user-created channel playlists)
+	headers = _get_oauth_headers()
+	if headers:
+		try:
+			res = requests.get(
+				'https://www.googleapis.com/youtube/v3/playlists?part=snippet&mine=true&maxResults=50',
+				headers=headers,
+				timeout=10
+			)
+			if res.status_code == 200:
+				for item in res.json().get('items', []):
+					pid = item.get('id', '')
+					title = item.get('snippet', {}).get('title', '')
+					if pid and pid not in seen_ids:
+						seen_ids.add(pid)
+						playlists.append({'playlistId': pid, 'title': title})
+		except Exception as e:
+			logboth.warning(__name__, f'Failed to get playlists via YouTube Data API v3: {e}')
+
+	# 2. Try TVHTML5 for YouTube Music library playlists
 	try:
 		yt = get_yt_client()
-		try:
-			return yt.get_library_playlists(limit=None)
-		except Exception as e:
-			logboth.warning(__name__, f'get_library_playlists standard call failed ({e}), using TVHTML5 fallback')
-			return _get_user_playlists_tv(yt)
+		tv_lists = _get_user_playlists_tv(yt)
+		for p in tv_lists:
+			pid = p.get('playlistId') or p.get('browseId', '').removeprefix('VL')
+			if pid and pid not in seen_ids:
+				seen_ids.add(pid)
+				playlists.append(p)
 	except Exception as e:
-		logboth.error(__name__, f'Failed to get library playlists: {e}')
-		return []
+		logboth.warning(__name__, f'Failed to get playlists via TVHTML5: {e}')
 
+	return playlists
 
 
 def create_user_playlist(title: str, description: str='', video_ids: list[str] | None=None) -> str | None:
@@ -300,9 +394,42 @@ def create_user_playlist(title: str, description: str='', video_ids: list[str] |
 	'''
 	if not is_authenticated():
 		return None
+
+	# 1. Try YouTube Data API v3
+	headers = _get_oauth_headers()
+	if headers:
+		try:
+			body = {
+				'snippet': {
+					'title': title,
+					'description': description
+				},
+				'status': {
+					'privacyStatus': 'private'
+				}
+			}
+			res = requests.post(
+				'https://www.googleapis.com/youtube/v3/playlists?part=snippet,status',
+				headers=headers,
+				json=body,
+				timeout=15
+			)
+			if res.status_code in (200, 201):
+				pid = res.json().get('id')
+				logboth.info(__name__, f'Created remote playlist "{title}" ({pid}) via YouTube Data API v3')
+				if video_ids and pid:
+					add_songs_to_user_playlist(pid, video_ids)
+				return pid
+			else:
+				logboth.warning(__name__, f'YouTube Data API v3 create playlist returned {res.status_code}: {res.text[:200]}')
+		except Exception as e:
+			logboth.warning(__name__, f'Failed to create playlist via Data API v3: {e}')
+
+	# 2. Fallback to YTMusic client
 	try:
 		yt = get_yt_client()
-		playlist_id = yt.create_playlist(title, description, video_ids=video_ids or [])
+		with _tv_context(yt):
+			playlist_id = yt.create_playlist(title, description, video_ids=video_ids or [])
 		logboth.info(__name__, f'Created remote playlist "{title}" ({playlist_id})')
 		return playlist_id
 	except Exception as e:
@@ -319,14 +446,51 @@ def add_songs_to_user_playlist(playlist_id: str, song_ids: list[str]) -> bool:
 	'''
 	if not is_authenticated() or not playlist_id or not song_ids:
 		return False
+
+	clean_pid = playlist_id.removeprefix('VL')
+
+	# 1. Try TVHTML5 via ytmusicapi (0 API quota cost, bulk add)
 	try:
 		yt = get_yt_client()
-		yt.add_playlist_items(playlist_id, song_ids)
-		logboth.info(__name__, f'Added {len(song_ids)} songs to remote playlist "{playlist_id}"')
-		return True
+		with _tv_context(yt):
+			res = yt.add_playlist_items(clean_pid, song_ids)
+			if isinstance(res, dict) and ('SUCCEEDED' in str(res.get('status', '')) or 'playlistEditResults' in res):
+				logboth.info(__name__, f'Added {len(song_ids)} songs to remote playlist "{clean_pid}" via TVHTML5')
+				return True
 	except Exception as e:
-		logboth.error(__name__, f'Failed to add songs to remote playlist "{playlist_id}": {e}')
-		return False
+		logboth.warning(__name__, f'TVHTML5 add_playlist_items failed ({e}), falling back to Data API v3')
+
+	# 2. Fallback: YouTube Data API v3
+	headers = _get_oauth_headers()
+	if headers:
+		try:
+			success = True
+			for sid in song_ids:
+				body = {
+					'snippet': {
+						'playlistId': clean_pid,
+						'resourceId': {
+							'kind': 'youtube#video',
+							'videoId': sid
+						}
+					}
+				}
+				r = requests.post(
+					'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet',
+					headers=headers,
+					json=body,
+					timeout=15
+				)
+				if r.status_code not in (200, 201):
+					success = False
+					logboth.warning(__name__, f'Data API v3 failed to add song "{sid}" to playlist "{clean_pid}": {r.text[:200]}')
+			if success:
+				logboth.info(__name__, f'Added {len(song_ids)} songs to remote playlist "{clean_pid}" via Data API v3')
+				return True
+		except Exception as e:
+			logboth.error(__name__, f'Failed to add songs to remote playlist "{clean_pid}" via Data API v3: {e}')
+
+	return False
 
 
 def remove_songs_from_user_playlist(playlist_id: str, song_ids: list[str]) -> bool:
@@ -338,24 +502,55 @@ def remove_songs_from_user_playlist(playlist_id: str, song_ids: list[str]) -> bo
 	'''
 	if not is_authenticated() or not playlist_id or not song_ids:
 		return False
+
+	clean_pid = playlist_id.removeprefix('VL')
+
+	# 1. Try YouTube Data API v3 (lists exact item IDs and deletes them)
+	headers = _get_oauth_headers()
+	if headers:
+		try:
+			res = requests.get(
+				f'https://www.googleapis.com/youtube/v3/playlistItems?part=id,snippet&playlistId={clean_pid}&maxResults=50',
+				headers=headers,
+				timeout=15
+			)
+			if res.status_code == 200:
+				removed_count = 0
+				for item in res.json().get('items', []):
+					vid = item.get('snippet', {}).get('resourceId', {}).get('videoId')
+					if vid in song_ids:
+						del_res = requests.delete(
+							f'https://www.googleapis.com/youtube/v3/playlistItems?id={item["id"]}',
+							headers=headers,
+							timeout=15
+						)
+						if del_res.status_code in (200, 204):
+							removed_count += 1
+				if removed_count > 0:
+					logboth.info(__name__, f'Removed {removed_count} songs from remote playlist "{clean_pid}" via Data API v3')
+					return True
+		except Exception as e:
+			logboth.warning(__name__, f'Failed to remove songs via Data API v3: {e}')
+
+	# 2. Fallback: TVHTML5 / ytmusicapi
 	try:
 		yt = get_yt_client()
-		playlist_data = yt.get_playlist(playlist_id, limit=None)
-		tracks = playlist_data.get('tracks', [])
+		tracks = _get_tv_playlist_tracks(yt, clean_pid)
 		items_to_remove = []
 		for track in tracks:
-			if track.get('videoId') in song_ids and 'setVideoId' in track:
+			if track.get('videoId') in song_ids and track.get('setVideoId'):
 				items_to_remove.append({
 					'videoId': track['videoId'],
 					'setVideoId': track['setVideoId']
 				})
 		if items_to_remove:
-			yt.remove_playlist_items(playlist_id, items_to_remove)
-			logboth.info(__name__, f'Removed {len(items_to_remove)} songs from remote playlist "{playlist_id}"')
+			with _tv_context(yt):
+				yt.remove_playlist_items(clean_pid, items_to_remove)
+			logboth.info(__name__, f'Removed {len(items_to_remove)} songs from remote playlist "{clean_pid}" via TVHTML5')
 			return True
 		return False
 	except Exception as e:
-		logboth.error(__name__, f'Failed to remove songs from remote playlist "{playlist_id}": {e}')
+		logboth.error(__name__, f'Failed to remove songs from remote playlist "{clean_pid}": {e}')
 		return False
 
 
@@ -367,13 +562,35 @@ def delete_user_playlist(playlist_id: str) -> bool:
 	'''
 	if not is_authenticated() or not playlist_id:
 		return False
+
+	clean_pid = playlist_id.removeprefix('VL')
+
+	# 1. Try YouTube Data API v3
+	headers = _get_oauth_headers()
+	if headers:
+		try:
+			res = requests.delete(
+				f'https://www.googleapis.com/youtube/v3/playlists?id={clean_pid}',
+				headers=headers,
+				timeout=15
+			)
+			if res.status_code in (200, 204):
+				logboth.info(__name__, f'Deleted remote playlist "{clean_pid}" via YouTube Data API v3')
+				return True
+			else:
+				logboth.warning(__name__, f'Data API v3 delete returned {res.status_code}: {res.text[:200]}')
+		except Exception as e:
+			logboth.warning(__name__, f'Failed to delete playlist via Data API v3: {e}')
+
+	# 2. Fallback: YTMusic client
 	try:
 		yt = get_yt_client()
-		yt.delete_playlist(playlist_id)
-		logboth.info(__name__, f'Deleted remote playlist "{playlist_id}"')
+		with _tv_context(yt):
+			yt.delete_playlist(clean_pid)
+		logboth.info(__name__, f'Deleted remote playlist "{clean_pid}"')
 		return True
 	except Exception as e:
-		logboth.error(__name__, f'Failed to delete remote playlist "{playlist_id}": {e}')
+		logboth.error(__name__, f'Failed to delete remote playlist "{clean_pid}": {e}')
 		return False
 
 
@@ -388,7 +605,8 @@ def rate_song(video_id: str, rating: str = 'LIKE') -> bool:
 		return False
 	try:
 		yt = get_yt_client()
-		yt.rate_song(video_id, rating)
+		with _tv_context(yt):
+			yt.rate_song(video_id, rating)
 		logboth.info(__name__, f'Rated song "{video_id}" as "{rating}" on YouTube Music')
 		return True
 	except Exception as e:
