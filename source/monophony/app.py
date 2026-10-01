@@ -46,6 +46,22 @@ class Application(Adw.Application):
 			'Play album or playlist by YouTube ID',
 			'ID'
 		)
+		self.add_main_option(
+			'title',
+			0,
+			GLib.OptionFlags.NONE,
+			GLib.OptionArg.STRING,
+			'Title of item to play',
+			'TITLE'
+		)
+		self.add_main_option(
+			'artist',
+			0,
+			GLib.OptionFlags.NONE,
+			GLib.OptionArg.STRING,
+			'Artist of song to play',
+			'ARTIST'
+		)
 
 	def do_startup(self):
 		'''Run application startup.'''
@@ -80,6 +96,9 @@ class Application(Adw.Application):
 		self.activate()
 
 		if self._window is not None:
+			title = options.get('title', '')
+			artist = options.get('artist', '')
+
 			if 'search' in options:
 				query = options['search']
 				if query:
@@ -87,11 +106,11 @@ class Application(Adw.Application):
 			elif 'play-song' in options:
 				song_id = options['play-song']
 				if song_id:
-					self._play_song_by_id(song_id)
+					self._play_song_by_id(song_id, title=title, artist=artist)
 			elif 'play-group' in options:
 				group_id = options['play-group']
 				if group_id:
-					self._play_group_by_id(group_id)
+					self._play_group_by_id(group_id, title=title)
 			else:
 				args = command_line.get_arguments()
 				if len(args) > 1 and not args[1].startswith('-'):
@@ -101,23 +120,38 @@ class Application(Adw.Application):
 
 		return 0
 
-	def _play_song_by_id(self, song_id: str):
+	def _play_song_by_id(self, song_id: str, title: str = '', artist: str = ''):
 		if not self._window:
 			return
-		from monophony.data import Group, Song
+		from monophony.data import Artist, Group, Song
+
+		if title:
+			song = Song(
+				title=title,
+				author=Artist(name=artist) if artist else None,
+				yt_id=song_id
+			)
+			self._window._on_play(song, Group(songs=[song]))
+			return
+
 		def _worker():
 			from monophony import yt
-			song = yt.get_song(song_id)
+			song = None
+			try:
+				song = yt.get_song(song_id)
+			except Exception as e:
+				logboth.warning(__name__, f'Failed to get song "{song_id}": {e}')
 			if not song:
 				song = Song(title=song_id, yt_id=song_id)
 			GLib.idle_add(lambda: self._window._on_play(song, Group(songs=[song])) if self._window else None)
+
 		threading.Thread(target=_worker, daemon=True).start()
 
-	def _play_group_by_id(self, group_id: str):
+	def _play_group_by_id(self, group_id: str, title: str = ''):
 		if not self._window:
 			return
 		from monophony.data import Group
-		group = Group(title='', yt_id=group_id)
+		group = Group(title=title, yt_id=group_id)
 		self._window._on_play(None, group)
 
 	def _on_close_window(self, _action, _param):

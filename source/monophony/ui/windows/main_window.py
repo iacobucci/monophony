@@ -772,14 +772,17 @@ class MainWindow(Adw.ApplicationWindow):
 	def _on_play(self, song: Song, group: Group):
 		if not group.songs and group.yt_id:
 			def _worker():
-				from monophony import yt
-				resolved = yt.get_album_or_playlist(group.yt_id)
-				if resolved and resolved.songs:
-					group.songs = resolved.songs
-					if not group.author.name and resolved.author.name:
-						group.author = resolved.author
-					start_song = group.songs[0] if (not song or not song.yt_id) else song
-					GLib.idle_add(lambda: self._player.play(start_song, group))
+				try:
+					from monophony import yt
+					resolved = yt.get_album_or_playlist(group.yt_id)
+					if resolved and resolved.songs:
+						group.songs = resolved.songs
+						if not group.author.name and resolved.author.name:
+							group.author = resolved.author
+						start_song = group.songs[0] if (not song or not song.yt_id or song not in group.songs) else song
+						GLib.idle_add(lambda: self._player.play(start_song, group))
+				except Exception as e:
+					logboth.error(__name__, f'Failed to resolve album/playlist "{group.yt_id}": {e}')
 			import threading
 			threading.Thread(target=_worker, daemon=True).start()
 			return

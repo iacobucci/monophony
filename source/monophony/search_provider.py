@@ -276,15 +276,31 @@ class SearchProvider:
 			return
 
 		# Standalone headless search provider daemon:
+		with self._lock:
+			cached = self._results_cache.get(identifier, {})
+
 		if identifier.startswith('search:'):
 			query = identifier[len('search:'):] or ' '.join(terms)
 			self._launch_monophony(['--search', query])
 		elif identifier.startswith('song:'):
 			song_id = identifier[len('song:'):]
-			self._launch_monophony(['--play-song', song_id])
+			cmd_args = ['--play-song', song_id]
+			if cached.get('name'):
+				cmd_args.extend(['--title', cached['name']])
+			item = cached.get('item')
+			if item and getattr(item, 'author', None) and getattr(item.author, 'name', None):
+				cmd_args.extend(['--artist', item.author.name])
+			elif cached.get('description'):
+				desc = cached['description'].split(' • ')[0]
+				if desc and desc != 'Brano':
+					cmd_args.extend(['--artist', desc])
+			self._launch_monophony(cmd_args)
 		elif identifier.startswith(('playlist:', 'album:')):
 			group_id = identifier.split(':', 1)[1]
-			self._launch_monophony(['--play-group', group_id])
+			cmd_args = ['--play-group', group_id]
+			if cached.get('name'):
+				cmd_args.extend(['--title', cached['name']])
+			self._launch_monophony(cmd_args)
 		else:
 			query = ' '.join(terms)
 			self._launch_monophony(['--search', query])

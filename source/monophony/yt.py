@@ -1365,19 +1365,26 @@ def get_song(id_: str) -> Song | None:
 	'''
 	logboth.info(__name__, f'Getting song "{id_}"...')
 	yt = get_yt_client()
+	result = None
 
 	try:
 		result = yt.get_song(id_)['videoDetails']
-	except (*_YTMUSICAPI_PARSING_EXCEPTIONS, requests.exceptions.RequestException):
-		logboth.error(
-			__name__, 'Failed to get song', traceback.format_exc()
+	except Exception as e:
+		logboth.warning(
+			__name__, f'Authenticated get_song failed ({e}), using unauthenticated fallback...'
 		)
-		return None
+		try:
+			unauth = get_yt_client(unauth=True)
+			result = unauth.get_song(id_)['videoDetails']
+		except Exception as e2:
+			logboth.error(__name__, f'Failed to get song "{id_}": {e2}')
+			return None
 
-	result['resultType'] = 'song'
-	if parsed := _parse_single_result(yt, result):
-		logboth.info(__name__, 'Got song')
-		return parsed.item
+	if result:
+		result['resultType'] = 'song'
+		if parsed := _parse_single_result(yt, result):
+			logboth.info(__name__, 'Got song')
+			return parsed.item
 
 	logboth.error(__name__, 'Failed to get song')
 	return None
