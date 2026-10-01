@@ -642,7 +642,7 @@ class UIKeyboardAndLayoutTestCase(unittest.TestCase):
 			metas_var = meta_invoc.return_value.call_args[0][0]
 			metas = metas_var.unpack()[0]
 			self.assertEqual(len(metas), len(result_ids))
-			self.assertIn('Cerca "test query"', metas[0]['name'])
+			self.assertIn('Search "test query"', metas[0]['name'])
 			self.assertEqual(metas[1]['name'], 'Song 1')
 
 			# Test standalone activation via subprocess
@@ -656,7 +656,7 @@ class UIKeyboardAndLayoutTestCase(unittest.TestCase):
 				standalone_sp._activate_result('song:song123', [])
 				mock_popen.assert_called_with([expected_cmd, '--play-song', 'song123'])
 
-				standalone_sp._results_cache['song:song123'] = {'name': 'Viva La Vida', 'description': 'Coldplay • Brano'}
+				standalone_sp._results_cache['song:song123'] = {'name': 'Viva La Vida', 'description': 'Coldplay • Song'}
 				standalone_sp._activate_result('song:song123', [])
 				mock_popen.assert_called_with([expected_cmd, '--play-song', 'song123', '--title', 'Viva La Vida', '--artist', 'Coldplay'])
 

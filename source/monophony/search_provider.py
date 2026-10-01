@@ -129,8 +129,8 @@ class SearchProvider:
 		with self._lock:
 			self._results_cache[search_id] = {
 				'id': search_id,
-				'name': f'Cerca "{query}" su Monophony',
-				'description': 'Visualizza i risultati della ricerca in Monophony',
+				'name': f'Search "{query}" in Monophony',
+				'description': 'Show search results in Monophony',
 				'type': 'search',
 				'query': query,
 				'icon': 'io.gitlab.zehkira.Monophony'
@@ -164,7 +164,7 @@ class SearchProvider:
 						if item_type == 'song' and item_obj and getattr(item_obj, 'yt_id', None):
 							res_id = f'song:{item_obj.yt_id}'
 							result_ids.append(res_id)
-							desc = f'{subtitle} • Brano' if subtitle else 'Brano'
+							desc = f'{subtitle} • Song' if subtitle else 'Song'
 							self._results_cache[res_id] = {
 								'id': res_id,
 								'name': title,
@@ -216,8 +216,8 @@ class SearchProvider:
 						q = res_id[len('search:'):]
 						cached = {
 							'id': res_id,
-							'name': f'Cerca "{q}" su Monophony',
-							'description': 'Visualizza i risultati della ricerca in Monophony',
+							'name': f'Search "{q}" in Monophony',
+							'description': 'Show search results in Monophony',
 							'icon': 'io.gitlab.zehkira.Monophony'
 						}
 					else:
@@ -292,7 +292,7 @@ class SearchProvider:
 				cmd_args.extend(['--artist', item.author.name])
 			elif cached.get('description'):
 				desc = cached['description'].split(' • ')[0]
-				if desc and desc != 'Brano':
+				if desc and desc not in ('Song', 'Brano'):
 					cmd_args.extend(['--artist', desc])
 			self._launch_monophony(cmd_args)
 		elif identifier.startswith(('playlist:', 'album:')):
