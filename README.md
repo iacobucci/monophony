@@ -20,6 +20,9 @@
 
 **Monophony** is an open-source, ad-free music streaming application that brings the full catalog of YouTube Music directly to your Linux desktop. Built natively with **GTK4** and **Libadwaita**, Monophony integrates seamlessly with the GNOME ecosystem while offering progressive streaming, gapless radio generation, bidirectional YouTube account sync, offline downloads, and system-wide GNOME search.
 
+> [!NOTE]
+> This project is an actively developed fork of the original [Monophony by Zehkira](https://gitlab.com/zehkira/monophony). It adds significant enhancements, including progressive audio streaming, bidirectional YouTube Music OAuth sync, endless radio mode, lyrics viewing, GNOME Shell search provider integration, and performance optimizations.
+
 ---
 
 ## ✨ Key Features
@@ -78,6 +81,62 @@
 - **Background Playback**: Closing the window keeps audio playing in the background; easily restore the window or exit via the dedicated quit control.
 - **In-App Log Viewer**: Built-in diagnostic console (`LogWindow`) accessible from the information menu for real-time logging inspection and troubleshooting.
 - **Rich Album Artwork**: High-resolution thumbnail caching displays crisp cover art in track rows, search results, and the player bar.
+
+---
+
+## 🔐 Setting up YouTube Music OAuth (Google Cloud)
+
+To enable **two-way playlist synchronization** and access your **Liked Songs** library, Monophony uses Google OAuth 2.0 (Device Authorization Flow). 
+
+Follow these steps to create your own Google Cloud OAuth credentials:
+
+### 1. Create a Google Cloud Project
+1. Open the [Google Cloud Console](https://console.cloud.google.com/).
+2. Click the project dropdown at the top of the page and select **New Project**.
+3. Enter a project name (e.g., `Monophony`) and click **Create**.
+4. Make sure your newly created project is selected in the top bar.
+
+### 2. Enable the YouTube Data API v3
+1. In the left navigation menu, go to **APIs & Services** → **Library**.
+2. Search for **YouTube Data API v3**.
+3. Select it from the results and click **Enable**.
+
+### 3. Configure the OAuth Consent Screen & Publish the App
+1. In the left navigation menu, go to **APIs & Services** → **OAuth consent screen**.
+2. Choose **External** for the user type and click **Create**.
+3. Fill in the required fields:
+   - **App name**: `Monophony`
+   - **User support email**: Your Gmail address
+   - **Developer contact information**: Your Gmail address
+4. Click **Save and Continue** past the *Scopes* and *Test users* steps.
+
+> [!TIP]
+> ### ⚠️ Critical: Publish the App to Prevent Weekly Token Expiration
+> By default, Google Cloud creates new OAuth apps in **Testing** status. In testing mode, **Google automatically revokes refresh tokens after 7 days**, requiring you to re-authenticate every week.
+> 
+> To ensure your login remains permanent:
+> 1. Go to **APIs & Services** → **OAuth consent screen**.
+> 2. Under **Publishing status**, click **Publish App** and confirm.
+> 3. The status will update to **In production**.
+> 
+> *Note*: You **do not** need to submit your app for Google verification review. Because this is your private OAuth app used solely by your own Google account, you can proceed without verification.
+
+### 4. Create OAuth Client Credentials
+1. In the left menu, select **APIs & Services** → **Credentials**.
+2. Click **Create Credentials** at the top and choose **OAuth client ID**.
+3. Under **Application type**, select **TVs and Limited Input devices**.
+4. Set a name (e.g., `Monophony Device Client`) and click **Create**.
+5. Copy the generated **Client ID** and **Client Secret** (or download the JSON file).
+
+### 5. Sign In from Monophony
+1. Launch Monophony and open the menu → **Account** (or click the profile icon).
+2. Paste your **Client ID** and **Client Secret** into the fields (or click **Import oauth.json File...** to select your downloaded credentials JSON).
+3. Click **Connect**.
+4. Monophony will display a short code and a direct link to [`https://www.google.com/device`](https://www.google.com/device).
+5. Open the link in your web browser, enter the code, sign in with your Google account, and grant access. *(If Google displays an "App not verified" warning, click "Advanced" → "Go to Monophony (unsafe)" to continue)*.
+6. Return to Monophony and click **Confirm** to complete the login.
+
+Your credentials will be saved in `~/.config/monophony/oauth.json`, and your playlists will automatically stay in sync across devices!
 
 ---
 
@@ -163,7 +222,9 @@ Monophony stores its user data and configuration according to XDG specifications
 
 ---
 
-## 📜 License
+## 📜 License & Acknowledgments
+
+This project is a fork of the original [Monophony](https://gitlab.com/zehkira/monophony) created by **Zehkira** and contributors.
 
 Monophony is free software licensed under the **[0BSD License](LICENSE)** (Zero-Clause BSD). You are free to use, modify, and distribute it for any purpose.
 
