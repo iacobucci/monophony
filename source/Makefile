@@ -26,6 +26,7 @@ install:
 
 	@# Executable
 	$(INSTALL_PROGRAM) bin/$(NAME).py $(BIN_DIR)/$(NAME)
+	$(INSTALL_PROGRAM) bin/monophony_search_provider.py $(BIN_DIR)/monophony-search-provider
 
 	@# GResources
 	mkdir --parents $(DATA_DIR)/$(NAME)
@@ -39,7 +40,7 @@ install:
 
 	@# D-Bus service
 	mkdir --parents $(SERVICES_DIR)
-	$(INSTALL_DATA) data/$(ID).service $(SERVICES_DIR)/$(ID).service
+	$(INSTALL_DATA) data/$(ID).SearchProvider.service $(SERVICES_DIR)/$(ID).SearchProvider.service
 
 	@# GNOME Shell Search Provider
 	mkdir --parents $(SEARCH_PROVIDER_DIR)

@@ -1,5 +1,8 @@
 '''GNOME Shell Search Provider implementation for Monophony.'''
 
+import os
+import shutil
+import subprocess
 import threading
 
 import logboth
@@ -37,25 +40,33 @@ SEARCH_PROVIDER_XML = '''
 </node>
 '''
 
+BUS_NAME = 'io.gitlab.zehkira.Monophony.SearchProvider'
 OBJECT_PATH = '/io/gitlab/zehkira/Monophony/SearchProvider'
 
 
 class SearchProvider:
 	'''Implements org.gnome.Shell.SearchProvider2 for GNOME Shell search integration.'''
 
-	def __init__(self, application):
+	def __init__(self, application=None):
 		self._app = application
 		self._registration_id = None
+		self._connection = None
 		self._results_cache = {}
 		self._lock = threading.Lock()
 
-	def register(self):
-		'''Register the SearchProvider on the application's D-Bus connection.'''
-		connection = self._app.get_dbus_connection()
+	def register(self, connection=None):
+		'''Register the SearchProvider on the application's or session D-Bus connection.'''
+		if connection is None:
+			if self._app and hasattr(self._app, 'get_dbus_connection'):
+				connection = self._app.get_dbus_connection()
+			else:
+				connection = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+
 		if not connection:
 			logboth.warning(__name__, 'Cannot register SearchProvider: no D-Bus connection')
 			return
 
+		self._connection = connection
 		node_info = Gio.DBusNodeInfo.new_for_xml(SEARCH_PROVIDER_XML)
 		interface_info = node_info.interfaces[0]
 
@@ -70,10 +81,8 @@ class SearchProvider:
 
 	def unregister(self):
 		'''Unregister the SearchProvider from D-Bus.'''
-		if self._registration_id:
-			connection = self._app.get_dbus_connection()
-			if connection:
-				connection.unregister_object(self._registration_id)
+		if self._registration_id and self._connection:
+			self._connection.unregister_object(self._registration_id)
 			self._registration_id = None
 
 	def _handle_method_call(
@@ -127,8 +136,8 @@ class SearchProvider:
 				'icon': 'io.gitlab.zehkira.Monophony'
 			}
 
-		# Asynchronously load suggestions in background
-		self._app.hold()
+		if self._app and hasattr(self._app, 'hold'):
+			self._app.hold()
 
 		def _worker():
 			try:
@@ -189,10 +198,11 @@ class SearchProvider:
 					return GLib.SOURCE_REMOVE
 				GLib.idle_add(_fail_reply)
 			finally:
-				def _release():
-					self._app.release()
-					return GLib.SOURCE_REMOVE
-				GLib.idle_add(_release)
+				if self._app and hasattr(self._app, 'release'):
+					def _release():
+						self._app.release()
+						return GLib.SOURCE_REMOVE
+					GLib.idle_add(_release)
 
 		threading.Thread(target=_worker, daemon=True).start()
 
@@ -226,38 +236,95 @@ class SearchProvider:
 
 		invocation.return_value(GLib.Variant('(aa{sv})', (metas,)))
 
+	def _launch_monophony(self, args: list[str]):
+		cmd = shutil.which('monophony') or '/app/bin/monophony'
+		logboth.info(__name__, f'Launching Monophony with {args} via "{cmd}"')
+		try:
+			subprocess.Popen([cmd, *args])
+		except Exception as e:
+			logboth.error(__name__, f'Failed to launch Monophony: {e}')
+
 	def _activate_result(self, identifier: str, terms: list[str], _timestamp: int = 0):
 		logboth.info(__name__, f'Activating search result: {identifier}')
-		self._app.activate()
-		win = getattr(self._app, '_window', None)
-		if not win:
+
+		# If running with an attached application window (e.g. tests)
+		if self._app and getattr(self._app, '_window', None):
+			win = self._app._window
+			with self._lock:
+				cached = self._results_cache.get(identifier)
+
+			if identifier.startswith('search:'):
+				query = identifier[len('search:'):] or ' '.join(terms)
+				win._on_search(query)
+			elif identifier.startswith('song:'):
+				song = cached.get('item') if cached else None
+				if not song:
+					yt_id = identifier[len('song:'):]
+					name = cached.get('name', 'Song') if cached else 'Song'
+					song = Song(title=name, yt_id=yt_id)
+				win._on_play(song, Group(songs=[song]))
+			elif identifier.startswith(('playlist:', 'album:')):
+				group = cached.get('item') if cached else None
+				if not group:
+					_kind, yt_id = identifier.split(':', 1)
+					name = cached.get('name', 'Playlist') if cached else 'Playlist'
+					group = Group(title=name, yt_id=yt_id)
+				win._on_play(None, group)
+			else:
+				query = ' '.join(terms)
+				win._on_search(query)
 			return
 
-		with self._lock:
-			cached = self._results_cache.get(identifier)
-
+		# Standalone headless search provider daemon:
 		if identifier.startswith('search:'):
 			query = identifier[len('search:'):] or ' '.join(terms)
-			win._on_search(query)
+			self._launch_monophony(['--search', query])
 		elif identifier.startswith('song:'):
-			song = cached.get('item') if cached else None
-			if not song:
-				yt_id = identifier[len('song:'):]
-				name = cached.get('name', 'Song') if cached else 'Song'
-				song = Song(title=name, yt_id=yt_id)
-			win._on_play(song, Group(songs=[song]))
+			song_id = identifier[len('song:'):]
+			self._launch_monophony(['--play-song', song_id])
 		elif identifier.startswith(('playlist:', 'album:')):
-			group = cached.get('item') if cached else None
-			if not group:
-				_kind, yt_id = identifier.split(':', 1)
-				name = cached.get('name', 'Playlist') if cached else 'Playlist'
-				group = Group(title=name, yt_id=yt_id)
-			win._on_play(None, group)
+			group_id = identifier.split(':', 1)[1]
+			self._launch_monophony(['--play-group', group_id])
 		else:
 			query = ' '.join(terms)
-			win._on_search(query)
+			self._launch_monophony(['--search', query])
 
 	def _launch_search(self, terms: list[str], timestamp: int = 0):
 		query = ' '.join(terms).strip()
 		logboth.info(__name__, f'Launching search from GNOME Shell: {query}')
 		self._activate_result(f'search:{query}', terms, timestamp)
+
+
+class SearchProviderService:
+	'''Owns the D-Bus bus name and registers the SearchProvider object.'''
+
+	def __init__(self):
+		self._provider = SearchProvider()
+		self._owner_id = None
+
+	def start(self):
+		'''Acquire the D-Bus name and register the search provider.'''
+		self._owner_id = Gio.bus_own_name(
+			Gio.BusType.SESSION,
+			BUS_NAME,
+			Gio.BusNameOwnerFlags.NONE,
+			self._on_bus_acquired,
+			self._on_name_acquired,
+			self._on_name_lost
+		)
+
+	def stop(self):
+		'''Release the D-Bus name and unregister.'''
+		if self._owner_id:
+			Gio.bus_unown_name(self._owner_id)
+			self._owner_id = None
+		self._provider.unregister()
+
+	def _on_bus_acquired(self, connection, _name):
+		self._provider.register(connection)
+
+	def _on_name_acquired(self, _connection, name):
+		logboth.info(__name__, f'Acquired D-Bus bus name "{name}"')
+
+	def _on_name_lost(self, _connection, name):
+		logboth.warning(__name__, f'Lost or could not acquire D-Bus bus name "{name}"')

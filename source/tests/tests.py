@@ -598,6 +598,23 @@ class UIKeyboardAndLayoutTestCase(unittest.TestCase):
 			self.assertIn('Cerca "test query"', metas[0]['name'])
 			self.assertEqual(metas[1]['name'], 'Song 1')
 
+			# Test standalone activation via subprocess
+			import shutil
+			standalone_sp = SearchProvider()
+			with patch('subprocess.Popen') as mock_popen:
+				expected_cmd = shutil.which('monophony') or '/app/bin/monophony'
+				standalone_sp._activate_result('search:coldplay', ['coldplay'])
+				mock_popen.assert_called_with([expected_cmd, '--search', 'coldplay'])
+
+				standalone_sp._activate_result('song:song123', [])
+				mock_popen.assert_called_with([expected_cmd, '--play-song', 'song123'])
+
+				standalone_sp._activate_result('playlist:pl456', [])
+				mock_popen.assert_called_with([expected_cmd, '--play-group', 'pl456'])
+
+				standalone_sp._launch_search(['imagine', 'dragons'])
+				mock_popen.assert_called_with([expected_cmd, '--search', 'imagine dragons'])
+
 	def test_user_playlist_crud_and_tv_context(self):
 		from unittest.mock import MagicMock, patch
 		from monophony import yt

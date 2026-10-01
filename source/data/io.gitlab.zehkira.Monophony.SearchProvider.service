@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=io.gitlab.zehkira.Monophony.SearchProvider
+Exec=/app/bin/monophony-search-provider

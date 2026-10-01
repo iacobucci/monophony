@@ -12,7 +12,8 @@
 		"--share=network",
 		"--device=dri",
 		"--filesystem=home",
-		"--own-name=org.mpris.MediaPlayer2.Monophony"
+		"--own-name=org.mpris.MediaPlayer2.Monophony",
+		"--own-name=io.gitlab.zehkira.Monophony.SearchProvider"
 	],
 	"modules": [
 		{

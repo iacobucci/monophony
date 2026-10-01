@@ -11,4 +11,3 @@ Icon=io.gitlab.zehkira.Monophony
 Categories=AudioVideo;Audio;Music;GNOME;GTK;
 X-Purism-FormFactor=Workstation;Mobile;
 Keywords=music;stream;youtube;yt;
-DBusActivatable=true

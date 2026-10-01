@@ -116,5 +116,5 @@ else:
 	logboth.error(__name__, 'Failed to install translation: not found')
 	sys.exit(1)
 
-Application().run()
+Application().run(sys.argv)
 logboth.info(__name__, 'Exited')
