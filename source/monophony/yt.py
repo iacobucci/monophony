@@ -449,6 +449,16 @@ def add_songs_to_user_playlist(playlist_id: str, song_ids: list[str]) -> bool:
 
 	clean_pid = playlist_id.removeprefix('VL')
 
+	# Handle Liked Music virtual playlist: adding means rating as LIKE
+	if clean_pid in ('LM', 'FEmusic_liked_videos'):
+		success = True
+		for sid in song_ids:
+			if not rate_song(sid, 'LIKE'):
+				success = False
+		if success:
+			logboth.info(__name__, f'Rated {len(song_ids)} songs as LIKE for "{clean_pid}"')
+		return success
+
 	# 1. Try TVHTML5 via ytmusicapi (0 API quota cost, bulk add)
 	try:
 		yt = get_yt_client()
@@ -504,6 +514,16 @@ def remove_songs_from_user_playlist(playlist_id: str, song_ids: list[str]) -> bo
 		return False
 
 	clean_pid = playlist_id.removeprefix('VL')
+
+	# Handle Liked Music virtual playlist: removing means rating as INDIFFERENT
+	if clean_pid in ('LM', 'FEmusic_liked_videos'):
+		success = True
+		for sid in song_ids:
+			if not rate_song(sid, 'INDIFFERENT'):
+				success = False
+		if success:
+			logboth.info(__name__, f'Unliked {len(song_ids)} songs for "{clean_pid}"')
+		return success
 
 	# 1. Try YouTube Data API v3 (lists exact item IDs and deletes them)
 	headers = _get_oauth_headers()
@@ -603,6 +623,8 @@ def rate_song(video_id: str, rating: str = 'LIKE') -> bool:
 	'''
 	if not is_authenticated():
 		return False
+
+	# 1. Try TVHTML5 via ytmusicapi
 	try:
 		yt = get_yt_client()
 		with _tv_context(yt):
@@ -610,8 +632,29 @@ def rate_song(video_id: str, rating: str = 'LIKE') -> bool:
 		logboth.info(__name__, f'Rated song "{video_id}" as "{rating}" on YouTube Music')
 		return True
 	except Exception as e:
-		logboth.warning(__name__, f'Failed to rate song "{video_id}": {e}')
-		return False
+		logboth.warning(__name__, f'TVHTML5 rate_song failed ({e}), trying Data API v3')
+
+	# 2. Fallback: YouTube Data API v3
+	headers = _get_oauth_headers()
+	if headers:
+		try:
+			v3_rating = rating.lower()
+			if v3_rating == 'indifferent':
+				v3_rating = 'none'
+			res = requests.post(
+				f'https://www.googleapis.com/youtube/v3/videos/rate?id={video_id}&rating={v3_rating}',
+				headers=headers,
+				timeout=10
+			)
+			if res.status_code in (200, 204):
+				logboth.info(__name__, f'Rated song "{video_id}" as "{rating}" via Data API v3')
+				return True
+			else:
+				logboth.warning(__name__, f'Data API v3 rate returned {res.status_code}: {res.text[:200]}')
+		except Exception as err:
+			logboth.error(__name__, f'Failed to rate song "{video_id}" via Data API v3: {err}')
+
+	return False
 
 
 
@@ -1445,6 +1488,56 @@ def _get_playlist_tv(yt_id: str) -> Group | None:
 		return None
 
 
+def _get_playlist_v3(yt_id: str) -> Group | None:
+	'''Fetch a user playlist and its tracks using YouTube Data API v3.'''
+	if not is_authenticated() or not yt_id or yt_id in ('LM', 'FEmusic_liked_videos'):
+		return None
+	headers = _get_oauth_headers()
+	if not headers:
+		return None
+	try:
+		clean_pid = yt_id.removeprefix('VL')
+		# Fetch playlist snippet to get the title
+		title = clean_pid
+		pr = requests.get(
+			f'https://www.googleapis.com/youtube/v3/playlists?part=snippet&id={clean_pid}',
+			headers=headers,
+			timeout=10
+		)
+		if pr.status_code == 200:
+			items = pr.json().get('items', [])
+			if items:
+				title = items[0].get('snippet', {}).get('title', clean_pid)
+
+		songs = []
+		page_token = ''
+		while True:
+			url = f'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId={clean_pid}&maxResults=50'
+			if page_token:
+				url += f'&pageToken={page_token}'
+			r = requests.get(url, headers=headers, timeout=10)
+			if r.status_code != 200:
+				break
+			data = r.json()
+			for it in data.get('items', []):
+				snippet = it.get('snippet', {})
+				vid = snippet.get('resourceId', {}).get('videoId')
+				if not vid:
+					continue
+				s_title = snippet.get('title', '')
+				channel = snippet.get('videoOwnerChannelTitle', '') or snippet.get('channelTitle', '')
+				thumbs = snippet.get('thumbnails', {})
+				thumb = thumbs.get('high', {}).get('url') or thumbs.get('default', {}).get('url', '')
+				songs.append(Song(title=s_title, author=Artist(name=channel), thumbnail=thumb, yt_id=vid))
+			page_token = data.get('nextPageToken')
+			if not page_token:
+				break
+		if songs:
+			return Group(title=title, songs=songs, yt_id=yt_id)
+	except Exception as e:
+		logboth.warning(__name__, f'YouTube Data API v3 playlist fetch failed for "{yt_id}": {e}')
+	return None
+
 
 def _parse_playlist_dict(yt_id: str, data: dict) -> Group | None:
 	if not data or not isinstance(data, dict):
@@ -1532,18 +1625,11 @@ def get_album_or_playlist(yt_id: str) -> Group | None:
 	except Exception as e:
 		logboth.warning(__name__, f'Unauthenticated get_playlist failed for "{yt_id}": {e}')
 
-	# 3. Try authenticated YTMusic client
+	# 4. For authenticated users, try YouTube Data API v3 then TVHTML5
 	if is_authenticated():
-		try:
-			yt = get_yt_client()
-			pl_data = yt.get_playlist(yt_id, limit=None)
-			parsed_group = _parse_playlist_dict(yt_id, pl_data)
-			if parsed_group and parsed_group.songs:
-				logboth.info(__name__, f'Got album/playlist "{yt_id}" via authenticated WEB_REMIX ({len(parsed_group.songs)} songs)')
-				return parsed_group
-		except Exception as e:
-			logboth.warning(__name__, f'Authenticated get_playlist failed for "{yt_id}": {e}')
-
+		if v3_group := _get_playlist_v3(yt_id):
+			logboth.info(__name__, f'Got album/playlist "{yt_id}" via YouTube Data API v3 ({len(v3_group.songs)} songs)')
+			return v3_group
 
 		if tv_group := _get_playlist_tv(yt_id):
 			logboth.info(__name__, f'Got album/playlist "{yt_id}" via TVHTML5 ({len(tv_group.songs)} songs)')

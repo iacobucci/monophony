@@ -488,6 +488,10 @@ class SyncPlaylistsTask(Task):
 
 			# 1. Process Remote Playlists -> Local
 			for r_id, r_meta in remote_yt_ids.items():
+				if r_id in ('LM', 'FEmusic_liked_videos'):
+					# Liked Music is synced separately via likes.sync_from_remote() below
+					continue
+
 				if self.is_canceled():
 					return False
 				wait_if_user_priority()
@@ -545,6 +549,9 @@ class SyncPlaylistsTask(Task):
 					return False
 				count += 1
 				self._update_progress(count / (total or 1))
+
+				if local_group.yt_id in ('LM', 'FEmusic_liked_videos') or local_group.title.lower() in ('liked music', 'brani che ti piacciono'):
+					continue
 
 				if not local_group.yt_id and local_group.songs:
 					song_ids = [s.yt_id for s in local_group.songs if s.yt_id]
